@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { useApp } from '../context/AdminContext';
 import { totalCost, hasLedger } from '@shared/lib/costing';
-import { X, AlertTriangle } from 'lucide-react';
+import { X } from 'lucide-react';
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
@@ -40,7 +40,7 @@ export const RecordSaleModal = ({ vehicle, onClose }) => {
   const value = Number(price);
   const profit = costed ? value - cost : null;
 
-  const submit = useCallback((e) => {
+  const submit = useCallback(async (e) => {
     e.preventDefault();
     if (!Number.isFinite(value) || value <= 0) {
       setError('Enter the price the car actually sold for.');
@@ -50,7 +50,8 @@ export const RecordSaleModal = ({ vehicle, onClose }) => {
       setError('Enter the date of sale — the profit reports are grouped by it.');
       return;
     }
-    recordVehicleSale(vehicle.id, { price: value, date, buyer });
+    const result = await recordVehicleSale(vehicle.id, { price: value, date, buyer });
+    if (!result.ok) { setError(result.reason || 'Could not record this sale.'); return; }
     onClose();
   }, [value, date, buyer, vehicle.id, recordVehicleSale, onClose]);
 
@@ -104,22 +105,22 @@ export const RecordSaleModal = ({ vehicle, onClose }) => {
             </div>
           </div>
 
-          {/* The cost position, stated before the button is pressed. */}
-          <div style={{ background: costed ? 'var(--primary-light)' : 'var(--accent-soft)', borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: '18px' }}>
+          {/* The cost position, stated before the button is pressed. Kept as
+              plain copy rather than a warning callout — it describes what the
+              record will contain, and dropping it would let someone book a
+              sale without realising it lands outside every profit figure. */}
+          <div style={{ background: 'var(--primary-light)', borderRadius: 'var(--radius-md)', padding: '14px 16px', marginBottom: '18px' }}>
             {costed ? (
               <>
                 <Row label="Total cost" value={formatKES(cost)} />
                 <Row label="Profit on this sale" value={formatKES(profit)} strong tone={profit < 0 ? '#b3261e' : 'var(--primary-ink)'} />
               </>
             ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--accent-text)' }} aria-hidden="true" />
-                <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.55, color: 'var(--text-body)' }}>
-                  <strong style={{ color: 'var(--accent-text)' }}>No cost ledger on this car.</strong>{' '}
-                  The sale will count towards revenue but be left out of profit,
-                  because there is nothing to subtract. Add the costs first if you
-                  want this sale in the profit figures.
-                </div>
+              <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.55, color: 'var(--text-body)' }}>
+                <strong>No cost ledger on this car.</strong>{' '}
+                The sale will count towards revenue but be left out of profit,
+                because there is nothing to subtract. Add the costs first if you
+                want this sale in the profit figures.
               </div>
             )}
           </div>

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, MessageCircle, Phone } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 
 export const AdminEnquiries = () => {
-  const { enquiries, updateEnquiryStatus } = useApp();
+  const { enquiries, enquiriesLoading, updateEnquiryStatus } = useApp();
 
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
@@ -88,7 +88,17 @@ export const AdminEnquiries = () => {
               </tr>
             </thead>
             <tbody>
-              {page.visible.map(e => {
+              {enquiriesLoading ? (
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading enquiries…</td></tr>
+              ) : page.visible.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                    {enquiries.length === 0
+                      ? 'No enquiries yet. Test drive, callback and quotation requests from the website land here.'
+                      : 'No enquiries match this filter.'}
+                  </td>
+                </tr>
+              ) : page.visible.map(e => {
                 const style = enquiryStatusStyle[e.status] || { bg: '#f0f0f0', fg: '#333' };
                 return (
                   <tr key={e.id}>

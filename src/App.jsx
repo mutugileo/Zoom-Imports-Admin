@@ -26,9 +26,7 @@ const VIEWS = {
 const AdminRouter = () => {
   const { currentUser, currentView, canView } = useAdmin();
 
-  // Signed out: nothing else mounts. Not security — the data is still in this
-  // browser — but it does keep every admin screen off the glass until a PIN
-  // has been entered, and it is the seam a real auth check drops into.
+  // No session, no profile: nothing else mounts.
   if (!currentUser) return <AdminLogin />;
 
   // A role can reach a view it is not entitled to by deep-linking or by being

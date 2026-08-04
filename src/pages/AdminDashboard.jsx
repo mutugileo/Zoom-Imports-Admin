@@ -47,9 +47,16 @@ const TONE = {
   blue: { bg: '#e4f3fd', fg: '#0a72ac' },
 };
 
-/** "12.4% margin", or an honest dash when nothing in the stream was costed. */
+/**
+ * "12.4% margin", or nothing at all.
+ *
+ * When no sale in the stream has a cost on record there is no margin to state,
+ * and the Profit tile beside these two already says "nothing costed yet" —
+ * repeating it under both Vehicles and Spare parts said the same thing three
+ * times across one row.
+ */
 const marginLabel = (summary) =>
-  summary.margin === null ? 'margin unknown — nothing costed' : `${summary.margin.toFixed(1)}% margin`;
+  summary.margin === null ? '' : `${summary.margin.toFixed(1)}% margin`;
 
 const Money = ({ label, value, sub, big = false, tone }) => (
   <div className="money-cell">
@@ -261,9 +268,11 @@ export const AdminDashboard = () => {
                 <AdminIcon icon={CircleDollarSign} variant="section" size={17} /> Realised · {rangeLabel}
               </span>
               {money.hasGaps && (
-                <span className="money-warn">
-                  <AlertTriangle size={13} aria-hidden="true" />
-                  {money.excluded} {money.excluded === 1 ? 'sale' : 'sales'} left out of profit — no cost recorded
+                /* Still stated, just not as an alert: the profit figure below
+                   is incomplete by exactly this many sales, and a reader who
+                   doesn't know that will over-trust it. */
+                <span className="money-note">
+                  {money.excluded} {money.excluded === 1 ? 'sale' : 'sales'} not counted in profit — no cost recorded
                 </span>
               )}
             </div>

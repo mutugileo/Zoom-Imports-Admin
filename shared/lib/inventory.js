@@ -82,36 +82,9 @@ export const nextGroupId = (groups = [], date = new Date()) => {
   return `${prefix}${String(highest + 1).padStart(2, '0')}`;
 };
 
-/** Seed groups, so the grouped view has something to show on a first run. */
-export const DEFAULT_GROUPS = [
-  {
-    id: 'GRP-2026-07-01',
-    name: 'July 2026 Japan Shipment',
-    type: 'Shipment',
-    vessel: 'MV Hoegh Trapper',
-    origin: 'Yokohama',
-    arrived: '2026-07-14',
-    note: 'Mixed lot, cleared together at Mombasa.',
-  },
-  {
-    id: 'GRP-2026-06-01',
-    name: 'June 2026 Nagoya Batch',
-    type: 'Purchase batch',
-    vessel: '',
-    origin: 'Nagoya',
-    arrived: '2026-06-09',
-    note: 'Bought at auction across two sale days.',
-  },
-  {
-    id: 'GRP-2026-05-01',
-    name: 'May 2026 Mombasa Yard Intake',
-    type: 'Yard',
-    vessel: '',
-    origin: 'Mombasa',
-    arrived: '2026-05-21',
-    note: 'Local intake, no import leg.',
-  },
-];
+/* Groups come from the `vehicle_groups` table — there is no bundled seed list.
+   An admin with no groups yet sees every car under Ungrouped, which is a real
+   state rather than a placeholder shipment nobody created. */
 
 export const UNGROUPED = { id: '', name: 'Ungrouped', type: '' };
 

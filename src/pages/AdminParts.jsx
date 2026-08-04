@@ -4,12 +4,13 @@ import { stockLabel, stockClass } from '@shared/lib/format';
 import { PART_CATEGORY_GROUPS } from '@shared/data/partCategories';
 import { MAZDA_MODEL_GROUPS } from '@shared/data/mazdaModels';
 import { AdminLayout } from './AdminLayout';
-import { Search, Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, Wrench } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
+import { ImagePicker } from '../components/ImagePicker';
 
 export const AdminParts = () => {
-  const { parts, savePart, deletePart, savePartCost, partCostFor, formatKES, can } = useApp();
+  const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, formatKES, can } = useApp();
 
   const mayWrite = can('catalogue:write');
   const mayDelete = can('catalogue:delete');
@@ -21,6 +22,7 @@ export const AdminParts = () => {
      reads. It goes to its own store. */
   const [buyPrice, setBuyPrice] = useState('');
   const [editingPart, setEditingPart] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   const [formData, setFormData] = useState({
     id: null,
@@ -33,7 +35,7 @@ export const AdminParts = () => {
     stock: 15,
     sku: '',
     partNumber: '',
-    img: '',
+    img: null,
     description: '',
   });
 
@@ -55,7 +57,7 @@ export const AdminParts = () => {
       stock: 20,
       sku: '',
       partNumber: '',
-      img: '',
+      img: null,
       description: ''
     });
     setBuyPrice('');
@@ -69,13 +71,15 @@ export const AdminParts = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    savePart(formData);
+    setSaveError('');
+    const result = await savePart(formData);
+    if (!result.ok) { setSaveError(result.reason || 'Could not save this part.'); return; }
     /* Editing an existing part has an id to key the cost by. A brand-new part
        does not yet — its id is issued inside savePart — so the buy price is
        captured on the next edit rather than guessed at here. */
-    if (formData.id) savePartCost(formData.id, buyPrice);
+    if (formData.id) await savePartCost(formData.id, buyPrice);
     setIsModalOpen(false);
   };
 
@@ -131,11 +135,30 @@ export const AdminParts = () => {
               </tr>
             </thead>
             <tbody>
-              {page.visible.map(p => {
+              {partsLoading ? (
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading parts…</td></tr>
+              ) : page.visible.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                    {parts.length === 0
+                      ? 'No parts yet. Use “Add Spare Part” to add your first item to the catalogue.'
+                      : 'No parts match this search.'}
+                  </td>
+                </tr>
+              ) : page.visible.map(p => {
                 return (
                   <tr key={p.id}>
                     <td>
-                      <img src={p.img} alt={p.name} style={{ width: '46px', height: '36px', objectFit: 'cover', borderRadius: '6px' }} />
+                      {p.img ? (
+                        <img src={p.img} alt={p.name} style={{ width: '46px', height: '36px', objectFit: 'cover', borderRadius: '6px' }} />
+                      ) : (
+                        <span
+                          aria-hidden="true"
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '36px', borderRadius: '6px', background: '#edf1f6', color: '#8a97a5' }}
+                        >
+                          <Wrench size={15} strokeWidth={1.8} />
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div style={{ fontWeight: 600, color: '#16232e' }}>{p.name}</div>
@@ -281,14 +304,25 @@ export const AdminParts = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Photo URL</label>
-                <input type="url" value={formData.img || ''} onChange={(e) => setFormData({ ...formData, img: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '6px' }}>Photo</label>
+                {/* A part carries one photo, so the picker is capped at one and
+                    bridged to the single `img` column as a one-item list. */}
+                <ImagePicker
+                  bucket="part-photos"
+                  value={formData.img ? [formData.img] : []}
+                  onChange={(imgs) => setFormData({ ...formData, img: imgs[0] ?? null })}
+                  max={1}
+                />
               </div>
 
               <div>
                 <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Description</label>
                 <textarea rows={3} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
+
+              {saveError && (
+                <div style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{saveError}</div>
+              )}
 
               <button type="submit" className="btn-primary" style={{ marginTop: '10px', padding: '10px' }}>
                 Save Spare Part

@@ -2,8 +2,98 @@ import React, { useState } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
 import { useReveal, revealStyle } from '../lib/useReveal';
-import { ADMIN_ROLES, ROLES, PIN_LENGTH, isPinTaken } from '@shared/data/siteContent';
-import { UserPlus, X, Trash2, ShieldAlert, History } from 'lucide-react';
+import { ADMIN_ROLES, ROLES, PIN_LENGTH } from '@shared/data/siteContent';
+import { supabase } from '@shared/lib/supabaseClient';
+import { pinToPassword } from '@shared/lib/pinAuth';
+import { friendlyError } from '@shared/lib/friendlyError';
+import { UserPlus, X, Trash2, UserCheck, History, KeyRound } from 'lucide-react';
+
+/**
+ * Self-service PIN change. No elevated access needed — a signed-in user can
+ * always update their own Supabase Auth password, which is what the PIN
+ * actually is (see pinAuth.js). Changing *someone else's* PIN is a separate,
+ * harder problem — it needs the service-role Auth Admin API, which this app
+ * doesn't hold a key for, so that stays out of reach until a proper
+ * Edge Function exists for it.
+ */
+const ChangePinCard = ({ name, email }) => {
+  const [next, setNext] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [status, setStatus] = useState(null); // { ok: boolean, message: string } | null
+  const [busy, setBusy] = useState(false);
+
+  const digitsOnly = (v) => v.replace(/\D/g, '').slice(0, PIN_LENGTH);
+
+  const save = async (e) => {
+    e.preventDefault();
+    setStatus(null);
+    if (next.length !== PIN_LENGTH || confirm.length !== PIN_LENGTH) {
+      setStatus({ ok: false, message: `PIN must be ${PIN_LENGTH} digits` });
+      return;
+    }
+    if (next !== confirm) {
+      setStatus({ ok: false, message: 'PINs did not match' });
+      return;
+    }
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: pinToPassword(next) });
+    setBusy(false);
+    if (error) {
+      setStatus({ ok: false, message: friendlyError(error, 'Could not change your PIN. Try again.') });
+      return;
+    }
+    setStatus({ ok: true, message: 'PIN updated' });
+    setNext('');
+    setConfirm('');
+  };
+
+  return (
+    <section style={{ ...card, margin: '22px 0 20px' }}>
+      <div style={cardHead}>
+        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <KeyRound size={16} color="var(--primary-ink)" /> My PIN
+        </h2>
+      </div>
+      <form onSubmit={save} style={{ padding: '20px', display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginRight: '4px' }}>
+          {name} <span style={{ color: '#8a97a3' }}>· {email}</span>
+        </div>
+        <div>
+          <label style={label} htmlFor="pin-next">New PIN</label>
+          <input
+            id="pin-next"
+            style={{ ...input, width: '110px', letterSpacing: '0.3em', textAlign: 'center' }}
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(digitsOnly(e.target.value))}
+          />
+        </div>
+        <div>
+          <label style={label} htmlFor="pin-confirm">Confirm</label>
+          <input
+            id="pin-confirm"
+            style={{ ...input, width: '110px', letterSpacing: '0.3em', textAlign: 'center' }}
+            type="password"
+            inputMode="numeric"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(digitsOnly(e.target.value))}
+          />
+        </div>
+        <button type="submit" className="btn-primary" disabled={busy}>
+          {busy ? 'Saving…' : 'Change PIN'}
+        </button>
+        {status && (
+          <span style={{ fontSize: 'var(--text-sm)', color: status.ok ? 'var(--verify)' : '#a13f3f', width: '100%' }} role="status">
+            {status.message}
+          </span>
+        )}
+      </form>
+    </section>
+  );
+};
 
 const card = {
   background: '#fff',
@@ -50,17 +140,18 @@ const relative = (ts) => {
 };
 
 export const AdminSettings = () => {
-  const { adminUsers, saveUser, removeUser, activity, currentUser, can } = useAdmin();
+  const { adminProfiles, adminProfilesLoading, onlineUserIds, createStaffAccount, updateProfile, removeProfile, activity, currentUser, can } = useAdmin();
   const manageUsers = can('users:manage');
   const [userError, setUserError] = useState('');
+  const [showAddInfo, setShowAddInfo] = useState(false);
 
   /**
-   * removeUser refuses two cases and says why — the last Superadmin, and your
-   * own account. Both would leave the portal with no way back into user
+   * removeProfile refuses two cases and says why — the last Superadmin, and
+   * your own account. Both would leave the portal with no way back into user
    * management, so the refusal is surfaced rather than swallowed.
    */
-  const handleRemove = (u) => {
-    const result = removeUser(u.id);
+  const handleRemove = async (u) => {
+    const result = await removeProfile(u.id);
     setUserError(result?.ok ? '' : (result?.reason ?? 'Could not remove that user'));
   };
   const [draft, setDraft] = useState(null);
@@ -75,11 +166,13 @@ export const AdminSettings = () => {
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
           <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Settings</h1>
           {manageUsers && (
-            <button onClick={() => { setUserError(''); setDraft({ name: '', email: '', role: 'Sales Staff', pin: '' }); }} className="btn-primary">
+            <button onClick={() => setShowAddInfo(true)} className="btn-primary">
               <UserPlus size={16} /> Add staff
             </button>
           )}
         </div>
+
+        {currentUser && <ChangePinCard name={currentUser.name} email={currentUser.email} />}
 
         {/* Staff directory — Superadmin only. Hidden rather than disabled: the
             names, roles and sign-in times of colleagues are not a Sales Staff
@@ -101,10 +194,18 @@ export const AdminSettings = () => {
               </tr>
             </thead>
             <tbody>
-              {adminUsers.map((u) => (
+              {adminProfilesLoading && adminProfiles.length === 0 && (
+                <tr><td colSpan={5} style={{ color: '#5f6b7a', padding: '18px' }}>Loading…</td></tr>
+              )}
+              {adminProfiles.map((u) => (
                 <tr key={u.id}>
                   <td style={{ fontWeight: 600, color: '#16232e' }}>
-                    {u.name}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+                      {onlineUserIds.has(u.id) && (
+                        <span className="presence-dot" aria-label="Online now" title="Online now" />
+                      )}
+                      {u.name}
+                    </span>
                     {u.id === currentUser?.id && (
                       <span style={{ marginLeft: '7px', fontSize: 'var(--text-xs)', fontWeight: 500, color: '#5f6b7a' }}>(you)</span>
                     )}
@@ -118,10 +219,10 @@ export const AdminSettings = () => {
                       {u.role}
                     </span>
                   </td>
-                  <td style={{ color: '#5c6a78' }}>{u.lastLogin ? relative(u.lastLogin) : 'Never signed in'}</td>
+                  <td style={{ color: '#5c6a78' }}>{u.last_login ? relative(new Date(u.last_login).getTime()) : 'Never signed in'}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      <button onClick={() => setDraft(u)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}>
+                      <button onClick={() => { setUserError(''); setDraft(u); }} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}>
                         Edit
                       </button>
                       <button onClick={() => handleRemove(u)} aria-label={`Remove ${u.name}`} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}>
@@ -144,33 +245,28 @@ export const AdminSettings = () => {
 
         <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start' }}>
 
-          {/* Security — stating what is actually true, not what we wish were true */}
+          {/* Your account — the actual signed-in person, not a general explainer */}
           <section ref={securityRef} style={{ ...card, ...revealStyle(securityShown, 1) }}>
             <div style={cardHead}>
               <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ShieldAlert size={16} color="#a13f3f" /> Security
+                <UserCheck size={16} color="var(--verify)" /> Your Account
               </h2>
             </div>
-            <div style={{ padding: '20px' }}>
-              <div
-                style={{
-                  background: '#f6e6e6', border: '1px solid rgba(161,63,63,.25)',
-                  borderRadius: '8px', padding: '13px 15px', marginBottom: '14px',
-                }}
-              >
-                <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#8d3535', marginBottom: '4px' }}>
-                  This portal has no sign-in
-                </div>
-                <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.6, color: '#6d3232' }}>
-                  Anyone who can reach this address has full access to the catalogue and to every
-                  customer order. The roles below are a staff directory — they do not restrict
-                  anything yet.
-                </div>
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: '#16232e' }}>
+                {currentUser?.name}
               </div>
-
-              <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: '#333d49' }}>
-                Before this goes live it needs authentication and a server that checks permissions
-                on every write. Until then, keep it on a local machine and do not host it publicly.
+              <div style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>
+                {currentUser?.email}
+              </div>
+              <span
+                className="badge"
+                style={{ ...(ROLE_TONE[currentUser?.role] || { background: '#eef0f2', color: '#6b7480' }), alignSelf: 'flex-start' }}
+              >
+                {currentUser?.role}
+              </span>
+              <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginTop: '6px' }}>
+                Last signed in {currentUser?.last_login ? relative(new Date(currentUser.last_login).getTime()) : 'just now'}
               </p>
             </div>
           </section>
@@ -214,7 +310,22 @@ export const AdminSettings = () => {
         <UserModal
           user={draft}
           onClose={() => setDraft(null)}
-          onSave={(u) => { saveUser(u); setDraft(null); }}
+          onSave={async (u) => {
+            const result = await updateProfile(u);
+            if (result.ok) setDraft(null);
+            else setUserError(result.reason);
+          }}
+        />
+      )}
+
+      {showAddInfo && (
+        <AddStaffModal
+          onClose={() => setShowAddInfo(false)}
+          onCreate={async (draftUser) => {
+            const result = await createStaffAccount(draftUser);
+            if (result.ok) setShowAddInfo(false);
+            return result;
+          }}
         />
       )}
 
@@ -227,35 +338,30 @@ export const AdminSettings = () => {
   );
 };
 
-const UserModal = ({ user, users, onClose, onSave }) => {
+/**
+ * Editing an existing real account only — name and role. Email is the
+ * Supabase Auth identity (changing it needs its own confirmation flow) and
+ * the PIN is a password only its owner can change (see ChangePinCard), so
+ * neither is editable here.
+ */
+const UserModal = ({ user, onClose, onSave }) => {
   const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
   const [role, setRole] = useState(user.role);
-  const [pin, setPin] = useState(user.pin ?? '');
-  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    const clean = pin.replace(/\D/g, '');
-    if (clean.length !== PIN_LENGTH) {
-      setError(`The PIN must be ${PIN_LENGTH} digits`);
-      return;
-    }
-    // A shared PIN would attribute one person's actions to another in the
-    // activity log, which is the main thing the log is for.
-    if (isPinTaken(users, clean, user.id ?? null)) {
-      setError('Another staff member already uses that PIN');
-      return;
-    }
-    onSave({ ...user, name: name.trim(), email: email.trim(), role, pin: clean });
+    setBusy(true);
+    await onSave({ id: user.id, name: name.trim(), role });
+    setBusy(false);
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={user.id ? 'Edit user' : 'Invite user'}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Edit user">
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '480px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
-            {user.id ? 'Edit user' : 'Invite user'}
+            Edit user
           </h3>
           <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
             <X size={16} />
@@ -268,11 +374,11 @@ const UserModal = ({ user, users, onClose, onSave }) => {
         >
           <div>
             <label style={label} htmlFor="u-name">Full name *</label>
-            <input id="u-name" required value={name} onChange={(e) => setName(e.target.value)} style={input} placeholder="e.g. Wanjiru Kamau" />
+            <input id="u-name" required value={name} onChange={(e) => setName(e.target.value)} style={input} placeholder="Wanjiru Kamau" />
           </div>
           <div>
-            <label style={label} htmlFor="u-email">Work email *</label>
-            <input id="u-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={input} placeholder="name@zoomimports.co.ke" />
+            <label style={label} htmlFor="u-email">Email</label>
+            <input id="u-email" value={user.email} disabled style={{ ...input, background: '#f4f6f8', color: '#5f6b7a' }} />
           </div>
           <div>
             <label style={label} htmlFor="u-role">Role</label>
@@ -284,10 +390,106 @@ const UserModal = ({ user, users, onClose, onSave }) => {
             </p>
           </div>
 
+          <p style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', lineHeight: 1.6 }}>
+            The role takes effect immediately — it&rsquo;s enforced by row-level security in
+            Postgres, not just by which buttons this app shows.
+          </p>
+
+          <button type="submit" className="btn-primary" style={{ padding: '10px' }} disabled={busy}>
+            {busy ? 'Saving…' : 'Save changes'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Real account creation — `supabase.auth.signUp`, no service-role key, see
+ * the comment on `createStaffAccount` in AdminContext.jsx for how that's
+ * possible without hijacking the Superadmin's own session. The initial PIN
+ * is chosen here and handed over in person, same as the original design;
+ * the new person can change it themselves from "My PIN" once they're in.
+ */
+const AddStaffModal = ({ onClose, onCreate }) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('Sales Staff');
+  const [pin, setPin] = useState('');
+  const [error, setError] = useState('');
+  const [result, setResult] = useState(null); // { needsConfirmation } | null
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError('');
+    const cleanPin = pin.replace(/\D/g, '');
+    if (cleanPin.length !== PIN_LENGTH) {
+      setError(`The initial PIN must be ${PIN_LENGTH} digits`);
+      return;
+    }
+    setBusy(true);
+    const outcome = await onCreate({ name: name.trim(), email: email.trim(), role, pin: cleanPin });
+    setBusy(false);
+    if (!outcome.ok) { setError(outcome.reason); return; }
+    setResult(outcome);
+  };
+
+  if (result) {
+    return (
+      <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Staff added">
+        <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '440px' }}>
+          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e', marginBottom: '12px' }}>
+            {name} added
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: '#333d49' }}>
+            {result.needsConfirmation
+              ? <>Supabase just emailed <strong>{email}</strong> a confirmation link. They can sign in
+                  with their email and the PIN you set once they click it — not before.</>
+              : <>They can sign in right away with their email and the PIN you set.</>}
+          </p>
+          <button onClick={onClose} className="btn-primary" style={{ padding: '10px', marginTop: '16px', width: '100%' }}>
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Add staff">
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '480px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+            Add staff
+          </h3>
+          <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
-            <label style={label} htmlFor="u-pin">Sign-in PIN *</label>
+            <label style={label} htmlFor="new-name">Full name *</label>
+            <input id="new-name" required value={name} onChange={(e) => setName(e.target.value)} style={input} placeholder="Wanjiru Kamau" />
+          </div>
+          <div>
+            <label style={label} htmlFor="new-email">Work email *</label>
+            <input id="new-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} style={input} placeholder="name@zoomimports.co.ke" />
+          </div>
+          <div>
+            <label style={label} htmlFor="new-role">Role</label>
+            <select id="new-role" value={role} onChange={(e) => setRole(e.target.value)} style={input}>
+              {ADMIN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '5px', lineHeight: 1.5 }}>
+              {ROLES[role]?.blurb}
+            </p>
+          </div>
+          <div>
+            <label style={label} htmlFor="new-pin">Initial PIN *</label>
             <input
-              id="u-pin"
+              id="new-pin"
               required
               inputMode="numeric"
               pattern="[0-9]*"
@@ -298,8 +500,8 @@ const UserModal = ({ user, users, onClose, onSave }) => {
               placeholder={'0'.repeat(PIN_LENGTH)}
             />
             <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '5px', lineHeight: 1.5 }}>
-              {PIN_LENGTH} digits, unique to this person. They sign in with this and
-              nothing else, so hand it over in person.
+              Hand this to them in person — they can change it themselves from
+              &ldquo;My PIN&rdquo; the first time they sign in.
             </p>
           </div>
 
@@ -308,13 +510,13 @@ const UserModal = ({ user, users, onClose, onSave }) => {
           )}
 
           <p style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', lineHeight: 1.6 }}>
-            The role takes effect immediately — it decides which pages this person sees
-            and what they can change. No invitation email is sent. Access is enforced in
-            the browser only, so it organises the team rather than securing the data.
+            Supabase will email {email || 'them'} a confirmation link before this account can sign
+            in — that&rsquo;s a real anti-abuse step, not optional. On this project&rsquo;s current email
+            quota that can occasionally be delayed; it isn&rsquo;t something this form controls.
           </p>
 
-          <button type="submit" className="btn-primary" style={{ padding: '10px' }}>
-            {user.id ? 'Save changes' : 'Add to directory'}
+          <button type="submit" className="btn-primary" style={{ padding: '10px' }} disabled={busy}>
+            {busy ? 'Creating…' : 'Add to directory'}
           </button>
         </form>
       </div>

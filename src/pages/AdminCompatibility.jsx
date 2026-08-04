@@ -3,14 +3,15 @@ import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
 import { MAZDA_MODEL_GROUPS, labelForModel } from '@shared/data/mazdaModels';
 import { rulePartId } from '@shared/lib/compatibility';
-import { Plus, Trash2, X, GitMerge, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, X, AlertTriangle } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 
 export const AdminCompatibility = () => {
-  const { compatibility, parts, addCompatibilityRule, removeCompatibilityRule } = useApp();
+  const { compatibility, compatibilityLoading, parts, addCompatibilityRule, removeCompatibilityRule } = useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [saveError, setSaveError] = useState('');
   /* Blank, not a plausible default. The old one shipped "Brake Pad Set" — a
      name no part in the catalogue has — against "Axio / Corolla", which are
      Toyota models in a Mazda-only yard. Saving the form untouched produced a
@@ -19,21 +20,20 @@ export const AdminCompatibility = () => {
     partId: '', model: '', years: '',
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const part = parts.find((p) => String(p.id) === String(formData.partId));
     if (!part) return;
-    addCompatibilityRule({
-      /* partId is the real link. `part` and `brand` are carried alongside so the
-         table stays readable and older rules keep the shape they had. */
-      partId: part.id,
+    setSaveError('');
+    const result = await addCompatibilityRule({
+      /* `part` and `brand` are carried alongside so the table stays readable. */
       part: part.name,
       brand: part.brand,
       make: 'Mazda',
-      modelIds: [formData.model],
       model: formData.model === 'All' ? 'All Models' : labelForModel(formData.model),
       years: formData.years.trim(),
     });
+    if (!result.ok) { setSaveError(result.reason || 'Could not add this rule.'); return; }
     setIsModalOpen(false);
     setFormData({ partId: '', model: '', years: '' });
   };
@@ -74,7 +74,15 @@ export const AdminCompatibility = () => {
               </tr>
             </thead>
             <tbody>
-              {page.visible.map(c => (
+              {compatibilityLoading ? (
+                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading compatibility rules…</td></tr>
+              ) : page.visible.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                    No fitment rules yet. These tell customers which vehicles a part fits — add a spare part first, then map it here.
+                  </td>
+                </tr>
+              ) : page.visible.map(c => (
                 <tr key={c.id}>
                   <td style={{ fontWeight: 600, color: '#16232e' }}>
                     {c.part}
@@ -152,10 +160,14 @@ export const AdminCompatibility = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Year Range (e.g. 2012-2018)</label>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Year range</label>
                   <input type="text" value={formData.years} onChange={(e) => setFormData({ ...formData, years: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
+
+              {saveError && (
+                <div style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{saveError}</div>
+              )}
 
               <button type="submit" className="btn-primary" style={{ marginTop: '10px', padding: '10px' }}>
                 Add Mapping Rule

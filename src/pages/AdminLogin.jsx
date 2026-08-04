@@ -1,90 +1,119 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAdmin } from '../context/AdminContext';
-import { PIN_LENGTH } from '@shared/data/siteContent';
 import { Delete, LogIn } from 'lucide-react';
 
+const PIN_LENGTH = 4;
+
 /**
- * PIN sign-in.
+ * Real sign-in, every time — the PIN is the actual credential, checked
+ * server-side by Supabase Auth (via a fixed padding transform in
+ * pinAuth.js), not a local convenience layer on top of a separate password.
  *
- * A keypad rather than a form because of where this runs: a counter terminal on
- * Mombasa Road, often on a touch screen, with staff swapping between them
- * through the day. Four taps and you are in; there is no username to type.
- *
- * The PIN identifies the person as well as authorising them, which is what makes
- * the activity log meaningful — "Faith deleted a listing", not "someone did".
- *
- * This is a UI gate, not a security control. The comparison happens in this
- * browser against records in localStorage, so it keeps the wrong screens out of
- * the way and nothing more. The on-screen notice saying as much was removed at
- * the owner's request; the caveat now lives in the README, and real access
- * control still needs a server.
+ * First time on a device: email + PIN. After a successful sign-in, this
+ * device remembers *who* signed in (the email — not a secret, just an
+ * identifier) so every later sign-in on the same device only needs the PIN,
+ * matching the original counter-terminal UX this screen was built for.
+ * "Not you?" forgets the device and asks for email again — the actual case
+ * of a different person at a shared terminal.
  */
 export const AdminLogin = () => {
-  const { signIn, resetAdminUsers } = useAdmin();
+  const { authLoading, getRememberedEmail } = useAdmin();
+  const rememberedEmail = getRememberedEmail();
+
+  if (authLoading) {
+    return (
+      <div className="login-screen">
+        <div className="login-card" aria-busy="true" />
+      </div>
+    );
+  }
+
+  return <PinLogin rememberedEmail={rememberedEmail} />;
+};
+
+const PinLogin = ({ rememberedEmail }) => {
+  const { signIn, forgetDevice } = useAdmin();
+  const [email, setEmail] = useState(rememberedEmail || '');
+  const [showEmailField, setShowEmailField] = useState(!rememberedEmail);
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
-  const [attempts, setAttempts] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [shake, setShake] = useState(false);
-  const padRef = useRef(null);
 
   const fail = useCallback((message) => {
-    setAttempts((n) => n + 1);
     setError(message);
     setShake(true);
     setPin('');
     window.setTimeout(() => setShake(false), 420);
   }, []);
 
-  const submit = useCallback((value) => {
-    const user = signIn(value);
-    if (!user) fail('That PIN was not recognised');
-  }, [signIn, fail]);
+  const submit = useCallback(async (candidatePin) => {
+    if (!email.trim()) { fail('Enter your email first'); return; }
+    setBusy(true);
+    const result = await signIn(email.trim(), candidatePin);
+    setBusy(false);
+    if (!result.ok) fail(result.reason);
+  }, [signIn, email, fail]);
 
-  const press = useCallback((digit) => {
+  const digit = useCallback((d) => {
     setError('');
     setPin((prev) => {
-      if (prev.length >= PIN_LENGTH) return prev;
-      const next = prev + digit;
-      // Submit on the last digit rather than making them reach for a button.
+      if (prev.length >= PIN_LENGTH || busy) return prev;
+      const next = prev + d;
       if (next.length === PIN_LENGTH) window.setTimeout(() => submit(next), 90);
       return next;
     });
-  }, [submit]);
+  }, [busy, submit]);
 
-  const backspace = useCallback(() => {
+  const backspace = useCallback(() => { setError(''); setPin((p) => p.slice(0, -1)); }, []);
+
+  const notYou = useCallback(() => {
+    forgetDevice();
+    setEmail('');
+    setShowEmailField(true);
+    setPin('');
     setError('');
-    setPin((prev) => prev.slice(0, -1));
-  }, []);
+  }, [forgetDevice]);
 
-  /* A hardware keyboard has to work too — most of these terminals have one. */
   useEffect(() => {
     const onKey = (e) => {
-      if (/^\d$/.test(e.key)) { e.preventDefault(); press(e.key); }
+      if (/^\d$/.test(e.key)) { e.preventDefault(); digit(e.key); }
       else if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
-      else if (e.key === 'Escape') { setPin(''); setError(''); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [press, backspace]);
-
-  useEffect(() => { padRef.current?.focus(); }, []);
+  }, [digit, backspace]);
 
   return (
     <div className="login-screen">
-      <div className="login-card" ref={padRef} tabIndex={-1}>
+      <div className="login-card" tabIndex={-1}>
         <div className="login-brand">
           <div className="login-wordmark">Zoom Imports</div>
           <div className="login-sub">Dealership portal</div>
         </div>
 
+        {showEmailField ? (
+          <div style={{ marginTop: '6px', marginBottom: '4px', textAlign: 'center' }}>
+            <label className="field-label" htmlFor="login-email" style={{ textAlign: 'center' }}>Email</label>
+            <input
+              id="login-email"
+              type="email"
+              autoComplete="username"
+              className="field"
+              style={{ textAlign: 'center' }}
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
+            />
+          </div>
+        ) : (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', textAlign: 'center', marginBottom: '6px' }}>
+            {email}
+          </p>
+        )}
+
         <label className="login-label" id="pin-label">Enter your PIN</label>
 
-        {/* The dots are decorative; the live region below is what a screen
-            reader announces, so it says how many digits, never the digits. */}
-        <div
-          className={`pin-dots${shake ? ' pin-shake' : ''}`}
-          aria-hidden="true"
-        >
+        <div className={`pin-dots${shake ? ' pin-shake' : ''}`} aria-hidden="true">
           {Array.from({ length: PIN_LENGTH }, (_, i) => (
             <span key={i} className={`pin-dot${i < pin.length ? ' is-filled' : ''}`} />
           ))}
@@ -94,39 +123,41 @@ export const AdminLogin = () => {
         </span>
 
         <p className={`login-error${error ? ' is-shown' : ''}`} role="alert">
-          {error || ' '}
+          {error || ' '}
         </p>
 
         <div className="pin-pad" role="group" aria-labelledby="pin-label">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
-            <button key={d} type="button" className="pin-key" onClick={() => press(d)}>{d}</button>
+            <button key={d} type="button" className="pin-key" onClick={() => digit(d)} disabled={busy}>{d}</button>
           ))}
           <span />
-          <button type="button" className="pin-key" onClick={() => press('0')}>0</button>
+          <button type="button" className="pin-key" onClick={() => digit('0')} disabled={busy}>0</button>
           <button
             type="button"
             className="pin-key pin-key-alt"
             onClick={backspace}
             aria-label="Delete last digit"
-            disabled={pin.length === 0}
+            disabled={pin.length === 0 || busy}
           >
             <Delete size={18} />
           </button>
         </div>
 
-        <button
-          type="button"
-          className="btn-primary login-submit"
-          onClick={() => submit(pin)}
-          disabled={pin.length < PIN_LENGTH}
-        >
-          <LogIn size={15} /> Sign in
-        </button>
+        {busy && (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>
+            <LogIn size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} /> Signing in…
+          </p>
+        )}
 
-        {attempts >= 3 && (
-          <button type="button" className="login-recover" onClick={resetAdminUsers}>
-            Locked out? Restore the demo staff accounts
+        {!showEmailField && (
+          <button type="button" className="login-recover" onClick={notYou}>
+            Not you?
           </button>
+        )}
+        {showEmailField && (
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-dim)', textAlign: 'center', marginTop: '10px' }}>
+            Forgot your PIN? Ask your Superadmin to reset it.
+          </p>
         )}
       </div>
     </div>

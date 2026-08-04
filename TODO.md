@@ -93,8 +93,21 @@ owner's request, so this caveat now lives only here and in the README.
 commerce.
 
 **P1 — photo upload.** Vehicle and part images are URL fields. Staff need to
-upload a png/jpeg from a phone. Needs a decision on where bytes live —
-`localStorage` cannot hold photos.
+upload a png/jpeg from a phone. Bytes live in Supabase Storage once the
+backend (see below) is unpaused — same project as the Postgres catalogue,
+so bucket access reuses the `admin_profiles` role model instead of standing
+up a second auth system. Compress client-side before upload (a phone photo
+runs 3-8MB; `scripts/optimize-assets.mjs`'s existing WebP settings — quality
+80, resized — already average 126KB on the real catalogue, well inside a
+300KB budget) rather than paying for Storage's on-the-fly transform feature,
+which is Pro-tier only. At that real average, Free tier's 1GB ceiling holds
+~8,000 photos and Pro's 100GB holds ~800,000 — storage cost was never going
+to be the constraint for an 18-vehicle lot.
+
+Open decision, not yet made: `img` is a single field today. Real listings
+want 5-10 photos per car, which means a `vehicle_photos` one-to-many table
+rather than one column — worth deciding before Phase 1's schema is cut, not
+after.
 
 **P2 — no transactional notifications.** No SMS, email or WhatsApp message when
 an order is placed or its status changes.

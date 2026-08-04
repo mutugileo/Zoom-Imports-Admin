@@ -47,6 +47,7 @@ export const VehicleCosts = ({ vehicle }) => {
 
   const [draft, setDraft] = useState(() => ({ ...emptyCosts(), ...costsFor(vehicle.id) }));
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
 
   // Switching vehicles inside an open modal must reload the ledger, or the
   // previous car's figures would sit in the form ready to be saved onto this one.
@@ -78,9 +79,11 @@ export const VehicleCosts = ({ vehicle }) => {
     setDraft((d) => ({ ...d, expenses: d.expenses.filter((_, idx) => idx !== i) }));
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    saveCosts(vehicle.id, draft);
+    setError('');
+    const result = await saveCosts(vehicle.id, draft);
+    if (!result.ok) { setError(result.reason || 'Could not save this ledger.'); return; }
     setSaved(true);
   };
 
@@ -235,6 +238,7 @@ export const VehicleCosts = ({ vehicle }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button type="submit" className="btn-primary">Save ledger</button>
           {saved && <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)' }}>Saved.</span>}
+          {error && <span style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{error}</span>}
         </div>
       )}
     </form>

@@ -1,28 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { LISTING_TYPES } from '@shared/lib/format';
-import { groupVehicles, STAGES, GROUP_TYPES } from '@shared/lib/inventory';
+import { groupVehicles, STAGES } from '@shared/lib/inventory';
 import { MAZDA_MODEL_GROUPS, modelOf } from '@shared/data/mazdaModels';
 import { totalCost, profit, profitMargin, formatMargin, hasLedger, rollUp } from '@shared/lib/costing';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, Plus, Edit2, Trash2, Star, X, Eye } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Star, X, Eye, Car } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { VehicleDetailModal } from '../components/VehicleDetailModal';
 import { RecordSaleModal } from '../components/RecordSaleModal';
+import { ImagePicker } from '../components/ImagePicker';
 
 export const AdminVehicles = () => {
   const {
     vehicles,
-    can, 
+    vehiclesLoading,
+    can,
     vehicleGroups,
     vehicleCosts,
-    saveVehicle, 
-    deleteVehicle, 
-    toggleFeaturedVehicle, 
+    saveVehicle,
+    deleteVehicle,
+    toggleFeaturedVehicle,
     saleFor,
-    formatKES 
+    formatKES
   } = useApp();
 
   // Sales Staff may read the catalogue but not change it, so the write and
@@ -37,6 +39,7 @@ export const AdminVehicles = () => {
   const [editingVehicle, setEditingVehicle] = useState(null);
   const [detailVehicle, setDetailVehicle] = useState(null);
   const [saleVehicle, setSaleVehicle] = useState(null);
+  const [saveError, setSaveError] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -66,7 +69,8 @@ export const AdminVehicles = () => {
     odometerVerified: true,
     dutyPaid: true,
     featured: false,
-    img: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
+    img: null,
+    images: [],
     description: ''
   });
 
@@ -116,7 +120,8 @@ export const AdminVehicles = () => {
       odometerVerified: true,
       dutyPaid: true,
       featured: false,
-      img: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
+      img: null,
+    images: [],
       description: ''
     });
     setIsModalOpen(true);
@@ -144,8 +149,8 @@ export const AdminVehicles = () => {
     return () => document.removeEventListener('keydown', onKey);
   }, [isModalOpen, closeModal]);
 
-  const handleDeleteFromDetail = (vehicle) => {
-    deleteVehicle(vehicle.id);
+  const handleDeleteFromDetail = async (vehicle) => {
+    await deleteVehicle(vehicle.id);
     setDetailVehicle(null);
   };
 
@@ -168,10 +173,12 @@ export const AdminVehicles = () => {
     return `${base}-${n}`;
   };
 
-  const handleSubmitForm = (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
+    setSaveError('');
     const base = slugify(formData.slug || `${formData.name} ${formData.year}`);
-    saveVehicle({ ...formData, slug: uniqueSlug(base, formData.id) });
+    const result = await saveVehicle({ ...formData, slug: uniqueSlug(base, formData.id) });
+    if (!result.ok) { setSaveError(result.reason || 'Could not save this vehicle.'); return; }
     setIsModalOpen(false);
   };
 
@@ -235,8 +242,14 @@ export const AdminVehicles = () => {
             this as a separate presentation means the desktop inventory can
             stay dense without forcing a 720px table through a 390px screen. */}
         <div className="vehicle-mobile-list" aria-label="Vehicle inventory">
-          {buckets.length === 0 && (
-            <div className="vehicle-mobile-empty">No vehicles match this search.</div>
+          {vehiclesLoading ? (
+            <div className="vehicle-mobile-empty">Loading vehicles…</div>
+          ) : buckets.length === 0 && (
+            <div className="vehicle-mobile-empty">
+              {vehicles.length === 0
+                      ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
+                      : 'No vehicles match this search.'}
+            </div>
           )}
 
           {buckets.map(({ group, vehicles: rows }) => {
@@ -282,7 +295,13 @@ export const AdminVehicles = () => {
                           onClick={() => setDetailVehicle(v)}
                           aria-label={`View ${v.name} details`}
                         >
-                          <img className="vehicle-mobile-photo" src={v.img} alt="" loading="lazy" />
+                          {v.img ? (
+                            <img className="vehicle-mobile-photo" src={v.img} alt="" loading="lazy" />
+                          ) : (
+                            <span className="vehicle-mobile-photo vehicle-photo-none" aria-hidden="true">
+                              <Car size={17} strokeWidth={1.8} />
+                            </span>
+                          )}
                           <span className="vehicle-mobile-title">
                             <span className="vehicle-mobile-stock">{v.stockId || 'Stock ID unassigned'}</span>
                             <strong>{v.name} <span>{v.year}</span></strong>
@@ -394,7 +413,17 @@ export const AdminVehicles = () => {
               </tr>
             </thead>
             <tbody>
-              {buckets.map(({ group, vehicles: rows }) => {
+              {vehiclesLoading ? (
+                <tr><td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading vehicles…</td></tr>
+              ) : buckets.length === 0 ? (
+                <tr>
+                  <td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                    {vehicles.length === 0
+                      ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
+                      : 'No vehicles match this search.'}
+                  </td>
+                </tr>
+              ) : buckets.map(({ group, vehicles: rows }) => {
                 if (rows.length === 0) return null;
                 const roll = mayCosts ? rollUp(rows, vehicleCosts) : null;
                 return (
@@ -442,7 +471,16 @@ export const AdminVehicles = () => {
                   style={{ cursor: 'pointer' }}
                 >
                   <td>
-                    <img src={v.img} alt={v.name} style={{ width: '52px', height: '38px', objectFit: 'cover', borderRadius: '6px' }} />
+                    {v.img ? (
+                      <img src={v.img} alt={v.name} style={{ width: '52px', height: '38px', objectFit: 'cover', borderRadius: '6px' }} />
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '38px', borderRadius: '6px', background: '#edf1f6', color: '#8a97a5' }}
+                      >
+                        <Car size={16} strokeWidth={1.8} />
+                      </span>
+                    )}
                   </td>
                   <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: '#16232e', whiteSpace: 'nowrap' }}>
                     {v.stockId || <span style={{ color: 'var(--accent-text)' }}>unassigned</span>}
@@ -753,11 +791,11 @@ export const AdminVehicles = () => {
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Registration number</label>
-                    <input type="text" value={formData.regNumber || ''} placeholder="e.g. KDN 412A — blank until registered" onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.regNumber || ''} placeholder="KDN 412A — blank until registered" onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Current location</label>
-                    <input type="text" value={formData.location || ''} placeholder="e.g. Mombasa Road Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.location || ''} placeholder="Mombasa Road Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                 </div>
                 <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '9px', lineHeight: 1.5 }}>
@@ -778,19 +816,19 @@ export const AdminVehicles = () => {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Chassis number</label>
-                    <input type="text" value={formData.chassis || ''} placeholder="e.g. BM5FS-1204471" onChange={(e) => setFormData({ ...formData, chassis: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.chassis || ''} placeholder="BM5FS-1204471" onChange={(e) => setFormData({ ...formData, chassis: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Auction grade</label>
-                    <input type="text" value={formData.grade || ''} placeholder="e.g. 4.5 B" onChange={(e) => setFormData({ ...formData, grade: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.grade || ''} placeholder="4.5 B" onChange={(e) => setFormData({ ...formData, grade: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Inspection</label>
-                    <input type="text" value={formData.inspection || ''} placeholder="e.g. JEVIC verified" onChange={(e) => setFormData({ ...formData, inspection: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.inspection || ''} placeholder="JEVIC verified" onChange={(e) => setFormData({ ...formData, inspection: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Port of entry</label>
-                    <input type="text" value={formData.port || ''} placeholder="e.g. Mombasa" onChange={(e) => setFormData({ ...formData, port: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.port || ''} placeholder="Mombasa" onChange={(e) => setFormData({ ...formData, port: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>URL slug</label>
@@ -811,9 +849,20 @@ export const AdminVehicles = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Photo Image URL</label>
-                <input type="text" value={formData.img} onChange={(e) => setFormData({ ...formData, img: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '6px' }}>
+                  Photos <span style={{ fontWeight: 400 }}>— the first one is the cover shown on the website</span>
+                </label>
+                <ImagePicker
+                  bucket="vehicle-photos"
+                  value={formData.images || []}
+                  onChange={(images) => setFormData({ ...formData, images })}
+                  max={10}
+                />
               </div>
+
+              {saveError && (
+                <div style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{saveError}</div>
+              )}
 
               <button type="submit" className="btn-primary" style={{ marginTop: '10px', padding: '10px' }}>
                 Save Vehicle Listing

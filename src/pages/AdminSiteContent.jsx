@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAdmin } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
 import { useReveal, revealStyle } from '../lib/useReveal';
-import { Plus, Trash2, Image as ImageIcon, X, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, X, Upload } from 'lucide-react';
+import { supabase } from '@shared/lib/supabaseClient';
+import { friendlyError } from '@shared/lib/friendlyError';
 
 const card = {
   background: '#fff',
@@ -39,8 +41,14 @@ export const AdminSiteContent = () => {
     vehicles, toggleFeaturedVehicle,
   } = useAdmin();
 
-  const [contact, setContact] = useState(siteContent.contact);
+  const EMPTY_CONTACT = { phone: '', whatsapp: '', email: '', location: '' };
+  // siteContent.contact is null until the fetch from site_contact resolves —
+  // an empty shape here means the form can render immediately instead of
+  // crashing on contact.phone before that first load completes.
+  const [contact, setContact] = useState(siteContent.contact ?? EMPTY_CONTACT);
   const [contactSaved, setContactSaved] = useState(false);
+  const [contactError, setContactError] = useState('');
+  const [contactBusy, setContactBusy] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [faqDraft, setFaqDraft] = useState(null);
 
@@ -50,14 +58,18 @@ export const AdminSiteContent = () => {
   const [faqRef, faqShown] = useReveal();
 
   // Keep the form in step if the stored contact changes underneath it.
-  useEffect(() => { setContact(siteContent.contact); }, [siteContent.contact]);
+  useEffect(() => { if (siteContent.contact) setContact(siteContent.contact); }, [siteContent.contact]);
 
-  const contactDirty = JSON.stringify(contact) !== JSON.stringify(siteContent.contact);
+  const contactDirty = JSON.stringify(contact) !== JSON.stringify(siteContent.contact ?? EMPTY_CONTACT);
   const featuredCount = vehicles.filter((v) => v.featured).length;
 
-  const handleSaveContact = (e) => {
+  const handleSaveContact = async (e) => {
     e.preventDefault();
-    saveContact(contact);
+    setContactError('');
+    setContactBusy(true);
+    const result = await saveContact(contact);
+    setContactBusy(false);
+    if (!result.ok) { setContactError(result.reason); return; }
     setContactSaved(true);
     setTimeout(() => setContactSaved(false), 2600);
   };
@@ -69,23 +81,7 @@ export const AdminSiteContent = () => {
           <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Site Content</h1>
         </div>
 
-        {/* Honest about what actually reaches the public site today */}
-        <div
-          style={{
-            display: 'flex', gap: '11px', alignItems: 'flex-start',
-            background: '#fbf1df', border: '1px solid rgba(148,97,24,.25)',
-            borderRadius: '8px', padding: '13px 15px', margin: '18px 0 22px',
-          }}
-        >
-          <AlertTriangle size={16} color="#946118" style={{ flexShrink: 0, marginTop: '1px' }} />
-          <div style={{ fontSize: 'var(--text-sm)', lineHeight: 1.6, color: '#5c4413' }}>
-            <strong>Featured Vehicles is live.</strong> Banners, contact details and FAQs are
-            saved here but the public site still reads its own copies — the two apps run on
-            separate origins with no shared backend. Wiring them up is a server task.
-          </div>
-        </div>
-
-        <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start' }}>
+        <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginTop: '22px' }}>
 
           {/* Homepage banners */}
           <section ref={bannersRef} style={{ ...card, ...revealStyle(bannersShown) }}>
@@ -101,21 +97,13 @@ export const AdminSiteContent = () => {
 
             <div style={{ padding: '20px' }}>
               {siteContent.banners.length === 0 ? (
-                <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
-                  {[1, 2].map((n) => (
-                    <div
-                      key={n}
-                      style={{
-                        width: '158px', height: '104px', border: '1.5px dashed #d8dde2',
-                        borderRadius: '8px', display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center', gap: '8px', color: '#5c6a78',
-                      }}
-                    >
-                      <ImageIcon size={22} />
-                      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Banner {n}</span>
-                    </div>
-                  ))}
-                </div>
+                /* One empty state, not a row of numbered placeholder tiles.
+                   Drawing "Banner 1" and "Banner 2" boxes against an empty
+                   table read as two banners that already existed — the count
+                   was invented by this component, not by the data. */
+                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0' }}>
+                  No banners yet. Add one to feature it on the homepage.
+                </p>
               ) : (
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                   {siteContent.banners.map((b) => (
@@ -163,11 +151,14 @@ export const AdminSiteContent = () => {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button type="submit" className="btn-primary" disabled={!contactDirty} style={{ opacity: contactDirty ? 1 : 0.5, cursor: contactDirty ? 'pointer' : 'not-allowed' }}>
-                  Save Changes
+                <button type="submit" className="btn-primary" disabled={!contactDirty || contactBusy} style={{ opacity: contactDirty ? 1 : 0.5, cursor: contactDirty ? 'pointer' : 'not-allowed' }}>
+                  {contactBusy ? 'Saving…' : 'Save Changes'}
                 </button>
                 {contactSaved && (
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)', fontWeight: 600 }}>Saved</span>
+                )}
+                {contactError && (
+                  <span role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{contactError}</span>
                 )}
               </div>
             </form>
@@ -264,7 +255,11 @@ export const AdminSiteContent = () => {
       {bannerOpen && (
         <BannerModal
           onClose={() => setBannerOpen(false)}
-          onSave={(banner) => { addBanner(banner); setBannerOpen(false); }}
+          onSave={async (banner) => {
+            const result = await addBanner(banner);
+            if (result.ok) setBannerOpen(false);
+            return result;
+          }}
         />
       )}
 
@@ -272,7 +267,11 @@ export const AdminSiteContent = () => {
         <FaqModal
           faq={faqDraft}
           onClose={() => setFaqDraft(null)}
-          onSave={(faq) => { saveFaq(faq); setFaqDraft(null); }}
+          onSave={async (faq) => {
+            const result = await saveFaq(faq);
+            if (result.ok) setFaqDraft(null);
+            return result;
+          }}
         />
       )}
 
@@ -299,31 +298,137 @@ const ModalShell = ({ heading, onClose, children }) => (
   </div>
 );
 
+const MAX_BANNER_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Banner images are uploaded, not pasted as a URL.
+ *
+ * A URL field made the banner depend on someone else's server staying up —
+ * the homepage would silently lose its artwork the day that link rotted.
+ * The file goes into our own Storage bucket and the public URL we get back
+ * is what gets stored.
+ */
 const BannerModal = ({ onClose, onSave }) => {
   const [title2, setTitle] = useState('');
-  const [img, setImg] = useState('');
   const [link, setLink] = useState('');
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef(null);
+
+  // Object URLs are held by the browser until explicitly released.
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+
+  const pick = (e) => {
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    setError('');
+    if (!picked.type.startsWith('image/')) {
+      setError('That file is not an image.');
+      return;
+    }
+    if (picked.size > MAX_BANNER_BYTES) {
+      setError(`That image is ${(picked.size / 1024 / 1024).toFixed(1)}MB — the limit is 5MB.`);
+      return;
+    }
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(picked);
+    setPreview(URL.createObjectURL(picked));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!file) { setError('Choose an image for this banner.'); return; }
+    setError('');
+    setBusy(true);
+
+    // Timestamped path so re-using a filename never overwrites a live banner.
+    const safeName = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
+    const path = `${Date.now()}-${safeName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('site-banners')
+      .upload(path, file, { upsert: false });
+
+    if (uploadError) {
+      setBusy(false);
+      setError(friendlyError(uploadError, 'Could not upload that image. Try again.'));
+      return;
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from('site-banners').getPublicUrl(path);
+    const result = await onSave({ title: title2.trim(), img: publicUrl, link: link.trim() });
+    setBusy(false);
+    // The row failed to save, so the file we just uploaded has nothing
+    // pointing at it — take it back out rather than leave it orphaned.
+    if (result && !result.ok) {
+      await supabase.storage.from('site-banners').remove([path]);
+      setError(result.reason || 'Could not save this banner.');
+    }
+  };
 
   return (
     <ModalShell heading="Add Homepage Banner" onClose={onClose}>
-      <form
-        onSubmit={(e) => { e.preventDefault(); onSave({ title: title2.trim(), img: img.trim(), link: link.trim() }); }}
-        style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
-      >
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div>
           <label style={label} htmlFor="b-title">Banner title *</label>
-          <input id="b-title" required value={title2} onChange={(e) => setTitle(e.target.value)} style={input} placeholder="e.g. December import clearance" />
+          <input id="b-title" required value={title2} onChange={(e) => setTitle(e.target.value)} style={input} placeholder="December import clearance" />
         </div>
+
         <div>
-          <label style={label} htmlFor="b-img">Image URL *</label>
-          <input id="b-img" required value={img} onChange={(e) => setImg(e.target.value)} style={input} placeholder="https://…" />
+          <label style={label} htmlFor="b-img">Banner image *</label>
+          {preview ? (
+            <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #d8dde2', marginBottom: '8px' }}>
+              <img src={preview} alt="" style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }} />
+              <button
+                type="button"
+                onClick={() => { URL.revokeObjectURL(preview); setPreview(''); setFile(null); }}
+                aria-label="Remove selected image"
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(11,21,18,.75)', border: 'none', borderRadius: '999px', width: '26px', height: '26px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={13} color="#fff" />
+              </button>
+            </div>
+          ) : (
+            /* Deliberately a button, not a <label htmlFor>: a global rule in
+               index.css forces every label inside .modal-content to
+               display:block + uppercase, which collapses a flex dropzone onto
+               one line. This also keeps the zone keyboard-reachable. */
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: '7px', height: '110px', width: '100%', background: '#fff',
+                border: '1.5px dashed #d8dde2', borderRadius: '8px',
+                cursor: 'pointer', color: '#5c6a78', marginBottom: '8px',
+              }}
+            >
+              <Upload size={20} aria-hidden="true" />
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>Choose an image</span>
+              <span style={{ fontSize: 'var(--text-xs)' }}>PNG or JPG, up to 5MB</span>
+            </button>
+          )}
+          <input ref={fileRef} id="b-img" type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
+          {file && (
+            <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+              {file.name} · {(file.size / 1024).toFixed(0)}KB
+            </div>
+          )}
         </div>
+
         <div>
           <label style={label} htmlFor="b-link">Links to (optional)</label>
           <input id="b-link" value={link} onChange={(e) => setLink(e.target.value)} style={input} placeholder="/vehicles" />
         </div>
-        <button type="submit" className="btn-primary" style={{ marginTop: '4px', padding: '10px' }}>
-          Add banner
+
+        {error && (
+          <div role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{error}</div>
+        )}
+
+        <button type="submit" className="btn-primary" disabled={busy} style={{ marginTop: '4px', padding: '10px', opacity: busy ? 0.6 : 1 }}>
+          {busy ? 'Uploading…' : 'Add banner'}
         </button>
       </form>
     </ModalShell>

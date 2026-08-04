@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, ShoppingBag, MessageSquare, CheckCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 
 export const AdminOrders = () => {
-  const { orders, updateOrderStatus, formatKES } = useApp();
+  const { orders, ordersLoading, updateOrderStatus, formatKES } = useApp();
   
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
@@ -95,7 +95,17 @@ export const AdminOrders = () => {
               </tr>
             </thead>
             <tbody>
-              {page.visible.map(o => {
+              {ordersLoading ? (
+                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading orders…</td></tr>
+              ) : page.visible.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                    {orders.length === 0
+                      ? 'No orders yet. Parts orders placed on the website arrive here for fulfilment — they are not added by hand.'
+                      : 'No orders match this filter.'}
+                  </td>
+                </tr>
+              ) : page.visible.map(o => {
                 const style = orderStatusStyle[o.status] || { bg: '#f0f0f0', fg: '#333' };
                 return (
                   <tr key={o.ref}>
