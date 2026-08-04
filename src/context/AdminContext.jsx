@@ -130,6 +130,8 @@ export const AdminProvider = ({ children }) => {
   const [adminProfiles, setAdminProfiles] = useState([]);
   const [adminProfilesLoading, setAdminProfilesLoading] = useState(false);
   const [onlineUserIds, setOnlineUserIds] = useState(() => new Set());
+  // Shown a minute before the idle sign-out, so nobody loses a form silently.
+  const [idleWarning, setIdleWarning] = useState(false);
 
   /**
    * Supabase keeps its own session persisted (localStorage under its own
@@ -701,11 +703,28 @@ export const AdminProvider = ({ children }) => {
   useEffect(() => {
     if (!authUser) return undefined;
 
-    const IDLE_LIMIT_MS = 3 * 60 * 1000;
-    let timer;
+    /* Twenty minutes, not three.
+     *
+     * Three was written for a counter terminal being walked away from, and it
+     * is hostile to the job people actually do here: someone adding a vehicle
+     * stops to read a chassis number off a logbook or find a photo on their
+     * phone, comes back, and the half-filled form is gone. Long entry sessions
+     * are the normal case, so the timeout has to survive a pause in one.
+     *
+     * The warning is the real safeguard — a minute's notice, dismissible, so
+     * an unattended screen still locks itself but nobody loses work without
+     * being asked first. */
+    const IDLE_LIMIT_MS = 20 * 60 * 1000;
+    const WARN_BEFORE_MS = 60 * 1000;
+    let signOutTimer;
+    let warnTimer;
+
     const reset = () => {
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => { signOut(); }, IDLE_LIMIT_MS);
+      window.clearTimeout(signOutTimer);
+      window.clearTimeout(warnTimer);
+      setIdleWarning(false);
+      warnTimer = window.setTimeout(() => setIdleWarning(true), IDLE_LIMIT_MS - WARN_BEFORE_MS);
+      signOutTimer = window.setTimeout(() => { setIdleWarning(false); signOut(); }, IDLE_LIMIT_MS);
     };
 
     const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll', 'wheel'];
@@ -713,10 +732,17 @@ export const AdminProvider = ({ children }) => {
     reset();
 
     return () => {
-      window.clearTimeout(timer);
+      window.clearTimeout(signOutTimer);
+      window.clearTimeout(warnTimer);
       activityEvents.forEach((evt) => window.removeEventListener(evt, reset));
     };
   }, [authUser, signOut]);
+
+  /** Dismissing the warning is itself activity, so the timers restart. */
+  const staySignedIn = useCallback(() => {
+    setIdleWarning(false);
+    window.dispatchEvent(new Event('mousedown'));
+  }, []);
 
   const getRememberedEmail = useCallback(
     () => localStorage.getItem(REMEMBERED_EMAIL_KEY),
@@ -834,6 +860,7 @@ export const AdminProvider = ({ children }) => {
       authUser, authLoading,
       currentUser, signIn, signOut,
       getRememberedEmail, forgetDevice,
+      idleWarning, staySignedIn,
       can, canView, ROLE_VIEWS,
       vehicleCosts, costsFor, saveCosts,
       vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
@@ -852,6 +879,7 @@ export const AdminProvider = ({ children }) => {
       authUser, authLoading,
       currentUser, signIn, signOut,
       getRememberedEmail, forgetDevice,
+      idleWarning, staySignedIn,
       can, canView,
       vehicleCosts, costsFor, saveCosts, vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,

@@ -2,8 +2,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Upload, X, Star } from 'lucide-react';
 import { supabase } from '@shared/lib/supabaseClient';
 import { friendlyError } from '@shared/lib/friendlyError';
+import { compressImage } from '@shared/lib/compressImage';
 
-const MAX_BYTES = 5 * 1024 * 1024;
+/* Checked BEFORE compression, so it only rejects the genuinely absurd. A phone
+   photo lands around 4–12MB and compresses to a few hundred KB, so the old 5MB
+   cap rejected ordinary pictures taken on an ordinary handset. */
+const MAX_BYTES = 25 * 1024 * 1024;
 
 /**
  * Picks images off the machine and puts them in Supabase Storage.
@@ -52,7 +56,7 @@ export const ImagePicker = ({ bucket, value = [], onChange, max = 10 }) => {
     if (rejected) {
       setError(
         rejected.type.startsWith('image/')
-          ? `${rejected.name} is larger than 5MB.`
+          ? `${rejected.name} is too large to process.`
           : `${rejected.name} is not an image.`
       );
       return;
@@ -60,7 +64,11 @@ export const ImagePicker = ({ bucket, value = [], onChange, max = 10 }) => {
 
     setBusy(true);
     const uploaded = [];
-    for (const file of batch) {
+    for (const original of batch) {
+      // Shrunk here rather than on the way out: the browser already has the
+      // file, and every later read of it — storage, transfer, the customer's
+      // data bundle — is paid on whatever we upload.
+      const file = await compressImage(original);
       const safe = file.name.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}-${safe}`;
       const { error: upErr } = await supabase.storage.from(bucket).upload(path, file, { upsert: false });
@@ -147,10 +155,10 @@ export const ImagePicker = ({ bucket, value = [], onChange, max = 10 }) => {
         >
           <Upload size={18} aria-hidden="true" />
           <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>
-            {busy ? 'Uploading…' : value.length ? 'Add more photos' : 'Choose photos'}
+            {busy ? 'Optimising & uploading…' : value.length ? 'Add more photos' : 'Choose photos'}
           </span>
           {!value.length && (
-            <span style={{ fontSize: 'var(--text-xs)' }}>PNG or JPG, up to 5MB each</span>
+            <span style={{ fontSize: 'var(--text-xs)' }}>Photos are resized automatically</span>
           )}
         </button>
       )}

@@ -19,12 +19,12 @@ import {
   ChevronRight,
   Menu,
   X
-} from 'lucide-react';
+, Layers } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
 export const AdminLayout = ({ children }) => {
-  const { currentView, navigateTo, currentUser, canView, signOut } = useApp();
+  const { currentView, navigateTo, currentUser, canView, signOut, idleWarning, staySignedIn } = useApp();
 
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_COLLAPSED_KEY) === '1'; } catch { return false; }
@@ -58,6 +58,7 @@ export const AdminLayout = ({ children }) => {
   const navItems = [
     { id: 'admin-dashboard', label: 'Dashboard', icon: Gauge },
     { id: 'admin-vehicles', label: 'Vehicles', icon: CarFront },
+    { id: 'admin-groups', label: 'Shipments', icon: Layers },
     { id: 'admin-parts', label: 'Spare Parts', icon: Boxes },
     { id: 'admin-compatibility', label: 'Compatibility', icon: GitCompareArrows },
     { id: 'admin-orders', label: 'Orders', icon: ClipboardList },
@@ -279,6 +280,16 @@ export const AdminLayout = ({ children }) => {
 
       {/* Main Content Area */}
       <main className="admin-main">
+        {/* A minute's notice before the idle sign-out. Someone mid-way through
+            a long vehicle form gets the chance to keep it rather than finding
+            the login screen and an empty form when they come back. */}
+        {idleWarning && (
+          <div role="status" className="idle-warning">
+            <span>You will be signed out in a minute. Any unsaved work on this screen would be lost.</span>
+            <button type="button" onClick={staySignedIn}>Keep me signed in</button>
+          </div>
+        )}
+
         {children}
       </main>
 

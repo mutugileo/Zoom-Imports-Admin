@@ -1766,3 +1766,24 @@ h1, h2, h3, h4, .font-serif {
   display: flex; align-items: center; justify-content: center;
   background: #edf1f6; color: #8a97a5;
 }
+
+/* Idle sign-out warning. Sits above the page rather than over it — a dialog
+   here would steal focus from whatever field is half-typed, which is the very
+   thing this is trying to protect. */
+.idle-warning {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  margin: 16px 32px 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border-medium);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--primary-light);
+  color: var(--text-dark);
+  font-size: var(--text-sm);
+}
+.idle-warning button {
+  border: none; background: var(--primary); color: var(--on-primary);
+  font-weight: 700; font-size: var(--text-sm);
+  padding: 7px 16px; border-radius: var(--radius-pill); cursor: pointer;
+}

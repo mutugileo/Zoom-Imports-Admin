@@ -81,9 +81,9 @@ export const ADMIN_ROLES = Object.keys(ROLES);
 
 /** Which nav entries a role may reach. Read by the layout and the router. */
 export const ROLE_VIEWS = {
-  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
-  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
-  'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-compatibility'],
+  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
+  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
+  'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility'],
   'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-orders', 'admin-enquiries'],
 };
 
@@ -94,26 +94,14 @@ export const canSeeView = (role, view) =>
   Boolean(ROLE_VIEWS[role]?.includes(view));
 
 /**
- * Seed accounts. The PIN is demo-only — see the notice at the top of this block.
- * Never put a real credential here.
+ * How many digits the PIN pad asks for.
+ *
+ * The seed accounts and PIN-matching helpers that used to sit beside this are
+ * gone: the PIN is a real Supabase Auth credential now, checked server-side,
+ * so there is nothing left to match locally and no demo credential worth
+ * keeping in the repository.
  */
 export const PIN_LENGTH = 4;
-
-export const DEFAULT_ADMIN_USERS = [
-  { id: 1, name: 'Wanjiru Kamau', email: 'wanjiru@zoomimports.co.ke', role: 'Superadmin', pin: '2014', lastLogin: '' },
-  { id: 2, name: 'Brian Otieno', email: 'brian@zoomimports.co.ke', role: 'Sales Staff', pin: '4820', lastLogin: '' },
-  { id: 3, name: 'Faith Njeri', email: 'faith@zoomimports.co.ke', role: 'Inventory Manager', pin: '7391', lastLogin: '' },
-];
-
-/**
- * A PIN identifies the person, so two staff cannot share one — otherwise the
- * activity log would attribute one person's deletions to another.
- */
-export const findByPin = (users, pin) =>
-  users.find((u) => String(u.pin) === String(pin)) ?? null;
-
-export const isPinTaken = (users, pin, exceptId = null) =>
-  users.some((u) => String(u.pin) === String(pin) && u.id !== exceptId);
 
 /**
  * Partner yards along the import chain.
@@ -154,59 +142,3 @@ export const PARTNER_YARDS = [
   },
 ];
 
-/**
- * Brings a stored staff roster up to the current shape.
- *
- * Rosters saved before PIN sign-in existed have no `pin` field, and `read()`
- * returns the stored copy rather than the seed — so without this, no PIN can
- * ever match and the portal locks everyone out permanently, with no way back in
- * from the UI. That is the worst possible failure for an auth change, so the
- * migration is defensive to the point of bluntness:
- *
- * 1. Backfill a missing PIN from the seed account with the same email, then id.
- * 2. Give anyone still without one a free 4-digit PIN, so no account is unusable.
- * 3. Guarantee a Superadmin exists — an older roster's top role was
- *    'Administrator', which cannot manage users, so user management would have
- *    silently disappeared.
- * 4. Guarantee at least one account can actually sign in.
- *
- * Idempotent: running it on an already-migrated roster changes nothing.
- */
-export const migrateAdminUsers = (stored, seed = DEFAULT_ADMIN_USERS) => {
-  if (!Array.isArray(stored) || stored.length === 0) return seed;
-
-  const byEmail = new Map(seed.map((u) => [String(u.email).toLowerCase(), u]));
-  const byId = new Map(seed.map((u) => [u.id, u]));
-  const taken = new Set(
-    stored.map((u) => (u.pin ? String(u.pin) : null)).filter(Boolean)
-  );
-
-  const freePin = () => {
-    for (let n = 1000; n <= 9999; n += 1) {
-      const candidate = String(n);
-      if (!taken.has(candidate)) { taken.add(candidate); return candidate; }
-    }
-    return '0000';
-  };
-
-  let users = stored.map((user) => {
-    if (user.pin && String(user.pin).length === PIN_LENGTH) return user;
-    const match = byEmail.get(String(user.email).toLowerCase()) ?? byId.get(user.id);
-    const inherited = match?.pin && !taken.has(String(match.pin)) ? String(match.pin) : null;
-    if (inherited) taken.add(inherited);
-    return { ...user, pin: inherited ?? freePin() };
-  });
-
-  // Roles that no longer exist would leave someone with no permissions at all.
-  users = users.map((u) => (ROLES[u.role] ? u : { ...u, role: 'Sales Staff' }));
-
-  if (!users.some((u) => u.role === 'Superadmin')) {
-    const promote =
-      users.find((u) => byEmail.get(String(u.email).toLowerCase())?.role === 'Superadmin') ??
-      users.find((u) => u.role === 'Administrator') ??
-      users[0];
-    users = users.map((u) => (u === promote ? { ...u, role: 'Superadmin' } : u));
-  }
-
-  return users;
-};

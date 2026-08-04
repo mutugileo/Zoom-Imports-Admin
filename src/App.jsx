@@ -3,6 +3,7 @@ import { AdminProvider, useAdmin } from './context/AdminContext';
 
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminVehicles } from './pages/AdminVehicles';
+import { AdminGroups } from './pages/AdminGroups';
 import { AdminParts } from './pages/AdminParts';
 import { AdminCompatibility } from './pages/AdminCompatibility';
 import { AdminOrders } from './pages/AdminOrders';
@@ -15,6 +16,7 @@ import { NoAccess } from './pages/NoAccess';
 const VIEWS = {
   'admin-dashboard': AdminDashboard,
   'admin-vehicles': AdminVehicles,
+  'admin-groups': AdminGroups,
   'admin-parts': AdminParts,
   'admin-compatibility': AdminCompatibility,
   'admin-orders': AdminOrders,
