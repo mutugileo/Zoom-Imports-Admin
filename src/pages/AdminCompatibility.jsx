@@ -26,10 +26,15 @@ export const AdminCompatibility = () => {
     if (!part) return;
     setSaveError('');
     const result = await addCompatibilityRule({
-      /* `part` and `brand` are carried alongside so the table stays readable. */
+      /* partId and modelIds are the real links — compatibility.js resolves
+         through them and only falls back to the text below for rules written
+         before those columns existed. `part` and `brand` are carried alongside
+         so the table stays readable without a join. */
+      partId: part.id,
       part: part.name,
       brand: part.brand,
       make: 'Mazda',
+      modelIds: [formData.model],
       model: formData.model === 'All' ? 'All Models' : labelForModel(formData.model),
       years: formData.years.trim(),
     });

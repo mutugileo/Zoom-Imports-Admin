@@ -12,7 +12,6 @@ export const vehicleFromRow = (r) => ({
   groupId: r.group_id || '',
   regNumber: r.reg_number || '',
   location: r.location || '',
-  tags: r.tags || [],
   listing: r.listing,
   make: r.make,
   year: r.year,
@@ -45,7 +44,6 @@ export const vehicleToRow = (v) => ({
   group_id: v.groupId || null,
   reg_number: v.regNumber || '',
   location: v.location || '',
-  tags: v.tags || [],
   listing: v.listing,
   make: v.make,
   year: v.year,
@@ -102,19 +100,33 @@ export const partToRow = (p) => ({
   part_number: p.partNumber || '',
 });
 
+/**
+ * `partId` and `modelIds` are the real links; the `_legacy` text columns are
+ * the readable copy beside them.
+ *
+ * compatibility.js resolves a rule through `rule.partId` first and only falls
+ * back to matching `rule.part` by name — that fallback exists for rules written
+ * before the id column, not as the normal path. Leaving the id unmapped meant
+ * every new rule was born on the legacy path, so renaming a part in the
+ * catalogue silently orphaned its fitment rules again.
+ */
 export const compatFromRow = (r) => ({
   id: r.id,
+  partId: r.part_id,
   part: r.part_name_legacy,
   brand: r.brand,
   make: r.make,
+  modelIds: r.model_ids || [],
   model: r.model_legacy,
   years: r.years,
 });
 
 export const compatToRow = (c) => ({
+  part_id: c.partId ?? null,
   part_name_legacy: c.part,
   brand: c.brand,
   make: c.make,
+  model_ids: c.modelIds || [],
   model_legacy: c.model,
   years: c.years,
 });

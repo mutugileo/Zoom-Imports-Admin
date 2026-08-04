@@ -60,7 +60,7 @@ export const AdminVehicles = () => {
     stage: 'In Yard',
     groupId: '',
     regNumber: '',
-    location: 'Mombasa Road Yard',
+    location: 'Thindigua Yard',
     chassis: '',
     grade: '4.5 B',
     inspection: 'JEVIC verified',
@@ -111,7 +111,7 @@ export const AdminVehicles = () => {
       stage: 'In Yard',
       groupId: '',
       regNumber: '',
-      location: 'Mombasa Road Yard',
+      location: 'Thindigua Yard',
       chassis: '',
       grade: '4.5 B',
       inspection: 'JEVIC verified',
@@ -795,7 +795,7 @@ export const AdminVehicles = () => {
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Current location</label>
-                    <input type="text" value={formData.location || ''} placeholder="Mombasa Road Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <input type="text" value={formData.location || ''} placeholder="Thindigua Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
                   </div>
                 </div>
                 <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '9px', lineHeight: 1.5 }}>
