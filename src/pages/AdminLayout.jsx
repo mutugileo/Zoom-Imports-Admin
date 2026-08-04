@@ -19,7 +19,7 @@ import {
   ChevronRight,
   Menu,
   X
-, Layers } from 'lucide-react';
+, Layers, Star } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -63,6 +63,7 @@ export const AdminLayout = ({ children }) => {
     { id: 'admin-compatibility', label: 'Compatibility', icon: GitCompareArrows },
     { id: 'admin-orders', label: 'Orders', icon: ClipboardList },
     { id: 'admin-enquiries', label: 'Enquiries', icon: MessagesSquare },
+    { id: 'admin-reviews', label: 'Reviews', icon: Star },
     { id: 'admin-content', label: 'Site Content', icon: FileStack },
     { id: 'admin-settings', label: 'Settings', icon: Settings2 }
   ].filter((item) => canView(item.id));

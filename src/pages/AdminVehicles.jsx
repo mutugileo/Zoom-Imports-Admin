@@ -24,6 +24,7 @@ export const AdminVehicles = () => {
     deleteVehicle,
     toggleFeaturedVehicle,
     saleFor,
+    setVehicleApproval,
     formatKES
   } = useApp();
 
@@ -75,7 +76,9 @@ export const AdminVehicles = () => {
   });
 
   const filteredVehicles = vehicles.filter(v => {
-    if (filterStatus !== 'All' && v.status !== filterStatus) return false;
+    if (filterStatus === 'Awaiting approval') {
+      if (v.approvalStatus === 'Approved') return false;
+    } else if (filterStatus !== 'All' && v.status !== filterStatus) return false;
     if (search.trim() && !`${v.name} ${v.make} ${v.year}`.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -202,8 +205,12 @@ export const AdminVehicles = () => {
         {/* Filter Bar */}
         <div className="admin-filter-bar" style={{ padding: '20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            {['All', 'Available', 'Reserved', 'Sold'].map(st => {
-              const count = st === 'All' ? vehicles.length : vehicles.filter(v => v.status === st).length;
+            {['All', 'Awaiting approval', 'Available', 'Reserved', 'Sold'].map(st => {
+              const count = st === 'All'
+                ? vehicles.length
+                : st === 'Awaiting approval'
+                  ? vehicles.filter(v => v.approvalStatus !== 'Approved').length
+                  : vehicles.filter(v => v.status === st).length;
               const isActive = filterStatus === st;
               return (
                 <button
@@ -517,6 +524,31 @@ export const AdminVehicles = () => {
                     <span className={`badge badge-${v.status.toLowerCase()}`}>
                       {v.status}
                     </span>
+                    {/* Approval gates the listing, not the car. A vehicle can be
+                        Available and still not be on the website. */}
+                    {v.approvalStatus !== 'Approved' && (
+                      <div style={{ marginTop: '5px' }}>
+                        <span className="badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>
+                          {v.approvalStatus === 'Rejected' ? 'Rejected' : 'Not on site'}
+                        </span>
+                        {mayWrite && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setVehicleApproval(v.id, 'Approved'); }}
+                            style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--primary-ink)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                          >
+                            Approve for website
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {v.approvalStatus === 'Approved' && mayWrite && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setVehicleApproval(v.id, 'Pending'); }}
+                        style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', color: '#5f6b7a', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                      >
+                        Take off site
+                      </button>
+                    )}
                     {/* Sold is the one status that carries money, so it is the
                         one status that cannot be set by a dropdown. Either the
                         achieved price is on record or the sale reads as a flag

@@ -81,8 +81,8 @@ export const ADMIN_ROLES = Object.keys(ROLES);
 
 /** Which nav entries a role may reach. Read by the layout and the router. */
 export const ROLE_VIEWS = {
-  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
-  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-content', 'admin-settings'],
+  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
+  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
   'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility'],
   'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-orders', 'admin-enquiries'],
 };

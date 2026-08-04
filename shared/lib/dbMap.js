@@ -25,6 +25,7 @@ export const vehicleFromRow = (r) => ({
   condition: r.condition,
   status: r.status,
   featured: !!r.featured,
+  approvalStatus: r.approval_status,
   img: r.img,
   images: r.images || [],
   description: r.description,
@@ -57,6 +58,8 @@ export const vehicleToRow = (v) => ({
   condition: v.condition,
   status: v.status,
   featured: !!v.featured,
+  /* Approval is set by the queue, never carried back in from an edit — saving
+     a listing must not quietly re-approve it. */
   /* Cover and gallery are written together from one source so they cannot
      drift: whatever sits first in `images` IS the cover. */
   img: (v.images && v.images[0]) || v.img || null,
@@ -241,4 +244,14 @@ export const orderCostToRow = (ref, e) => ({
   order_ref: ref,
   lines: e.lines,
   complete: e.complete,
+});
+
+export const reviewFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  role: r.role,
+  quote: r.quote,
+  rating: r.rating,
+  status: r.status,
+  at: r.created_at,
 });

@@ -19,6 +19,7 @@ import {
   enquiryFromRow,
   groupFromRow, groupToRow,
   activityFromRow,
+  reviewFromRow,
   costsFromRow, costsToRow,
   saleFromRow, saleToRow,
   partCostFromRow,
@@ -78,6 +79,8 @@ export const AdminProvider = ({ children }) => {
   const [vehicleGroups, setVehicleGroups] = useState([]);
   const [vehicleGroupsLoading, setVehicleGroupsLoading] = useState(true);
   const [activity, setActivity] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   /**
    * Cost ledgers, keyed by vehicle id, from `vehicle_costs`.
@@ -270,6 +273,61 @@ export const AdminProvider = ({ children }) => {
       }).then(() => {});
     }
   }, [authUser, profile]);
+
+  /**
+   * Customer reviews, awaiting a decision.
+   *
+   * The storefront only ever renders Published, so an unmoderated review is
+   * invisible to the public but must be visible here — otherwise submissions
+   * pile up in a table nobody looks at, which is what was happening.
+   */
+  const refreshReviews = useCallback(async () => {
+    if (!authUser) { setReviews([]); return; }
+    setReviewsLoading(true);
+    const { data, error } = await supabase
+      .from('site_reviews')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setReviewsLoading(false);
+    if (!error) setReviews((data ?? []).map(reviewFromRow));
+  }, [authUser]);
+
+  useEffect(() => { refreshReviews(); }, [refreshReviews]);
+
+  const setReviewStatus = useCallback(async (id, status) => {
+    const target = reviews.find((r) => r.id === id);
+    const { error } = await supabase.from('site_reviews').update({ status }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not update this review. Try again.') };
+    await refreshReviews();
+    logActivity(`Review from ${target?.name ?? 'a customer'} ${status.toLowerCase()}`);
+    return { ok: true };
+  }, [reviews, refreshReviews, logActivity]);
+
+  const removeReview = useCallback(async (id) => {
+    const target = reviews.find((r) => r.id === id);
+    const { error } = await supabase.from('site_reviews').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not delete this review. Try again.') };
+    await refreshReviews();
+    logActivity(`Review from ${target?.name ?? 'a customer'} deleted`);
+    return { ok: true };
+  }, [reviews, refreshReviews, logActivity]);
+
+  /**
+   * Approval — the step that puts a listing in front of customers.
+   *
+   * Separate from `status` (Available / Reserved / Sold), which describes the
+   * car. This describes the listing: a half-entered vehicle with no photos and
+   * a placeholder name used to be public from its first save.
+   */
+  const setVehicleApproval = useCallback(async (id, approvalStatus) => {
+    const target = vehicles.find((v) => v.id === id);
+    const { error } = await supabase.from('vehicles').update({ approval_status: approvalStatus }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not update this listing. Try again.') };
+    await refreshVehicles();
+    logActivity(`${target?.name ?? 'A vehicle'} ${approvalStatus === 'Approved' ? 'approved for the website' : approvalStatus.toLowerCase()}`);
+    return { ok: true };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicles, logActivity]);
 
   // ───────────────────────── Catalogue: vehicles ─────────────────────────
 
@@ -864,6 +922,8 @@ export const AdminProvider = ({ children }) => {
       can, canView, ROLE_VIEWS,
       vehicleCosts, costsFor, saveCosts,
       vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
+      reviews, reviewsLoading, setReviewStatus, removeReview,
+      setVehicleApproval,
       activity,
 
       formatKES,
@@ -882,6 +942,7 @@ export const AdminProvider = ({ children }) => {
       idleWarning, staySignedIn,
       can, canView,
       vehicleCosts, costsFor, saveCosts, vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
+      reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
     ]
