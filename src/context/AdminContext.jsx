@@ -79,6 +79,7 @@ export const AdminProvider = ({ children }) => {
   const [vehicleGroups, setVehicleGroups] = useState([]);
   const [vehicleGroupsLoading, setVehicleGroupsLoading] = useState(true);
   const [activity, setActivity] = useState([]);
+  const [settings, setSettings] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
 
@@ -338,6 +339,24 @@ export const AdminProvider = ({ children }) => {
     return { ok: true };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parts, logActivity]);
+
+  /** Switches the yard can throw without waiting on a deploy. */
+  const refreshSettings = useCallback(async () => {
+    const { data, error } = await supabase.from('site_settings').select('*').order('key');
+    if (!error) setSettings(data ?? []);
+  }, []);
+
+  useEffect(() => { refreshSettings(); }, [refreshSettings]);
+
+  const setSetting = useCallback(async (key, enabled) => {
+    const target = settings.find((s) => s.key === key);
+    const { error } = await supabase.from('site_settings')
+      .update({ enabled, updated_at: new Date().toISOString() }).eq('key', key);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not change that setting. Try again.') };
+    await refreshSettings();
+    logActivity(`${target?.label ?? key} turned ${enabled ? 'on' : 'off'}`);
+    return { ok: true };
+  }, [settings, refreshSettings, logActivity]);
 
   // ───────────────────────── Catalogue: vehicles ─────────────────────────
 
@@ -934,6 +953,7 @@ export const AdminProvider = ({ children }) => {
       vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
       reviews, reviewsLoading, setReviewStatus, removeReview,
       setVehicleApproval, setPartApproval,
+      settings, setSetting,
       activity,
 
       formatKES,
@@ -952,7 +972,7 @@ export const AdminProvider = ({ children }) => {
       idleWarning, staySignedIn,
       can, canView,
       vehicleCosts, costsFor, saveCosts, vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
-      reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval, setPartApproval,
+      reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval, setPartApproval, settings, setSetting,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
     ]

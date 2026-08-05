@@ -38,6 +38,7 @@ const input = {
 export const AdminSiteContent = () => {
   const {
     siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
+    settings, setSetting,
     vehicles, toggleFeaturedVehicle,
   } = useAdmin();
 
@@ -80,6 +81,41 @@ export const AdminSiteContent = () => {
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
           <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Site Content</h1>
         </div>
+
+        {settings.length > 0 && (
+          <section style={{ ...card, marginBottom: '20px' }}>
+            <div style={cardHead}><h2 style={title}>Website switches</h2></div>
+            <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {settings.map((sw) => (
+                <div key={sw.key} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e' }}>{sw.label}</div>
+                    {sw.description && (
+                      <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '3px', lineHeight: 1.55, maxWidth: '62ch' }}>
+                        {sw.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={sw.enabled}
+                    aria-label={sw.label}
+                    onClick={() => setSetting(sw.key, !sw.enabled)}
+                    style={{
+                      width: '42px', height: '23px', borderRadius: '999px', border: 'none',
+                      cursor: 'pointer', padding: '2px', flexShrink: 0,
+                      background: sw.enabled ? 'var(--primary-ink)' : '#d8dde2',
+                      display: 'flex', justifyContent: sw.enabled ? 'flex-end' : 'flex-start',
+                      transition: 'background 0.2s ease',
+                    }}
+                  >
+                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: '#fff', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginTop: '22px' }}>
 
