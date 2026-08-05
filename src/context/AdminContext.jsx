@@ -329,6 +329,16 @@ export const AdminProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicles, logActivity]);
 
+  const setPartApproval = useCallback(async (id, approvalStatus) => {
+    const target = parts.find((p) => p.id === id);
+    const { error } = await supabase.from('parts').update({ approval_status: approvalStatus }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not update this part. Try again.') };
+    await refreshParts();
+    logActivity(`${target?.name ?? 'A part'} ${approvalStatus === 'Approved' ? 'approved for the website' : approvalStatus.toLowerCase()}`);
+    return { ok: true };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parts, logActivity]);
+
   // ───────────────────────── Catalogue: vehicles ─────────────────────────
 
   const refreshVehicles = useCallback(async () => {
@@ -923,7 +933,7 @@ export const AdminProvider = ({ children }) => {
       vehicleCosts, costsFor, saveCosts,
       vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
       reviews, reviewsLoading, setReviewStatus, removeReview,
-      setVehicleApproval,
+      setVehicleApproval, setPartApproval,
       activity,
 
       formatKES,
@@ -942,7 +952,7 @@ export const AdminProvider = ({ children }) => {
       idleWarning, staySignedIn,
       can, canView,
       vehicleCosts, costsFor, saveCosts, vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
-      reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval,
+      reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval, setPartApproval,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
     ]

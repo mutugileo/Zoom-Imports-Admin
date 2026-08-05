@@ -10,7 +10,7 @@ import { Pagination } from '../components/Pagination';
 import { ImagePicker } from '../components/ImagePicker';
 
 export const AdminParts = () => {
-  const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, formatKES, can } = useApp();
+  const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, setPartApproval, formatKES, can } = useApp();
 
   const mayWrite = can('catalogue:write');
   const mayDelete = can('catalogue:delete');
@@ -174,6 +174,22 @@ export const AdminParts = () => {
                       <span className={`badge badge-${stockClass(p.stock)}`}>
                         {stockLabel(p.stock)}
                       </span>
+                      {/* Seller submissions wait; staff entries are live on save. */}
+                      {p.approvalStatus !== 'Approved' && (
+                        <div style={{ marginTop: '5px' }}>
+                          <span className="badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>
+                            {p.approvalStatus === 'Rejected' ? 'Rejected' : 'Not on site'}
+                          </span>
+                          {mayWrite && (
+                            <button
+                              onClick={() => setPartApproval(p.id, 'Approved')}
+                              style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--primary-ink)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              Approve for website
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '12px' }}>

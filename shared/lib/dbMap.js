@@ -87,6 +87,8 @@ export const partFromRow = (r) => ({
   description: r.description,
   sku: r.sku,
   partNumber: r.part_number || '',
+  approvalStatus: r.approval_status,
+  source: r.source,
 });
 
 export const partToRow = (p) => ({
