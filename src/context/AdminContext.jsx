@@ -24,6 +24,7 @@ import {
   saleFromRow, saleToRow,
   partCostFromRow,
   orderCostFromRow, orderCostToRow,
+  buyerFromRow, buyerToRow,
 } from '@shared/lib/dbMap';
 
 /** Not a secret — see the comment on `signIn` below for what this is for. */
@@ -82,6 +83,11 @@ export const AdminProvider = ({ children }) => {
   const [settings, setSettings] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
+  /* Who bought what. Staff-only under RLS — it is the one table holding a
+     customer's ID number and home address, and none of it is the storefront's
+     business. */
+  const [buyers, setBuyers] = useState([]);
+  const [buyersLoading, setBuyersLoading] = useState(true);
 
   /**
    * Cost ledgers, keyed by vehicle id, from `vehicle_costs`.
@@ -674,6 +680,67 @@ export const AdminProvider = ({ children }) => {
 
   const saleFor = useCallback((vehicleId) => vehicleSales[vehicleId] ?? null, [vehicleSales]);
 
+  /* ───────────────────────── Buyers ───────────────────────── */
+
+  /**
+   * Who the cars went to.
+   *
+   * Kept apart from `vehicle_sales`, which is a money record keyed by vehicle:
+   * this is a person, with an ID number and an address, and it is what an
+   * invoice is made out to. Staff-only under RLS, so it is fetched with the
+   * session and cleared on sign-out like every other internal table.
+   */
+  const refreshBuyers = useCallback(async () => {
+    if (!authUser) { setBuyers([]); setBuyersLoading(false); return; }
+    setBuyersLoading(true);
+    const { data, error } = await supabase
+      .from('buyers')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setBuyersLoading(false);
+    if (!error) setBuyers((data ?? []).map(buyerFromRow));
+  }, [authUser]);
+
+  useEffect(() => { refreshBuyers(); }, [refreshBuyers]);
+
+  /**
+   * `vehicleId` is a trace back to the car, never a live lookup.
+   *
+   * Everything an invoice prints — the model, the year, the registration, the
+   * chassis, the price and the date — is copied onto the buyer row at the
+   * moment it is recorded. See the note on `buyerFromRow`: an invoice that
+   * re-read the vehicle would rewrite itself whenever the car was edited.
+   */
+  const saveBuyer = useCallback(async (data) => {
+    const row = buyerToRow(data);
+    const { error } = data.id
+      ? await supabase.from('buyers').update(row).eq('id', data.id)
+      : await supabase.from('buyers').insert(row);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save this buyer. Try again.') };
+    await refreshBuyers();
+    logActivity(
+      data.id
+        ? `Buyer record updated for ${data.name}`
+        : `${data.name} recorded as the buyer of ${data.vehicleName || 'a vehicle'}`
+    );
+    return { ok: true };
+  }, [refreshBuyers, logActivity]);
+
+  const deleteBuyer = useCallback(async (id) => {
+    const gone = buyers.find((b) => b.id === id);
+    const { error } = await supabase.from('buyers').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not delete this buyer. Try again.') };
+    await refreshBuyers();
+    logActivity(`Buyer record for ${gone?.name ?? 'a customer'} deleted`);
+    return { ok: true };
+  }, [buyers, refreshBuyers, logActivity]);
+
+  /** Has this car already been handed to someone? Keyed on the traced id. */
+  const buyerForVehicle = useCallback(
+    (vehicleId) => buyers.find((b) => b.vehicleId === vehicleId) ?? null,
+    [buyers]
+  );
+
   const refreshPartCosts = useCallback(async () => {
     if (!authUser) { setPartCosts({}); return; }
     const { data, error } = await supabase.from('part_costs').select('*');
@@ -953,6 +1020,7 @@ export const AdminProvider = ({ children }) => {
       vehicleGroups, vehicleGroupsLoading, saveGroup, removeGroup,
       reviews, reviewsLoading, setReviewStatus, removeReview,
       setVehicleApproval, setPartApproval,
+      buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       settings, setSetting,
       activity,
 
@@ -975,6 +1043,7 @@ export const AdminProvider = ({ children }) => {
       reviews, reviewsLoading, setReviewStatus, removeReview, setVehicleApproval, setPartApproval, settings, setSetting,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
+      buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
     ]
   );
 

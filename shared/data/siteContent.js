@@ -79,12 +79,20 @@ export const ROLES = {
 
 export const ADMIN_ROLES = Object.keys(ROLES);
 
-/** Which nav entries a role may reach. Read by the layout and the router. */
+/**
+ * Which nav entries a role may reach. Read by the layout and the router.
+ *
+ * `admin-buyers` is granted to exactly the three roles the `buyers` RLS policy
+ * names — Superadmin, Administrator, Sales Staff. Inventory Manager is left off
+ * deliberately: Postgres would return them an empty list, and a screen that
+ * says "no buyers yet" to someone who is not allowed to see any is a worse
+ * answer than not offering the screen at all.
+ */
 export const ROLE_VIEWS = {
-  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
-  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
+  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
+  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
   'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility'],
-  'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-orders', 'admin-enquiries'],
+  'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-parts', 'admin-orders', 'admin-buyers', 'admin-enquiries'],
 };
 
 export const hasPermission = (role, permission) =>

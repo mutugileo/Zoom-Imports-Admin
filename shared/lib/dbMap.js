@@ -257,3 +257,52 @@ export const reviewFromRow = (r) => ({
   status: r.status,
   at: r.created_at,
 });
+
+/**
+ * The person a car was sold to, and what it said on the day it was sold.
+ *
+ * The `vehicle*` and `sale*` fields are a COPY, not a join. `vehicleId` is kept
+ * so the record can be traced back to the car, but nothing that appears on an
+ * invoice is ever read through it — the copy is the point of the table. An
+ * invoice is a document handed to a customer; if it re-read the live vehicle,
+ * correcting a typo in the model name next March would silently reissue a
+ * document already signed, and reprinting last year's invoice would produce a
+ * different piece of paper than the one in the file.
+ *
+ * So a later edit to the car, or deleting it outright, leaves the buyer's
+ * record and their invoice exactly as they were.
+ */
+export const buyerFromRow = (r) => ({
+  id: r.id,
+  name: r.name,
+  phone: r.phone,
+  email: r.email || '',
+  idNumber: r.id_number || '',
+  address: r.address || '',
+  vehicleId: r.vehicle_id,
+  vehicleName: r.vehicle_name || '',
+  vehicleYear: r.vehicle_year,
+  vehicleReg: r.vehicle_reg || '',
+  vehicleChassis: r.vehicle_chassis || '',
+  // Numeric arrives from PostgREST as a string so precision survives the wire.
+  salePrice: r.sale_price == null ? null : Number(r.sale_price),
+  saleDate: r.sale_date || '',
+  notes: r.notes || '',
+  at: r.created_at,
+});
+
+export const buyerToRow = (b) => ({
+  name: b.name,
+  phone: b.phone,
+  email: b.email || null,
+  id_number: b.idNumber || null,
+  address: b.address || null,
+  vehicle_id: b.vehicleId ?? null,
+  vehicle_name: b.vehicleName || null,
+  vehicle_year: b.vehicleYear ?? null,
+  vehicle_reg: b.vehicleReg || null,
+  vehicle_chassis: b.vehicleChassis || null,
+  sale_price: b.salePrice ?? null,
+  sale_date: b.saleDate || null,
+  notes: b.notes || null,
+});

@@ -8,6 +8,7 @@ import { AdminReviews } from './pages/AdminReviews';
 import { AdminParts } from './pages/AdminParts';
 import { AdminCompatibility } from './pages/AdminCompatibility';
 import { AdminOrders } from './pages/AdminOrders';
+import { AdminBuyers } from './pages/AdminBuyers';
 import { AdminEnquiries } from './pages/AdminEnquiries';
 import { AdminSiteContent } from './pages/AdminSiteContent';
 import { AdminSettings } from './pages/AdminSettings';
@@ -22,6 +23,7 @@ const VIEWS = {
   'admin-parts': AdminParts,
   'admin-compatibility': AdminCompatibility,
   'admin-orders': AdminOrders,
+  'admin-buyers': AdminBuyers,
   'admin-enquiries': AdminEnquiries,
   'admin-content': AdminSiteContent,
   'admin-settings': AdminSettings,
