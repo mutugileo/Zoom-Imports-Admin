@@ -19,6 +19,8 @@ export const KEYS = {
   orders: NS + 'orders',
   enquiries: NS + 'enquiries',
   cart: NS + 'cart',
+  siteContact: NS + 'site_contact',
+  banners: NS + 'banners',
   reviews: NS + 'reviews',
   siteContent: NS + 'site_content',
   adminUsers: NS + 'admin_users',

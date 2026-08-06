@@ -1564,28 +1564,10 @@ h1, h2, h3, h4, .font-serif {
   justify-content: center;
   padding: 32px 20px;
   background-color: #101d2b;
-  background-image:
-    radial-gradient(95% 70% at 50% 52%, rgba(9, 17, 26, 0.3) 0%, rgba(11, 20, 30, 0.16) 48%, rgba(13, 24, 35, 0.06) 100%),
-    url('/media/login-cx5-1920.webp'),
-    url('data:image/webp;base64,UklGRsIAAABXRUJQVlA4ILYAAABwBACdASocAA8APu1iqU2ppaOiMAgBMB2JYwAD5jIPB6moz0iDG86S+O46AAD+8Mlyf5VDszpBLHdLj+alRH7n9YUHqWF1JOEFtaMtML4UJkTXEwUipF+cz5dG+6dNOH7BL+bA8dTdwtzpVGGC5Z3DdrJ2wupHx5Bt3XT8Ypaj+hKN9CP+IJfaHdqyy7EdtNP++q/C5dcOeEg62/tf82wD9+TGya9AmjVKaB/hQ0fn2IcD8sIAAA=='),
-    radial-gradient(120% 90% at 50% 0%, #1e3449 0%, #16283a 60%, #101d2b 100%);
-  /* Cover on all three image layers; the gradients ignore it harmlessly. */
-  background-size: cover;
-  /* Slightly below centre — it lands the car's roofline clear of the card
-     instead of hiding the whole vehicle behind it. */
-  background-position: center 62%;
-  background-repeat: no-repeat;
+  position: relative;
+  overflow: hidden;
 }
-
-/* Phones get the 1200px encode: a third of the bytes, and no visible
-   difference at that width. */
-@media (max-width: 700px) {
-  .login-screen { background-image:
-    radial-gradient(95% 70% at 50% 52%, rgba(9, 17, 26, 0.3) 0%, rgba(11, 20, 30, 0.16) 48%, rgba(13, 24, 35, 0.06) 100%),
-    url('/media/login-cx5-1200.webp'),
-    radial-gradient(120% 90% at 50% 0%, #1e3449 0%, #16283a 60%, #101d2b 100%);
-  }
-}
+.login-screen > * { position: relative; z-index: 1; }
 
 /* Sign-in card, in the reference's language: a white sheet with a generous
    radius floating on the photograph, rather than the smoked-glass panel it was.
@@ -1799,21 +1781,127 @@ h1, h2, h3, h4, .font-serif {
   100% { transform: scale(1.08) translate3d(0, 0, 0); }
 }
 
-.login-screen::before {
-  content: '';
+/* Background swiper for Admin Login */
+.login-swiper {
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: inherit;
-  background-attachment: scroll;
-  animation: login-drift 38s ease-in-out infinite;
-  will-change: transform;
+  overflow: hidden;
+  user-select: none;
 }
 
-/* The card and everything in it stay still above the moving plate. */
-.login-screen { position: relative; overflow: hidden; }
-.login-screen > * { position: relative; z-index: 1; }
+.login-swiper-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: opacity, transform;
+}
 
-@media (prefers-reduced-motion: reduce) {
-  .login-screen::before { animation: none; }
+.login-swiper-slide.is-active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.login-swiper-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 60%;
+  transform: scale(1);
+  transition: transform 10s ease-out;
+}
+
+.login-swiper-slide.is-active .login-swiper-img {
+  transform: scale(1.06);
+}
+
+.login-swiper-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(95% 70% at 50% 52%, rgba(9, 17, 26, 0.4) 0%, rgba(11, 20, 30, 0.25) 48%, rgba(13, 24, 35, 0.15) 100%),
+    linear-gradient(to bottom, rgba(16, 29, 43, 0.25) 0%, rgba(16, 29, 43, 0.5) 100%);
+  pointer-events: none;
+}
+
+.login-swiper-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(16, 29, 43, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.login-swiper-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.login-swiper-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.08);
+}
+
+.login-swiper-dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-swiper-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-swiper-dot.is-active {
+  width: 22px;
+  border-radius: 4px;
+  background: #e11d48;
+}
+
+.login-swiper-badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  letter-spacing: 0.02em;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .login-swiper-controls {
+    bottom: 16px;
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  .login-swiper-badge {
+    display: none;
+  }
 }
