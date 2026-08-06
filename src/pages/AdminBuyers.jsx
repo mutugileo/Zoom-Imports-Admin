@@ -102,8 +102,10 @@ export const AdminBuyers = () => {
             >
               <Line label="Model" value={selected.vehicleName} />
               <Line label="Year" value={selected.vehicleYear} />
+              <Line label="Colour" value={selected.vehicleColor} />
               <Line label="Registration" value={selected.vehicleReg} />
               <Line label="Chassis" value={selected.vehicleChassis} />
+              <Line label="Engine" value={selected.vehicleEngine} />
             </Card>
 
             <Card title="Sale">
@@ -185,7 +187,12 @@ export const AdminBuyers = () => {
               </tr>
             </thead>
             <tbody>
-              {buyersLoading ? (
+              {/* "Loading" only when there is genuinely nothing to show yet.
+                  The list revalidates whenever the session refreshes, and
+                  keying the message on the flag alone replaced rows that were
+                  already on screen with a spinner — the table flashed empty
+                  while the footer underneath still counted the rows it had. */}
+              {buyersLoading && buyers.length === 0 ? (
                 <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading buyers…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>

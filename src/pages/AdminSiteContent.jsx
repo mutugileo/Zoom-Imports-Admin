@@ -38,6 +38,8 @@ const input = {
 export const AdminSiteContent = () => {
   const {
     siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
+    billing, saveBilling,
+    bankAccounts, saveBankAccount, deleteBankAccount,
     settings, setSetting,
     vehicles, toggleFeaturedVehicle,
   } = useAdmin();
@@ -52,16 +54,32 @@ export const AdminSiteContent = () => {
   const [contactBusy, setContactBusy] = useState(false);
   const [bannerOpen, setBannerOpen] = useState(false);
   const [faqDraft, setFaqDraft] = useState(null);
+  const [bankDraft, setBankDraft] = useState(null);
+
+  /* `billing` is null until the fetch resolves, and stays null for a role that
+     cannot read the table — the empty shape keeps the form renderable either
+     way rather than crashing on billing.bankName. */
+  const EMPTY_BILLING = {
+    companyName: '', poBox: '', bankName: '', bankBranch: '',
+    bankAccountNo: '', bankAccountName: '',
+  };
+  const [billingForm, setBillingForm] = useState(billing ?? EMPTY_BILLING);
+  const [billingSaved, setBillingSaved] = useState(false);
+  const [billingError, setBillingError] = useState('');
+  const [billingBusy, setBillingBusy] = useState(false);
 
   const [bannersRef, bannersShown] = useReveal();
   const [contactRef, contactShown] = useReveal();
+  const [billingRef, billingShown] = useReveal();
   const [featuredRef, featuredShown] = useReveal();
   const [faqRef, faqShown] = useReveal();
 
   // Keep the form in step if the stored contact changes underneath it.
   useEffect(() => { if (siteContent.contact) setContact(siteContent.contact); }, [siteContent.contact]);
+  useEffect(() => { if (billing) setBillingForm(billing); }, [billing]);
 
   const contactDirty = JSON.stringify(contact) !== JSON.stringify(siteContent.contact ?? EMPTY_CONTACT);
+  const billingDirty = JSON.stringify(billingForm) !== JSON.stringify(billing ?? EMPTY_BILLING);
   const featuredCount = vehicles.filter((v) => v.featured).length;
 
   const handleSaveContact = async (e) => {
@@ -73,6 +91,17 @@ export const AdminSiteContent = () => {
     if (!result.ok) { setContactError(result.reason); return; }
     setContactSaved(true);
     setTimeout(() => setContactSaved(false), 2600);
+  };
+
+  const handleSaveBilling = async (e) => {
+    e.preventDefault();
+    setBillingError('');
+    setBillingBusy(true);
+    const result = await saveBilling(billingForm);
+    setBillingBusy(false);
+    if (!result.ok) { setBillingError(result.reason); return; }
+    setBillingSaved(true);
+    setTimeout(() => setBillingSaved(false), 2600);
   };
 
   return (
@@ -117,7 +146,23 @@ export const AdminSiteContent = () => {
           </section>
         )}
 
+        {/*
+          Two columns that pack independently, rather than five cards dropped
+          into a two-column grid.
+
+          A grid aligns its rows: whichever card in a row is tallest sets the
+          height of both, so the shorter one leaves a hole underneath it before
+          the next row starts. With an empty Banners card beside the Contact
+          form that hole was most of a screen. Each column is its own flex
+          stack here, so a card starts where the one above it ended.
+
+          The cards sit in the same columns they always did — only the gaps are
+          gone. Below 1180px the grid collapses to one column and the two
+          stacks fall in on each other.
+        */}
         <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginTop: '22px' }}>
+
+          <div className="content-col" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {/* Homepage banners */}
           <section ref={bannersRef} style={{ ...card, ...revealStyle(bannersShown) }}>
@@ -161,6 +206,163 @@ export const AdminSiteContent = () => {
               )}
             </div>
           </section>
+
+          {/* Company and bank details — printed on invoices, not on the site.
+              Kept on its own record rather than beside the contact fields
+              above: those are granted to `anon` so the storefront can paint its
+              header, and a bank account number does not belong in anything the
+              publishable key can read. */}
+          <section ref={billingRef} style={{ ...card, ...revealStyle(billingShown, 1) }}>
+            <div style={cardHead}>
+              <h2 style={title}>Invoice &amp; Bank Details</h2>
+              <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>Staff only</span>
+            </div>
+            <form className="admin-form" onSubmit={handleSaveBilling} style={{ padding: '20px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', lineHeight: 1.6, marginBottom: '16px' }}>
+                These appear on the invoices generated from the Buyers screen.
+                They are never shown on the customer website.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                {[
+                  ['companyName', 'Company Name'],
+                  ['poBox', 'Postal Address'],
+                ].map(([key, text]) => (
+                  <div key={key}>
+                    <label style={label} htmlFor={`b-${key}`}>{text}</label>
+                    <input
+                      id={`b-${key}`}
+                      type="text"
+                      value={billingForm[key] ?? ''}
+                      onChange={(e) => setBillingForm({ ...billingForm, [key]: e.target.value })}
+                      style={input}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button type="submit" className="btn-primary" disabled={!billingDirty || billingBusy} style={{ opacity: billingDirty ? 1 : 0.5, cursor: billingDirty ? 'pointer' : 'not-allowed' }}>
+                  {billingBusy ? 'Saving…' : 'Save Changes'}
+                </button>
+                {billingSaved && (
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)', fontWeight: 600 }}>Saved</span>
+                )}
+                {billingError && (
+                  <span role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{billingError}</span>
+                )}
+              </div>
+            </form>
+
+            {/* The accounts a sale can be invoiced against.
+                A list rather than one fixed account, because the yard picks
+                which bank to be paid into when it records the buyer. Deleting
+                one only takes it off that menu — invoices already issued keep
+                their own copy of the account they named. */}
+            <div style={{ borderTop: '1px solid rgba(27,36,48,.08)', padding: '18px 20px 20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: '#16232e' }}>Bank Accounts</h3>
+                <button
+                  type="button"
+                  onClick={() => setBankDraft({ bankName: '', branch: '', accountNo: '', accountName: billingForm.companyName || '', isDefault: bankAccounts.length === 0 })}
+                  style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                >
+                  <Plus size={14} /> Add Account
+                </button>
+              </div>
+
+              {bankAccounts.length === 0 ? (
+                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '10px 0' }}>
+                  No accounts yet. Add one and it becomes selectable when recording a buyer.
+                </p>
+              ) : bankAccounts.map((a) => (
+                <div
+                  key={a.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: '12px', padding: '11px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e' }}>
+                      {a.bankName}{a.branch ? ` · ${a.branch}` : ''}
+                      {a.isDefault && (
+                        <span className="badge badge-new" style={{ marginLeft: '8px' }}>Default</span>
+                      )}
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '2px' }}>
+                      {a.accountNo} · {a.accountName}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
+                    <button type="button" onClick={() => setBankDraft(a)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Remove ${a.bankName} ${a.accountNo}? Invoices already issued against it keep their own copy and are unchanged.`)) deleteBankAccount(a.id);
+                      }}
+                      aria-label={`Delete ${a.bankName} ${a.accountNo}`}
+                      style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* FAQs and legal */}
+          <section ref={faqRef} style={{ ...card, ...revealStyle(faqShown, 3) }}>
+            <div style={cardHead}>
+              <h2 style={title}>FAQs &amp; Legal Pages</h2>
+              <button
+                onClick={() => setFaqDraft({ question: '', answer: '', type: 'FAQ' })}
+                style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <Plus size={14} /> Add FAQ
+              </button>
+            </div>
+
+            <div style={{ padding: '6px 20px 14px' }}>
+              {siteContent.faqs.length === 0 ? (
+                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0' }}>
+                  Nothing published yet. Add the questions customers ask most.
+                </p>
+              ) : (
+                siteContent.faqs.map((f) => (
+                  <div
+                    key={f.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: '#16232e' }}>{f.question}</div>
+                      {f.type === 'Legal' && (
+                        <span className="badge badge-new" style={{ marginTop: '5px' }}>Legal</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
+                      <button onClick={() => setFaqDraft(f)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                        Edit
+                      </button>
+                      <button onClick={() => removeFaq(f.id)} aria-label={`Delete ${f.question}`} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          </div>
+
+          <div className="content-col" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {/* Contact information */}
           <section ref={contactRef} style={{ ...card, ...revealStyle(contactShown, 1) }}>
@@ -240,51 +442,7 @@ export const AdminSiteContent = () => {
             </div>
           </section>
 
-          {/* FAQs and legal */}
-          <section ref={faqRef} style={{ ...card, ...revealStyle(faqShown, 3) }}>
-            <div style={cardHead}>
-              <h2 style={title}>FAQs &amp; Legal Pages</h2>
-              <button
-                onClick={() => setFaqDraft({ question: '', answer: '', type: 'FAQ' })}
-                style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <Plus size={14} /> Add FAQ
-              </button>
-            </div>
-
-            <div style={{ padding: '6px 20px 14px' }}>
-              {siteContent.faqs.length === 0 ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0' }}>
-                  Nothing published yet. Add the questions customers ask most.
-                </p>
-              ) : (
-                siteContent.faqs.map((f) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--text-sm)', color: '#16232e' }}>{f.question}</div>
-                      {f.type === 'Legal' && (
-                        <span className="badge badge-new" style={{ marginTop: '5px' }}>Legal</span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
-                      <button onClick={() => setFaqDraft(f)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-                        Edit
-                      </button>
-                      <button onClick={() => removeFaq(f.id)} aria-label={`Delete ${f.question}`} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
+          </div>
         </div>
       </div>
 
@@ -294,6 +452,18 @@ export const AdminSiteContent = () => {
           onSave={async (banner) => {
             const result = await addBanner(banner);
             if (result.ok) setBannerOpen(false);
+            return result;
+          }}
+        />
+      )}
+
+      {bankDraft && (
+        <BankAccountModal
+          account={bankDraft}
+          onClose={() => setBankDraft(null)}
+          onSave={async (account) => {
+            const result = await saveBankAccount(account);
+            if (result.ok) setBankDraft(null);
             return result;
           }}
         />
@@ -499,6 +669,95 @@ const FaqModal = ({ faq, onClose, onSave }) => {
         </div>
         <button type="submit" className="btn-primary" style={{ marginTop: '4px', padding: '10px' }}>
           {faq.id ? 'Save changes' : 'Publish entry'}
+        </button>
+      </form>
+    </ModalShell>
+  );
+};
+
+/**
+ * Add or edit one of the accounts a sale can be invoiced against.
+ *
+ * `isDefault` is a radio in behaviour even though it renders as a checkbox:
+ * only one account may carry it, and the context stands the previous one down
+ * before saving. Ticking it here is therefore a move, not a toggle — the copy
+ * says so rather than leaving someone to discover it.
+ */
+const BankAccountModal = ({ account, onClose, onSave }) => {
+  const [form, setForm] = useState({
+    bankName: account.bankName || '',
+    branch: account.branch || '',
+    accountNo: account.accountNo || '',
+    accountName: account.accountName || '',
+    isDefault: !!account.isDefault,
+  });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const set = (key) => (e) => {
+    setForm((f) => ({ ...f, [key]: e.target.value }));
+    setError('');
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.bankName.trim()) { setError('Enter the bank’s name.'); return; }
+    if (!form.accountNo.trim()) { setError('Enter the account number — it is what the customer types into their banking app.'); return; }
+    if (!form.accountName.trim()) { setError('Enter the name the account is held in.'); return; }
+    setBusy(true);
+    const result = await onSave({
+      ...account,
+      bankName: form.bankName.trim(),
+      branch: form.branch.trim(),
+      accountNo: form.accountNo.trim(),
+      accountName: form.accountName.trim(),
+      isDefault: form.isDefault,
+    });
+    setBusy(false);
+    if (!result.ok) setError(result.reason || 'Could not save this account.');
+  };
+
+  return (
+    <ModalShell heading={account.id ? 'Edit bank account' : 'Add bank account'} onClose={onClose}>
+      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div>
+          <label style={label} htmlFor="ba-bank">Bank name *</label>
+          <input id="ba-bank" value={form.bankName} onChange={set('bankName')} style={input} autoFocus />
+        </div>
+        <div>
+          <label style={label} htmlFor="ba-branch">Branch</label>
+          <input id="ba-branch" value={form.branch} onChange={set('branch')} style={input} />
+        </div>
+        <div>
+          <label style={label} htmlFor="ba-no">Account number *</label>
+          <input id="ba-no" value={form.accountNo} onChange={set('accountNo')} style={input} inputMode="numeric" />
+        </div>
+        <div>
+          <label style={label} htmlFor="ba-name">Account name *</label>
+          <input id="ba-name" value={form.accountName} onChange={set('accountName')} style={input} />
+        </div>
+
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: 'var(--text-sm)', color: '#33414f', lineHeight: 1.55 }}>
+          <input
+            type="checkbox"
+            checked={form.isDefault}
+            onChange={(e) => { setForm((f) => ({ ...f, isDefault: e.target.checked })); setError(''); }}
+            style={{ marginTop: '3px', flexShrink: 0 }}
+          />
+          <span>
+            Offer this account first when recording a buyer.
+            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '2px' }}>
+              Only one account can be the default, so this takes it off whichever holds it now.
+            </span>
+          </span>
+        </label>
+
+        {error && (
+          <p role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f', margin: 0 }}>{error}</p>
+        )}
+
+        <button type="submit" className="btn-primary" disabled={busy} style={{ marginTop: '4px', padding: '10px' }}>
+          {busy ? 'Saving…' : account.id ? 'Save changes' : 'Add account'}
         </button>
       </form>
     </ModalShell>

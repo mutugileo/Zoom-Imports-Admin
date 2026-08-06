@@ -25,6 +25,8 @@ import {
   partCostFromRow,
   orderCostFromRow, orderCostToRow,
   buyerFromRow, buyerToRow,
+  billingFromRow, billingToRow,
+  bankAccountFromRow, bankAccountToRow,
 } from '@shared/lib/dbMap';
 
 /** Not a secret — see the comment on `signIn` below for what this is for. */
@@ -88,6 +90,10 @@ export const AdminProvider = ({ children }) => {
      business. */
   const [buyers, setBuyers] = useState([]);
   const [buyersLoading, setBuyersLoading] = useState(true);
+  /* Company name, P.O. box and bank details for the invoice. Staff-only, and
+     kept off `site_contact` because that table is readable by `anon`. */
+  const [billing, setBilling] = useState(null);
+  const [bankAccounts, setBankAccounts] = useState([]);
 
   /**
    * Cost ledgers, keyed by vehicle id, from `vehicle_costs`.
@@ -741,6 +747,72 @@ export const AdminProvider = ({ children }) => {
     [buyers]
   );
 
+  /* One row, id 1 — the invoice header and the account customers pay into. */
+  const refreshBilling = useCallback(async () => {
+    if (!authUser) { setBilling(null); return; }
+    const { data, error } = await supabase
+      .from('company_billing')
+      .select('*')
+      .eq('id', 1)
+      .maybeSingle();
+    if (!error && data) setBilling(billingFromRow(data));
+  }, [authUser]);
+
+  useEffect(() => { refreshBilling(); }, [refreshBilling]);
+
+  const saveBilling = useCallback(async (next) => {
+    const { error } = await supabase.from('company_billing').update(billingToRow(next)).eq('id', 1);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save the invoice details. Try again.') };
+    await refreshBilling();
+    logActivity('Company and bank details updated');
+    return { ok: true };
+  }, [refreshBilling, logActivity]);
+
+  /* The accounts a sale can be invoiced against. Ordered the way the yard
+     wants them offered, not by id. */
+  const refreshBankAccounts = useCallback(async () => {
+    if (!authUser) { setBankAccounts([]); return; }
+    const { data, error } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .order('sort_order')
+      .order('id');
+    if (!error) setBankAccounts((data ?? []).map(bankAccountFromRow));
+  }, [authUser]);
+
+  useEffect(() => { refreshBankAccounts(); }, [refreshBankAccounts]);
+
+  const saveBankAccount = useCallback(async (account) => {
+    const row = bankAccountToRow(account);
+    /* Only one row may carry the default (a unique partial index enforces it),
+       so the old one is stood down first — otherwise the insert trips the
+       index and the user sees a constraint error for a box they ticked. */
+    if (row.is_default) {
+      await supabase.from('bank_accounts').update({ is_default: false })
+        .eq('is_default', true)
+        .neq('id', account.id ?? -1);
+    }
+    const { error } = account.id
+      ? await supabase.from('bank_accounts').update(row).eq('id', account.id)
+      : await supabase.from('bank_accounts').insert(row);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save this bank account. Try again.') };
+    await refreshBankAccounts();
+    logActivity(`Bank account ${account.bankName} ${account.id ? 'updated' : 'added'}`);
+    return { ok: true };
+  }, [refreshBankAccounts, logActivity]);
+
+  /* Deleting only removes it from the menu. Buyers keep their own copy of the
+     account they were invoiced against, so paperwork already issued is
+     unaffected — the FK is ON DELETE SET NULL for exactly that reason. */
+  const deleteBankAccount = useCallback(async (id) => {
+    const gone = bankAccounts.find((a) => a.id === id);
+    const { error } = await supabase.from('bank_accounts').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not remove this bank account. Try again.') };
+    await refreshBankAccounts();
+    logActivity(`Bank account ${gone?.bankName ?? ''} removed`);
+    return { ok: true };
+  }, [bankAccounts, refreshBankAccounts, logActivity]);
+
   const refreshPartCosts = useCallback(async () => {
     if (!authUser) { setPartCosts({}); return; }
     const { data, error } = await supabase.from('part_costs').select('*');
@@ -1021,6 +1093,8 @@ export const AdminProvider = ({ children }) => {
       reviews, reviewsLoading, setReviewStatus, removeReview,
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      billing, saveBilling,
+      bankAccounts, saveBankAccount, deleteBankAccount,
       settings, setSetting,
       activity,
 
@@ -1044,6 +1118,8 @@ export const AdminProvider = ({ children }) => {
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      billing, saveBilling,
+      bankAccounts, saveBankAccount, deleteBankAccount,
     ]
   );
 

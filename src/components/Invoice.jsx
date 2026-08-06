@@ -6,9 +6,18 @@ import { X, Printer } from 'lucide-react';
 
 /**
  * The invoice number.
+ *
+ * A number typed in by hand wins, so a record can be matched to an invoice
+ * already written on paper. Otherwise it is derived from the row's primary key:
+ * the same number every time the record is opened, on any machine, and two
+ * people printing at once cannot mint the same one. Deleting a buyer retires
+ * its number rather than handing it to the next sale.
+ *
+ * Padded to four digits so the sequence keeps one width past the hundredth
+ * sale instead of running ZM4-08 → ZM4-100.
  */
 export const invoiceNumberFor = (buyer) =>
-  buyer?.invoiceNo || `ZM4-${String(buyer?.id ?? 8).padStart(2, '0')}`;
+  buyer?.invoiceNo || `ZM4-${String(buyer?.id ?? 0).padStart(4, '0')}`;
 
 /** `sale_date` is stored as plain text, so a malformed one must not throw. */
 const readableDate = (value) => {
@@ -20,10 +29,32 @@ const readableDate = (value) => {
 
 /**
  * Keywave Enterprise Limited Invoice Component
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * EVERY FIGURE HERE COMES OFF THE BUYER ROW. Nothing is looked up from
+ * `vehicles`, deliberately — the vehicle columns on `buyers` are a copy taken
+ * when the sale was recorded, and reading the live car instead would mean
+ * editing a listing silently reissues a document the customer already holds.
+ *
+ * NOTHING IS INVENTED WHEN A FIELD IS MISSING. A blank price prints as blank
+ * and says so; it must never fall back to a plausible-looking figure, because
+ * this is a document handed to a customer and a placeholder they act on is
+ * worse than an obvious gap.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
+ * The company's own name, box number and bank account are the one live read,
+ * from `company_billing` — a moved office or a changed account has to appear on
+ * the next print. They sit on their own staff-only table rather than on
+ * `site_contact`, which grants SELECT to `anon`.
+ *
+ * There is no tax line. The yard's VAT position is not recorded anywhere in
+ * this system, and printing a 16% line on a document a customer may hand to
+ * KRA would assert something no data here supports.
  */
 export const Invoice = ({ buyer, onClose }) => {
-  const { siteContent, formatKES } = useApp();
+  const { siteContent, billing, formatKES } = useApp();
   const contact = siteContent?.contact ?? {};
+  const company = billing ?? {};
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -31,8 +62,34 @@ export const Invoice = ({ buyer, onClose }) => {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  /**
+   * The payment block.
+   *
+   * Taken from the buyer's own copied columns, so a reprint always names the
+   * account that was on the original. Records written before accounts became
+   * selectable have no copy, and fall back to the single account that used to
+   * live on `company_billing` — which is exactly what those invoices showed at
+   * the time, so the fallback reproduces them rather than rewriting them.
+   */
+  const bank = buyer.bankAccountNo || buyer.bankName
+    ? {
+        name: buyer.bankName,
+        branch: buyer.bankBranch,
+        accountNo: buyer.bankAccountNo,
+        accountName: buyer.bankAccountName,
+      }
+    : {
+        name: company.bankName,
+        branch: company.bankBranch,
+        accountNo: company.bankAccountNo,
+        accountName: company.bankAccountName,
+      };
+
   const number = invoiceNumberFor(buyer);
-  const issued = readableDate(buyer.saleDate) ?? readableDate(buyer.at) ?? 'August 4, 2026';
+  /* Dated by the sale, not by the clock — an invoice reprinted in six months
+     has to be the same document. Falls back to when the record was created,
+     and then to nothing at all rather than to a date nobody agreed to. */
+  const issued = readableDate(buyer.saleDate) ?? readableDate(buyer.at);
 
   // Format vehicle description line matching the Keywave structure:
   // e.g., Mazda CX-5/2020/Red/Chassis:KF2P-406537/Engine:SH-31020950
@@ -46,10 +103,12 @@ export const Invoice = ({ buyer, onClose }) => {
 
   const fullVehicleDescription = vehicleDescParts.join('/');
 
-  const formattedAmount = buyer.salePrice != null ? formatKES(buyer.salePrice) : '3,800,000';
-  const numericAmount = buyer.salePrice != null
-    ? buyer.salePrice.toLocaleString('en-US')
-    : '3,800,000';
+  /* An em dash, never a number. A missing price used to print as 3,800,000 —
+     a figure a customer could reasonably have paid, on paper they were handed.
+     `priced` drives the warning below so the gap is stated, not just left
+     blank. */
+  const priced = buyer.salePrice != null;
+  const numericAmount = priced ? buyer.salePrice.toLocaleString('en-US') : '—';
 
   return (
     <div className="modal-overlay invoice-overlay" onClick={onClose}>
@@ -74,7 +133,7 @@ export const Invoice = ({ buyer, onClose }) => {
           style={{
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             gap: '12px',
             padding: '14px 24px',
             borderBottom: '1px solid var(--border-medium)',
@@ -108,13 +167,16 @@ export const Invoice = ({ buyer, onClose }) => {
 
               {/* Company Info */}
               <div style={{ marginTop: '16px', color: '#33373d' }}>
+                {/* From `company_billing`, editable on Site Content. The
+                    literals that used to sit here meant a changed account or a
+                    new office needed a deploy. */}
                 <div style={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '0.01em', textTransform: 'uppercase', color: '#24292e' }}>
-                  KEYWAVE ENTERPRISE LIMITED
+                  {company.companyName || 'Keywave Enterprise Limited'}
                 </div>
                 <div style={{ fontSize: '0.88rem', color: '#57606a', lineHeight: 1.6, marginTop: '4px' }}>
-                  <div>{contact.poBox || 'P.O Box 4127-00100 Nairobi'}</div>
-                  <div>{contact.phone || '0725728780'}</div>
-                  <div>{contact.email || 'info@keywavelimited.com'}</div>
+                  {company.poBox && <div>{company.poBox}</div>}
+                  {contact.phone && <div>{contact.phone}</div>}
+                  {contact.email && <div>{contact.email}</div>}
                 </div>
               </div>
             </div>
@@ -125,14 +187,14 @@ export const Invoice = ({ buyer, onClose }) => {
                 {number}
               </div>
               <div style={{ fontSize: '0.9rem', color: '#444c56', marginTop: '18px' }}>
-                {issued}
+                {issued ?? <span style={{ color: '#8a3232' }}>No date of sale recorded</span>}
               </div>
               <div style={{ marginTop: '36px' }}>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a' }}>
                   BALANCE DUE
                 </div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1f2328', marginTop: '2px' }}>
-                  Ksh. {numericAmount}
+                  {priced ? `Ksh. ${numericAmount}` : '—'}
                 </div>
               </div>
             </div>
@@ -184,6 +246,15 @@ export const Invoice = ({ buyer, onClose }) => {
             </tbody>
           </table>
 
+          {/* Said plainly rather than printed as a plausible number. A gap on
+              an invoice is something to go and fill in, not a free car. */}
+          {!priced && (
+            <p style={{ fontSize: '0.82rem', color: '#8a3232', marginTop: '10px', lineHeight: 1.6 }}>
+              No sale price is recorded against this buyer. Add it before giving
+              this invoice to the customer.
+            </p>
+          )}
+
           {/* Table Bottom Border Line */}
           <div style={{ borderBottom: '1px dashed #d8dee4', marginBottom: '24px' }} />
 
@@ -192,7 +263,7 @@ export const Invoice = ({ buyer, onClose }) => {
             <div style={{ width: '300px' }}>
               <div style={{
                 display: 'flex',
-                justify: 'space-between',
+                justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '8px 0',
                 borderTop: '1px solid #d8dee4',
@@ -212,11 +283,19 @@ export const Invoice = ({ buyer, onClose }) => {
           {/* Bank Payment Details & Stamp Section */}
           <section style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px', marginTop: '36px', alignItems: 'flex-end' }}>
             {/* Bank Details */}
+            {/* The account CHOSEN for this sale, read off the buyer's own copy
+                so a reprint names what the customer was originally told to pay
+                into. `company` is only the fallback for records written before
+                accounts became selectable.
+
+                Each line only prints once it has a value. A half-written
+                account is worse than none — it is what a customer types into
+                their banking app. */}
             <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
-              <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> KCB</div>
-              <div><strong style={{ fontWeight: 600 }}>Branch :</strong> Two Rivers Mall</div>
-              <div><strong style={{ fontWeight: 600 }}>AccountNo.:</strong> 1316802892</div>
-              <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> Keywave Enterprise Limited</div>
+              {bank.name && <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> {bank.name}</div>}
+              {bank.branch && <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {bank.branch}</div>}
+              {bank.accountNo && <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {bank.accountNo}</div>}
+              {bank.accountName && <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {bank.accountName}</div>}
             </div>
 
             {/* Signature & Official Circular Stamp */}

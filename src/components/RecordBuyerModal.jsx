@@ -26,7 +26,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
  * They stay editable: a deposit-and-balance deal is not always the sale row.
  */
 export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
-  const { vehicles, saveBuyer, saleFor, buyerForVehicle, formatKES } = useApp();
+  const { vehicles, saveBuyer, saleFor, buyerForVehicle, formatKES, bankAccounts } = useApp();
   const editing = Boolean(buyer);
 
   /* Only cars that have actually sold, and only those not already handed to
@@ -54,7 +54,16 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
     notes: buyer?.notes ?? '',
     salePrice: buyer?.salePrice ?? '',
     saleDate: buyer?.saleDate ?? '',
+    invoiceNo: buyer?.invoiceNo ?? '',
   }));
+
+  /* Which account the invoice will tell this buyer to pay into. An existing
+     record keeps the one it was written with even if that account has since
+     been retired from the menu; a new one starts on the house default. */
+  const [bankAccountId, setBankAccountId] = useState(
+    () => buyer?.bankAccountId ?? bankAccounts.find((a) => a.isDefault)?.id ?? ''
+  );
+  const pickedBank = bankAccounts.find((a) => a.id === Number(bankAccountId)) ?? null;
   const [error, setError] = useState('');
 
   const trapRef = useFocusTrap(true);
@@ -117,13 +126,26 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
       vehicleYear: picked.year ?? null,
       vehicleReg: picked.regNumber || '',
       vehicleChassis: picked.chassis || '',
+      vehicleColor: picked.color || '',
+      vehicleEngine: picked.engine || '',
+      // An invoice number typed by hand overrides the derived one; blank means
+      // the app keeps deriving it from the row id.
+      invoiceNo: form.invoiceNo.trim(),
+      /* Copied like the vehicle above: the account named on paperwork the
+         customer already holds must not move when the menu is edited. An
+         edit with the account since deleted keeps what was printed. */
+      bankAccountId: pickedBank?.id ?? buyer?.bankAccountId ?? null,
+      bankName: pickedBank?.bankName ?? buyer?.bankName ?? '',
+      bankBranch: pickedBank?.branch ?? buyer?.bankBranch ?? '',
+      bankAccountNo: pickedBank?.accountNo ?? buyer?.bankAccountNo ?? '',
+      bankAccountName: pickedBank?.accountName ?? buyer?.bankAccountName ?? '',
       salePrice: price,
       saleDate: form.saleDate || '',
     });
 
     if (!result.ok) { setError(result.reason || 'Could not save this buyer.'); return; }
     onClose();
-  }, [form, picked, buyer, saveBuyer, onClose]);
+  }, [form, picked, pickedBank, buyer, saveBuyer, onClose]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -184,8 +206,10 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
           {picked && (
             <div style={{ background: 'var(--primary-light)', borderRadius: 'var(--radius-md)', padding: '13px 15px', marginBottom: '16px' }}>
               <Row label="Model" value={`${picked.name} (${picked.year ?? '—'})`} />
+              <Row label="Colour" value={picked.color || 'not on file'} />
               <Row label="Registration" value={picked.regNumber || 'not on file'} />
               <Row label="Chassis" value={picked.chassis || 'not on file'} />
+              <Row label="Engine" value={picked.engine || 'not on file'} />
               {sale ? (
                 <Row label="Recorded sale" value={`${formatKES(sale.price)} on ${sale.date || 'no date'}`} />
               ) : (
@@ -232,6 +256,55 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
               <input id="buyer-date" type="date" className="field" value={form.saleDate} onChange={set('saleDate')} />
             </div>
           </div>
+
+          <label className="field-label" htmlFor="buyer-invoice">Invoice number (optional)</label>
+          <input
+            id="buyer-invoice"
+            type="text"
+            className="field"
+            value={form.invoiceNo}
+            onChange={set('invoiceNo')}
+            placeholder="Leave blank to number it automatically"
+          />
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-dim)', margin: '5px 0 12px', lineHeight: 1.55 }}>
+            Only fill this in to match a number already written on a paper
+            invoice. Left blank, the invoice is numbered from this record.
+          </p>
+
+          {/* Which account this customer is told to pay into. Chosen per sale
+              rather than fixed for the yard — the pick is copied onto the
+              record, so editing the menu later cannot redirect a payment on an
+              invoice already handed over. */}
+          <label className="field-label" htmlFor="buyer-bank">Pay into</label>
+          <select
+            id="buyer-bank"
+            className="field"
+            value={bankAccountId}
+            onChange={(e) => { setBankAccountId(e.target.value); setError(''); }}
+          >
+            <option value="">No account on the invoice</option>
+            {bankAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.bankName}{a.branch ? ` · ${a.branch}` : ''} · {a.accountNo}
+                {a.isDefault ? ' (default)' : ''}
+              </option>
+            ))}
+          </select>
+          {/* An edited record whose account has since been deleted still has
+              its copy — say so rather than showing an empty select and letting
+              someone assume the invoice lost its bank block. */}
+          {!pickedBank && buyer?.bankAccountNo ? (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-dim)', margin: '5px 0 12px', lineHeight: 1.55 }}>
+              This invoice was issued against {buyer.bankName} {buyer.bankAccountNo},
+              which is no longer on the list. Leaving this alone keeps it as printed.
+            </p>
+          ) : (
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-dim)', margin: '5px 0 12px', lineHeight: 1.55 }}>
+              {bankAccounts.length === 0
+                ? 'No accounts set up yet. Add one under Site Content → Invoice & Bank Details.'
+                : 'Printed in the payment block at the foot of the invoice.'}
+            </p>
+          )}
 
           <label className="field-label" htmlFor="buyer-notes">Notes (optional)</label>
           <textarea

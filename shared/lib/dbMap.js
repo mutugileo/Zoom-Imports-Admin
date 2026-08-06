@@ -284,6 +284,20 @@ export const buyerFromRow = (r) => ({
   vehicleYear: r.vehicle_year,
   vehicleReg: r.vehicle_reg || '',
   vehicleChassis: r.vehicle_chassis || '',
+  vehicleColor: r.vehicle_color || '',
+  vehicleEngine: r.vehicle_engine || '',
+  /* Null unless a number was issued by hand on paper. The app derives one from
+     the row id otherwise — see invoiceNumberFor. */
+  invoiceNo: r.invoice_no || '',
+  /* The account this invoice tells the customer to pay into, copied at record
+     time. `bankAccountId` traces the source row and is never printed: retiring
+     an account or fixing a branch must not redirect a payment on paperwork the
+     customer already holds. */
+  bankAccountId: r.bank_account_id ?? null,
+  bankName: r.bank_name || '',
+  bankBranch: r.bank_branch || '',
+  bankAccountNo: r.bank_account_no || '',
+  bankAccountName: r.bank_account_name || '',
   // Numeric arrives from PostgREST as a string so precision survives the wire.
   salePrice: r.sale_price == null ? null : Number(r.sale_price),
   saleDate: r.sale_date || '',
@@ -302,7 +316,73 @@ export const buyerToRow = (b) => ({
   vehicle_year: b.vehicleYear ?? null,
   vehicle_reg: b.vehicleReg || null,
   vehicle_chassis: b.vehicleChassis || null,
+  vehicle_color: b.vehicleColor || null,
+  vehicle_engine: b.vehicleEngine || null,
+  invoice_no: b.invoiceNo || null,
+  bank_account_id: b.bankAccountId ?? null,
+  bank_name: b.bankName || null,
+  bank_branch: b.bankBranch || null,
+  bank_account_no: b.bankAccountNo || null,
+  bank_account_name: b.bankAccountName || null,
   sale_price: b.salePrice ?? null,
   sale_date: b.saleDate || null,
   notes: b.notes || null,
+});
+
+/**
+ * The company's own billing identity, printed on an invoice.
+ *
+ * A separate table from `site_contact` rather than more columns on it, because
+ * `site_contact` grants SELECT to `anon` so the storefront can paint its header
+ * — putting a bank account number there would hand it to anyone holding the
+ * publishable key. Nothing on this record is read by the customer site.
+ */
+export const billingFromRow = (r) => ({
+  companyName: r.company_name || '',
+  poBox: r.po_box || '',
+  bankName: r.bank_name || '',
+  bankBranch: r.bank_branch || '',
+  bankAccountNo: r.bank_account_no || '',
+  bankAccountName: r.bank_account_name || '',
+});
+
+export const billingToRow = (b) => ({
+  company_name: b.companyName || null,
+  po_box: b.poBox || null,
+  bank_name: b.bankName || null,
+  bank_branch: b.bankBranch || null,
+  bank_account_no: b.bankAccountNo || null,
+  bank_account_name: b.bankAccountName || null,
+});
+
+/**
+ * An account the yard can ask to be paid into.
+ *
+ * A list rather than one set of fields on `company_billing`, because which
+ * account an invoice names is a per-sale decision — different banks suit
+ * different buyers, and the yard picks one when the sale is recorded. The
+ * chosen row is then COPIED onto the buyer (see `buyerFromRow`), so this table
+ * is the menu, never the record of what was already printed.
+ */
+export const bankAccountFromRow = (r) => ({
+  id: r.id,
+  bankName: r.bank_name,
+  branch: r.branch || '',
+  accountNo: r.account_no,
+  accountName: r.account_name,
+  isDefault: !!r.is_default,
+  sortOrder: r.sort_order,
+  active: !!r.active,
+});
+
+export const bankAccountToRow = (a) => ({
+  bank_name: a.bankName,
+  branch: a.branch || null,
+  account_no: a.accountNo,
+  account_name: a.accountName,
+  /* Written as a real false rather than left out: a unique partial index
+     enforces at most one default, so this column is never ambiguous. */
+  is_default: !!a.isDefault,
+  sort_order: a.sortOrder ?? 0,
+  active: a.active !== false,
 });
