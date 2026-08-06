@@ -460,6 +460,20 @@ export const AdminProvider = ({ children }) => {
 
   useEffect(() => { refreshParts(); }, [refreshParts]);
 
+  /* Declared above the parts block on purpose. savePart depends on it, and a
+     `const` referenced before its own line is still in the temporal dead
+     zone — putting this after savePart threw "Cannot access
+     'refreshCompatibility' before initialization" and took the whole portal
+     down with a blank screen. */
+  const refreshCompatibility = useCallback(async () => {
+    setCompatibilityLoading(true);
+    const { data, error } = await supabase.from('compatibility_rules').select('*').order('id');
+    setCompatibilityLoading(false);
+    if (!error) setCompatibility((data ?? []).map(compatFromRow));
+  }, []);
+
+  useEffect(() => { refreshCompatibility(); }, [refreshCompatibility]);
+
   /**
    * Fitment saved with the part, not on a separate screen.
    *
@@ -518,15 +532,6 @@ export const AdminProvider = ({ children }) => {
   }, [parts, refreshParts, logActivity]);
 
   // ─────────────────────── Compatibility rules ───────────────────────
-
-  const refreshCompatibility = useCallback(async () => {
-    setCompatibilityLoading(true);
-    const { data, error } = await supabase.from('compatibility_rules').select('*').order('id');
-    setCompatibilityLoading(false);
-    if (!error) setCompatibility((data ?? []).map(compatFromRow));
-  }, []);
-
-  useEffect(() => { refreshCompatibility(); }, [refreshCompatibility]);
 
   const addCompatibilityRule = useCallback(async (rule) => {
     const { error } = await supabase.from('compatibility_rules').insert(compatToRow(rule));
