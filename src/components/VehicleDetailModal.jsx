@@ -240,7 +240,7 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
               <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
                 Description
               </div>
-              <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: 'var(--text-body)', background: '#f9f8f6', border: '1px solid rgba(27,36,48,.08)', borderRadius: '8px', padding: '14px 16px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: 'var(--text-body)', background: 'var(--bg-cream)', border: '1px solid var(--border-light)', borderRadius: '8px', padding: '14px 16px' }}>
                 {vehicle.description}
               </p>
             </section>
