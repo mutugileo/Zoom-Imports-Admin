@@ -50,12 +50,12 @@ const ChangePinCard = ({ name, email }) => {
   return (
     <section style={{ ...card, margin: '22px 0 20px' }}>
       <div style={cardHead}>
-        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <KeyRound size={16} color="var(--primary-ink)" /> My PIN
         </h2>
       </div>
       <form onSubmit={save} style={{ padding: '20px', display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginRight: '4px' }}>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginRight: '4px' }}>
           {name} <span style={{ color: '#8a97a3' }}>· {email}</span>
         </div>
         <div>
@@ -96,8 +96,8 @@ const ChangePinCard = ({ name, email }) => {
 };
 
 const card = {
-  background: '#fff',
-  border: '1px solid #e1e6eb',
+  background: 'var(--bg-card)',
+  border: '1px solid var(--field-border)',
   borderRadius: '26px',
   boxShadow: '0 1px 0 rgba(22, 35, 46, 0.02)',
 };
@@ -109,17 +109,17 @@ const cardHead = {
 
 const label = {
   fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.06em',
-  textTransform: 'uppercase', color: '#5f6b7a', display: 'block', marginBottom: '4px',
+  textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: '4px',
 };
 
 const input = {
   width: '100%', padding: '9px 11px', borderRadius: '6px',
-  border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', outline: 'none', background: '#fff',
+  border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none', background: 'var(--bg-card)',
 };
 
 const ROLE_TONE = {
-  Superadmin: { background: 'var(--primary-ink)', color: '#ffffff' },
-  Administrator: { background: '#e6eff2', color: 'var(--primary-ink)' },
+  Superadmin: { background: 'var(--primary-ink)', color: 'var(--bg-card)' },
+  Administrator: { background: 'var(--primary-light)', color: 'var(--primary-ink)' },
   'Sales Staff': { background: '#eaf1f6', color: 'var(--primary-ink)' },
   'Inventory Manager': { background: '#fbf1df', color: 'var(--accent-text)' },
 };
@@ -164,7 +164,7 @@ export const AdminSettings = () => {
     <AdminLayout>
       <div className="admin-page" style={{ padding: '0 32px 32px' }}>
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Settings</h1>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>Settings</h1>
           {manageUsers && (
             <button onClick={() => setShowAddInfo(true)} className="btn-primary">
               <UserPlus size={16} /> Add staff
@@ -180,7 +180,7 @@ export const AdminSettings = () => {
         {manageUsers && (
         <section ref={usersRef} className="admin-table-card" style={{ ...card, margin: '22px 0 20px', overflow: 'hidden', ...revealStyle(usersShown) }}>
           <div style={cardHead}>
-            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e' }}>Admin Users</h2>
+            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-dark)' }}>Admin Users</h2>
           </div>
 
           <table className="admin-table">
@@ -195,11 +195,11 @@ export const AdminSettings = () => {
             </thead>
             <tbody>
               {adminProfilesLoading && adminProfiles.length === 0 && (
-                <tr><td colSpan={5} style={{ color: '#5f6b7a', padding: '18px' }}>Loading…</td></tr>
+                <tr><td colSpan={5} style={{ color: 'var(--text-muted)', padding: '18px' }}>Loading…</td></tr>
               )}
               {adminProfiles.map((u) => (
                 <tr key={u.id}>
-                  <td style={{ fontWeight: 600, color: '#16232e' }}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-dark)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
                       {onlineUserIds.has(u.id) && (
                         <span className="presence-dot" aria-label="Online now" title="Online now" />
@@ -207,19 +207,19 @@ export const AdminSettings = () => {
                       {u.name}
                     </span>
                     {u.id === currentUser?.id && (
-                      <span style={{ marginLeft: '7px', fontSize: 'var(--text-xs)', fontWeight: 500, color: '#5f6b7a' }}>(you)</span>
+                      <span style={{ marginLeft: '7px', fontSize: 'var(--text-xs)', fontWeight: 500, color: 'var(--text-muted)' }}>(you)</span>
                     )}
                   </td>
-                  <td style={{ color: '#5f6b7a' }}>{u.email}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{u.email}</td>
                   <td>
                     <span
                       className="badge"
-                      style={ROLE_TONE[u.role] || { background: '#eef0f2', color: '#6b7480' }}
+                      style={ROLE_TONE[u.role] || { background: 'var(--bg-cream)', color: '#6b7480' }}
                     >
                       {u.role}
                     </span>
                   </td>
-                  <td style={{ color: '#5c6a78' }}>{u.last_login ? relative(new Date(u.last_login).getTime()) : 'Never signed in'}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{u.last_login ? relative(new Date(u.last_login).getTime()) : 'Never signed in'}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '12px' }}>
                       <button onClick={() => { setUserError(''); setDraft(u); }} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}>
@@ -248,24 +248,24 @@ export const AdminSettings = () => {
           {/* Your account — the actual signed-in person, not a general explainer */}
           <section ref={securityRef} style={{ ...card, ...revealStyle(securityShown, 1) }}>
             <div style={cardHead}>
-              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <UserCheck size={16} color="var(--verify)" /> Your Account
               </h2>
             </div>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: '#16232e' }}>
+              <div style={{ fontSize: 'var(--text-lg)', fontWeight: 600, color: 'var(--text-dark)' }}>
                 {currentUser?.name}
               </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
                 {currentUser?.email}
               </div>
               <span
                 className="badge"
-                style={{ ...(ROLE_TONE[currentUser?.role] || { background: '#eef0f2', color: '#6b7480' }), alignSelf: 'flex-start' }}
+                style={{ ...(ROLE_TONE[currentUser?.role] || { background: 'var(--bg-cream)', color: '#6b7480' }), alignSelf: 'flex-start' }}
               >
                 {currentUser?.role}
               </span>
-              <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginTop: '6px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '6px' }}>
                 Last signed in {currentUser?.last_login ? relative(new Date(currentUser.last_login).getTime()) : 'just now'}
               </p>
             </div>
@@ -274,14 +274,14 @@ export const AdminSettings = () => {
           {/* Audit trail — fed by real actions */}
           <section ref={auditRef} style={{ ...card, ...revealStyle(auditShown, 2) }}>
             <div style={cardHead}>
-              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <History size={16} color="#5f6b7a" /> Audit Trail
+              <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-dark)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={16} color="var(--text-muted)" /> Audit Trail
               </h2>
             </div>
 
             <div style={{ padding: '6px 20px 14px', maxHeight: '360px', overflowY: 'auto' }}>
               {activity.length === 0 ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0', lineHeight: 1.6 }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '18px 0', lineHeight: 1.6 }}>
                   Nothing recorded yet. Changes you make — editing a listing, moving an order on,
                   featuring a vehicle — will show up here.
                 </p>
@@ -294,8 +294,8 @@ export const AdminSettings = () => {
                       gap: '14px', padding: '11px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
                     }}
                   >
-                    <span style={{ fontSize: 'var(--text-sm)', color: '#333d49', minWidth: 0 }}>{entry.message}</span>
-                    <span style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', minWidth: 0 }}>{entry.message}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
                       {relative(entry.at)}
                     </span>
                   </div>
@@ -360,10 +360,10 @@ const UserModal = ({ user, onClose, onSave }) => {
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Edit user">
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '480px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>
             Edit user
           </h3>
-          <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
             <X size={16} />
           </button>
         </div>
@@ -378,19 +378,19 @@ const UserModal = ({ user, onClose, onSave }) => {
           </div>
           <div>
             <label style={label} htmlFor="u-email">Email</label>
-            <input id="u-email" value={user.email} disabled style={{ ...input, background: '#f4f6f8', color: '#5f6b7a' }} />
+            <input id="u-email" value={user.email} disabled style={{ ...input, background: '#f4f6f8', color: 'var(--text-muted)' }} />
           </div>
           <div>
             <label style={label} htmlFor="u-role">Role</label>
             <select id="u-role" value={role} onChange={(e) => setRole(e.target.value)} style={input}>
               {ADMIN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '5px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '5px', lineHeight: 1.5 }}>
               {ROLES[role]?.blurb}
             </p>
           </div>
 
-          <p style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
             The role takes effect immediately — it&rsquo;s enforced by row-level security in
             Postgres, not just by which buttons this app shows.
           </p>
@@ -439,10 +439,10 @@ const AddStaffModal = ({ onClose, onCreate }) => {
     return (
       <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Staff added">
         <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '440px' }}>
-          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e', marginBottom: '12px' }}>
+          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)', marginBottom: '12px' }}>
             {name} added
           </h3>
-          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: '#333d49' }}>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: 'var(--text-body)' }}>
             {result.needsConfirmation
               ? <>Supabase just emailed <strong>{email}</strong> a confirmation link. They can sign in
                   with their email and the PIN you set once they click it — not before.</>
@@ -460,10 +460,10 @@ const AddStaffModal = ({ onClose, onCreate }) => {
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Add staff">
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '480px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+          <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>
             Add staff
           </h3>
-          <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+          <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
             <X size={16} />
           </button>
         </div>
@@ -482,7 +482,7 @@ const AddStaffModal = ({ onClose, onCreate }) => {
             <select id="new-role" value={role} onChange={(e) => setRole(e.target.value)} style={input}>
               {ADMIN_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
-            <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '5px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '5px', lineHeight: 1.5 }}>
               {ROLES[role]?.blurb}
             </p>
           </div>
@@ -499,7 +499,7 @@ const AddStaffModal = ({ onClose, onCreate }) => {
               style={{ ...input, letterSpacing: '0.4em', fontFamily: 'IBM Plex Mono, monospace' }}
               placeholder={'0'.repeat(PIN_LENGTH)}
             />
-            <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '5px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '5px', lineHeight: 1.5 }}>
               Hand this to them in person — they can change it themselves from
               &ldquo;My PIN&rdquo; the first time they sign in.
             </p>
@@ -509,7 +509,7 @@ const AddStaffModal = ({ onClose, onCreate }) => {
             <p role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f', margin: 0 }}>{error}</p>
           )}
 
-          <p style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
             Supabase will email {email || 'them'} a confirmation link before this account can sign
             in — that&rsquo;s a real anti-abuse step, not optional. On this project&rsquo;s current email
             quota that can occasionally be delayed; it isn&rsquo;t something this form controls.

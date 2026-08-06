@@ -12,7 +12,9 @@ export default defineConfig({
     alias: { '@shared': shared },
   },
   server: {
-    port: 3001,
+    /* 3001 by default, but PORT wins when it is set — nothing here depends on
+       the exact number, so failing to start is worse than moving. */
+    port: Number(process.env.PORT) || 3001,
     open: false,
   },
 })

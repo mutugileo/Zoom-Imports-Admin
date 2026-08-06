@@ -47,6 +47,26 @@ const ACTIVITY_LIMIT = 40;
 export const AdminProvider = ({ children }) => {
   const [currentView, setCurrentView] = useState('admin-dashboard');
 
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'dark';
+    try {
+      const saved = localStorage.getItem('zm_theme');
+      if (saved === 'light' || saved === 'dark') return saved;
+    } catch { /* private mode fallback */ }
+    return window.matchMedia?.('(prefers-color-scheme: light)')?.matches ? 'light' : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem('zm_theme', theme);
+    } catch { /* ignore */ }
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
+
   /**
    * Real session: a Supabase Auth session, plus the admin_profiles row that
    * carries the role. `authUser` and `profile` are kept as two pieces of
@@ -1097,6 +1117,7 @@ export const AdminProvider = ({ children }) => {
       bankAccounts, saveBankAccount, deleteBankAccount,
       settings, setSetting,
       activity,
+      theme, toggleTheme,
 
       formatKES,
     }),
@@ -1120,6 +1141,7 @@ export const AdminProvider = ({ children }) => {
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
+      theme, toggleTheme
     ]
   );
 

@@ -7,25 +7,25 @@ import {
 } from '@shared/lib/costing';
 import { Plus, Trash2, Lock } from 'lucide-react';
 
-const label = { fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '3px' };
+const label = { fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '3px' };
 const field = {
   width: '100%', padding: '8px 10px', borderRadius: '6px',
-  border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', fontFamily: 'IBM Plex Mono, monospace',
+  border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', fontFamily: 'IBM Plex Mono, monospace',
 };
 const sectionTitle = {
   fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.09em',
-  textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '10px',
+  textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px',
 };
 const panel = {
   border: '1px solid var(--band-line)', borderRadius: '10px',
-  padding: '16px', marginBottom: '16px', background: '#fafbfc',
+  padding: '16px', marginBottom: '16px', background: 'var(--bg-app)',
 };
 
 /** Read-only derived figure. */
 const Derived = ({ name, value, tone }) => (
-  <div style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '8px', padding: '11px 13px' }}>
-    <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginBottom: '3px' }}>{name}</div>
-    <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: tone ?? '#16232e', fontFamily: 'IBM Plex Mono, monospace' }}>
+  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '8px', padding: '11px 13px' }}>
+    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '3px' }}>{name}</div>
+    <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: tone ?? 'var(--text-dark)', fontFamily: 'IBM Plex Mono, monospace' }}>
       {value}
     </div>
   </div>
@@ -101,7 +101,7 @@ export const VehicleCosts = ({ vehicle }) => {
   return (
     <form onSubmit={submit}>
       {!mayEdit && (
-        <p style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: 'var(--text-sm)', color: '#5f6b7a', marginBottom: '14px' }}>
+        <p style={{ display: 'flex', gap: '8px', alignItems: 'center', fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: '14px' }}>
           <Lock size={14} /> You can view this ledger but not change it.
         </p>
       )}
@@ -114,7 +114,7 @@ export const VehicleCosts = ({ vehicle }) => {
             <div key={f.key}>
               <label style={label} htmlFor={`c-${f.key}`}>{f.label} (KES)</label>
               {money(f.key)}
-              {f.hint && <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '4px' }}>{f.hint}</p>}
+              {f.hint && <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>{f.hint}</p>}
             </div>
           ))}
           <div>
@@ -124,7 +124,7 @@ export const VehicleCosts = ({ vehicle }) => {
               value={draft.percentagePaid || ''} onChange={(e) => set('percentagePaid', e.target.value)} placeholder="0"
             />
             {/* Deliberately not part of Total cost — see costing.js. */}
-            <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '4px' }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
               How much of the CNF has been paid. Does not change the cost of the car.
             </p>
           </div>
@@ -157,13 +157,13 @@ export const VehicleCosts = ({ vehicle }) => {
       <section style={panel}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <div style={{ ...sectionTitle, marginBottom: 0 }}>Repairs and other costs</div>
-          <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'IBM Plex Mono, monospace', color: '#16232e' }}>
+          <span style={{ fontSize: 'var(--text-sm)', fontFamily: 'IBM Plex Mono, monospace', color: 'var(--text-dark)' }}>
             {formatKES(expensesTotal(draft))}
           </span>
         </div>
 
         {draft.expenses.length === 0 && (
-          <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginBottom: '10px' }}>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginBottom: '10px' }}>
             Nothing recorded. Add each expense separately — a single lump sum is the
             figure nobody can explain later.
           </p>
@@ -206,7 +206,7 @@ export const VehicleCosts = ({ vehicle }) => {
       </section>
 
       {/* Summary */}
-      <section style={{ ...panel, background: '#fff' }}>
+      <section style={{ ...panel, background: 'var(--bg-card)' }}>
         <div style={sectionTitle}>Financial summary</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
           <Derived name="Total cost" value={formatKES(cost)} />
@@ -219,7 +219,7 @@ export const VehicleCosts = ({ vehicle }) => {
           <Derived
             name="Profit margin"
             value={formatMargin(margin)}
-            tone={margin !== null && margin < 0 ? '#a13f3f' : '#16232e'}
+            tone={margin !== null && margin < 0 ? '#a13f3f' : 'var(--text-dark)'}
           />
         </div>
 
@@ -228,7 +228,7 @@ export const VehicleCosts = ({ vehicle }) => {
             This car is priced below what it cost to land.
           </p>
         )}
-        <p style={{ marginTop: '10px', fontSize: 'var(--text-xs)', color: '#5f6b7a', lineHeight: 1.6 }}>
+        <p style={{ marginTop: '10px', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6 }}>
           Selling price is edited on the listing itself, not here — it is the number
           the customer sees, so it lives with the car.
         </p>

@@ -91,7 +91,7 @@ export const AdminParts = () => {
         
         {/* Header */}
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
             Spare Parts Management
           </h1>
 
@@ -104,12 +104,12 @@ export const AdminParts = () => {
 
         {/* Search */}
         <div className="admin-filter-bar" style={{ padding: '20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
             Total Catalog Items: <strong>{parts.length}</strong>
           </div>
 
-          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
-            <Search size={15} color="#5c6a78" />
+          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
+            <Search size={15} color="var(--text-muted)" />
             <input 
               type="text" 
               placeholder="Search parts by name..." 
@@ -121,7 +121,7 @@ export const AdminParts = () => {
         </div>
 
         {/* Table */}
-        <div className="admin-table-card" style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="admin-table-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -136,10 +136,10 @@ export const AdminParts = () => {
             </thead>
             <tbody>
               {partsLoading ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading parts…</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading parts…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {parts.length === 0
                       ? 'No parts yet. Use “Add Spare Part” to add your first item to the catalogue.'
                       : 'No parts match this search.'}
@@ -154,20 +154,20 @@ export const AdminParts = () => {
                       ) : (
                         <span
                           aria-hidden="true"
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '36px', borderRadius: '6px', background: '#edf1f6', color: '#8a97a5' }}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '36px', borderRadius: '6px', background: 'var(--bg-app)', color: '#8a97a5' }}
                         >
                           <Wrench size={15} strokeWidth={1.8} />
                         </span>
                       )}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 600, color: '#16232e' }}>{p.name}</div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: '#5c6a78' }}>{p.brand} · Fits {p.compat}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{p.name}</div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{p.brand} · Fits {p.compat}</div>
                     </td>
                     <td>{p.category}</td>
                     <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>
                       {formatKES(p.promo || p.price)}
-                      {p.promo && <span style={{ fontSize: 'var(--text-xs)', color: '#5c6a78', textDecoration: 'line-through', marginLeft: '4px' }}>{formatKES(p.price)}</span>}
+                      {p.promo && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textDecoration: 'line-through', marginLeft: '4px' }}>{formatKES(p.price)}</span>}
                     </td>
                     <td>{p.stock} units</td>
                     <td>
@@ -204,7 +204,7 @@ export const AdminParts = () => {
                           </button>
                         )}
                         {!mayWrite && (
-                          <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>View only</span>
+                          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>View only</span>
                         )}
                       </div>
                     </td>
@@ -223,31 +223,31 @@ export const AdminParts = () => {
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>
                 {editingPart ? 'Edit Spare Part' : 'Add New Spare Part'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+              <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Part Title *</label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Part Title *</label>
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Brand / OEM</label>
-                  <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Brand / OEM</label>
+                  <input type="text" value={formData.brand} onChange={(e) => setFormData({ ...formData, brand: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Category</label>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Category</label>
                   {/* Same taxonomy the shop filters by. Kept as two hardcoded
                       lists, the admin could file a part under a category the
                       storefront had no way to show. */}
-                  <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     {PART_CATEGORY_GROUPS.map((g) => (
                       <optgroup key={g.group} label={g.group}>
                         {g.categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -259,12 +259,12 @@ export const AdminParts = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Regular Price (KES)</label>
-                  <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Regular Price (KES)</label>
+                  <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Promo Price (KES)</label>
-                  <input type="number" value={formData.promo || ''} onChange={(e) => setFormData({ ...formData, promo: e.target.value ? Number(e.target.value) : null })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Promo Price (KES)</label>
+                  <input type="number" value={formData.promo || ''} onChange={(e) => setFormData({ ...formData, promo: e.target.value ? Number(e.target.value) : null })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
                   <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--accent-text)', display: 'block', marginBottom: '2px' }}>
@@ -276,12 +276,12 @@ export const AdminParts = () => {
                     onChange={(e) => setBuyPrice(e.target.value)}
                     placeholder={formData.id ? 'Not set' : 'Save first, then edit to set'}
                     disabled={!formData.id}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Stock Quantity</label>
-                  <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Stock Quantity</label>
+                  <input type="number" value={formData.stock} onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
 
@@ -293,23 +293,23 @@ export const AdminParts = () => {
                   photograph and a blank spec plate. */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Our stock code (SKU)</label>
-                  <input type="text" value={formData.sku || ''} placeholder="ZM-P12" onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Our stock code (SKU)</label>
+                  <input type="text" value={formData.sku || ''} placeholder="ZM-P12" onChange={(e) => setFormData({ ...formData, sku: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
                     OEM part number <span style={{ fontWeight: 400 }}>— blank shows &ldquo;on request&rdquo;</span>
                   </label>
-                  <input type="text" value={formData.partNumber || ''} onChange={(e) => setFormData({ ...formData, partNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <input type="text" value={formData.partNumber || ''} onChange={(e) => setFormData({ ...formData, partNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Fits which Mazda model</label>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fits which Mazda model</label>
                 {/* A model, not a make. This is what the shop's fitment filter
                     compares against, and the old default of "Mazda" matched no
                     filter on the site at all. */}
-                <select value={formData.compat || ''} onChange={(e) => setFormData({ ...formData, compat: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                <select value={formData.compat || ''} onChange={(e) => setFormData({ ...formData, compat: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                   <option value="">Select a model…</option>
                   {MAZDA_MODEL_GROUPS.map((g) => (
                     <optgroup key={g.group} label={g.group}>
@@ -320,7 +320,7 @@ export const AdminParts = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '6px' }}>Photo</label>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Photo</label>
                 {/* A part carries one photo, so the picker is capped at one and
                     bridged to the single `img` column as a one-item list. */}
                 <ImagePicker
@@ -332,8 +332,8 @@ export const AdminParts = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Description</label>
-                <textarea rows={3} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', resize: 'vertical', fontFamily: 'inherit' }} />
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Description</label>
+                <textarea rows={3} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
 
               {saveError && (

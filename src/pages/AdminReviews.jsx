@@ -8,7 +8,7 @@ const STATUSES = ['Pending', 'Published', 'Rejected'];
 const TONE = {
   Pending: { bg: 'var(--primary-light)', fg: 'var(--primary-ink)' },
   Published: { bg: '#e2f2ea', fg: '#1f7a52' },
-  Rejected: { bg: '#eef0f2', fg: '#6b7480' },
+  Rejected: { bg: 'var(--bg-cream)', fg: '#6b7480' },
 };
 
 const relative = (iso) => {
@@ -53,8 +53,8 @@ export const AdminReviews = () => {
     <AdminLayout>
       <div className="admin-page" style={{ padding: '0 32px 32px' }}>
         <div className="admin-page-header" style={{ padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Customer Reviews</h1>
-          <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginTop: '2px' }}>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>Customer Reviews</h1>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '2px' }}>
             Nothing reaches the website until it is published here.
           </p>
         </div>
@@ -68,7 +68,7 @@ export const AdminReviews = () => {
                 padding: '6px 14px', borderRadius: 'var(--radius-pill)',
                 fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer',
                 border: filter === s ? 'none' : '1px solid var(--border-medium)',
-                background: filter === s ? 'var(--primary)' : '#fff',
+                background: filter === s ? 'var(--primary)' : 'var(--bg-card)',
                 color: filter === s ? '#000' : 'var(--text-body)',
               }}
             >
@@ -81,11 +81,11 @@ export const AdminReviews = () => {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {reviewsLoading ? (
-            <div style={{ padding: '28px', textAlign: 'center', color: '#5f6b7a', background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px' }}>
+            <div style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px' }}>
               Loading reviews…
             </div>
           ) : shown.length === 0 ? (
-            <div style={{ padding: '28px', textAlign: 'center', color: '#5f6b7a', background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px' }}>
+            <div style={{ padding: '28px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px' }}>
               {reviews.length === 0
                 ? 'No reviews yet. When a customer writes one on the website it arrives here for approval.'
                 : `Nothing ${filter.toLowerCase()}.`}
@@ -93,11 +93,11 @@ export const AdminReviews = () => {
           ) : shown.map((r) => {
             const tone = TONE[r.status] ?? TONE.Pending;
             return (
-              <article key={r.id} style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+              <article key={r.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '10px' }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: '#16232e' }}>{r.name}</div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{r.name}</div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                       {r.role || 'Verified customer'} · {relative(r.at)}
                     </div>
                   </div>
@@ -113,7 +113,7 @@ export const AdminReviews = () => {
                   </div>
                 </div>
 
-                <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.65, color: '#333d49', maxWidth: '78ch' }}>
+                <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.65, color: 'var(--text-body)', maxWidth: '78ch' }}>
                   {r.quote}
                 </p>
 
@@ -167,17 +167,17 @@ export const AdminReviews = () => {
       {confirming && (
         <div className="modal-overlay" onClick={() => setConfirming(null)} role="dialog" aria-modal="true" aria-label="Delete review">
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '440px' }}>
-            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-2xl)', color: '#16232e', marginBottom: '10px' }}>
+            <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)', marginBottom: '10px' }}>
               Delete this review?
             </h3>
-            <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', lineHeight: 1.6, marginBottom: '18px' }}>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '18px' }}>
               What {confirming.name} wrote is removed for good. Rejecting keeps it on file instead.
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 onClick={async () => { const r = confirming; setConfirming(null); await act(r.id, () => removeReview(r.id)); }}
                 className="btn-primary"
-                style={{ background: '#a13f3f', color: '#fff' }}
+                style={{ background: '#a13f3f', color: 'var(--bg-card)' }}
               >
                 Delete
               </button>

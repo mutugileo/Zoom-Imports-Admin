@@ -7,8 +7,8 @@ import { supabase } from '@shared/lib/supabaseClient';
 import { friendlyError } from '@shared/lib/friendlyError';
 
 const card = {
-  background: '#fff',
-  border: '1px solid #e1e6eb',
+  background: 'var(--bg-card)',
+  border: '1px solid var(--field-border)',
   borderRadius: '26px',
   boxShadow: '0 1px 0 rgba(22, 35, 46, 0.02)',
   overflow: 'hidden',
@@ -23,16 +23,16 @@ const cardHead = {
   borderBottom: '1px solid rgba(27,36,48,.08)',
 };
 
-const title = { fontSize: 'var(--text-md)', fontWeight: 600, color: '#16232e' };
+const title = { fontSize: 'var(--text-md)', fontWeight: 600, color: 'var(--text-dark)' };
 
 const label = {
   fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.06em',
-  textTransform: 'uppercase', color: '#5f6b7a', display: 'block', marginBottom: '4px',
+  textTransform: 'uppercase', color: 'var(--text-muted)', display: 'block', marginBottom: '4px',
 };
 
 const input = {
   width: '100%', padding: '9px 11px', borderRadius: '6px',
-  border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', outline: 'none', background: '#fff',
+  border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none', background: 'var(--bg-card)',
 };
 
 export const AdminSiteContent = () => {
@@ -108,7 +108,7 @@ export const AdminSiteContent = () => {
     <AdminLayout>
       <div className="admin-page" style={{ padding: '0 32px 32px' }}>
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Site Content</h1>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>Site Content</h1>
         </div>
 
         {settings.length > 0 && (
@@ -118,9 +118,9 @@ export const AdminSiteContent = () => {
               {settings.map((sw) => (
                 <div key={sw.key} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e' }}>{sw.label}</div>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)' }}>{sw.label}</div>
                     {sw.description && (
-                      <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '3px', lineHeight: 1.55, maxWidth: '62ch' }}>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.55, maxWidth: '62ch' }}>
                         {sw.description}
                       </div>
                     )}
@@ -133,12 +133,12 @@ export const AdminSiteContent = () => {
                     style={{
                       width: '42px', height: '23px', borderRadius: '999px', border: 'none',
                       cursor: 'pointer', padding: '2px', flexShrink: 0,
-                      background: sw.enabled ? 'var(--primary-ink)' : '#d8dde2',
+                      background: sw.enabled ? 'var(--primary-ink)' : 'var(--field-border)',
                       display: 'flex', justifyContent: sw.enabled ? 'flex-end' : 'flex-start',
                       transition: 'background 0.2s ease',
                     }}
                   >
-                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: '#fff', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
                   </button>
                 </div>
               ))}
@@ -182,14 +182,14 @@ export const AdminSiteContent = () => {
                    Drawing "Banner 1" and "Banner 2" boxes against an empty
                    table read as two banners that already existed — the count
                    was invented by this component, not by the data. */
-                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '18px 0' }}>
                   No banners yet. Add one to feature it on the homepage.
                 </p>
               ) : (
                 <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }}>
                   {siteContent.banners.map((b) => (
                     <div key={b.id} style={{ width: '158px' }}>
-                      <div style={{ position: 'relative', height: '104px', borderRadius: '8px', overflow: 'hidden', background: '#edf1f6', border: '1px solid var(--band-line)' }}>
+                      <div style={{ position: 'relative', height: '104px', borderRadius: '8px', overflow: 'hidden', background: 'var(--bg-app)', border: '1px solid var(--band-line)' }}>
                         <img src={b.img} alt={b.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <button
                           onClick={() => removeBanner(b.id)}
@@ -199,7 +199,7 @@ export const AdminSiteContent = () => {
                           <Trash2 size={12} color="#fff" />
                         </button>
                       </div>
-                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e', marginTop: '7px' }}>{b.title}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)', marginTop: '7px' }}>{b.title}</div>
                     </div>
                   ))}
                 </div>
@@ -215,10 +215,10 @@ export const AdminSiteContent = () => {
           <section ref={billingRef} style={{ ...card, ...revealStyle(billingShown, 1) }}>
             <div style={cardHead}>
               <h2 style={title}>Invoice &amp; Bank Details</h2>
-              <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>Staff only</span>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Staff only</span>
             </div>
             <form className="admin-form" onSubmit={handleSaveBilling} style={{ padding: '20px' }}>
-              <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', lineHeight: 1.6, marginBottom: '16px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
                 These appear on the invoices generated from the Buyers screen.
                 They are never shown on the customer website.
               </p>
@@ -261,7 +261,7 @@ export const AdminSiteContent = () => {
                 their own copy of the account they named. */}
             <div style={{ borderTop: '1px solid rgba(27,36,48,.08)', padding: '18px 20px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: '#16232e' }}>Bank Accounts</h3>
+                <h3 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-dark)' }}>Bank Accounts</h3>
                 <button
                   type="button"
                   onClick={() => setBankDraft({ bankName: '', branch: '', accountNo: '', accountName: billingForm.companyName || '', isDefault: bankAccounts.length === 0 })}
@@ -272,7 +272,7 @@ export const AdminSiteContent = () => {
               </div>
 
               {bankAccounts.length === 0 ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '10px 0' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '10px 0' }}>
                   No accounts yet. Add one and it becomes selectable when recording a buyer.
                 </p>
               ) : bankAccounts.map((a) => (
@@ -284,13 +284,13 @@ export const AdminSiteContent = () => {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e' }}>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)' }}>
                       {a.bankName}{a.branch ? ` · ${a.branch}` : ''}
                       {a.isDefault && (
                         <span className="badge badge-new" style={{ marginLeft: '8px' }}>Default</span>
                       )}
                     </div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '2px' }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
                       {a.accountNo} · {a.accountName}
                     </div>
                   </div>
@@ -328,7 +328,7 @@ export const AdminSiteContent = () => {
 
             <div style={{ padding: '6px 20px 14px' }}>
               {siteContent.faqs.length === 0 ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', padding: '18px 0' }}>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '18px 0' }}>
                   Nothing published yet. Add the questions customers ask most.
                 </p>
               ) : (
@@ -341,7 +341,7 @@ export const AdminSiteContent = () => {
                     }}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--text-sm)', color: '#16232e' }}>{f.question}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{f.question}</div>
                       {f.type === 'Legal' && (
                         <span className="badge badge-new" style={{ marginTop: '5px' }}>Legal</span>
                       )}
@@ -406,7 +406,7 @@ export const AdminSiteContent = () => {
           <section ref={featuredRef} style={{ ...card, ...revealStyle(featuredShown, 2) }}>
             <div style={cardHead}>
               <h2 style={title}>Featured Vehicles</h2>
-              <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>{featuredCount} featured</span>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{featuredCount} featured</span>
             </div>
 
             <div style={{ padding: '6px 20px 14px', maxHeight: '440px', overflowY: 'auto' }}>
@@ -418,7 +418,7 @@ export const AdminSiteContent = () => {
                     gap: '12px', padding: '11px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
                   }}
                 >
-                  <span style={{ fontSize: 'var(--text-sm)', color: '#16232e', fontWeight: v.featured ? 600 : 400 }}>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)', fontWeight: v.featured ? 600 : 400 }}>
                     {v.name}
                   </span>
 
@@ -430,12 +430,12 @@ export const AdminSiteContent = () => {
                     style={{
                       width: '42px', height: '23px', borderRadius: '999px', border: 'none',
                       cursor: 'pointer', padding: '2px', flexShrink: 0,
-                      background: v.featured ? 'var(--primary-ink)' : '#d8dde2',
+                      background: v.featured ? 'var(--primary-ink)' : 'var(--field-border)',
                       display: 'flex', justifyContent: v.featured ? 'flex-end' : 'flex-start',
                       transition: 'background 0.2s ease',
                     }}
                   >
-                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: '#fff', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
                   </button>
                 </div>
               ))}
@@ -494,8 +494,8 @@ const ModalShell = ({ heading, onClose, children }) => (
   <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label={heading}>
     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px', maxWidth: '520px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-        <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>{heading}</h3>
-        <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+        <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>{heading}</h3>
+        <button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
           <X size={16} />
         </button>
       </div>
@@ -585,7 +585,7 @@ const BannerModal = ({ onClose, onSave }) => {
         <div>
           <label style={label} htmlFor="b-img">Banner image *</label>
           {preview ? (
-            <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #d8dde2', marginBottom: '8px' }}>
+            <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--field-border)', marginBottom: '8px' }}>
               <img src={preview} alt="" style={{ width: '100%', height: '150px', objectFit: 'cover', display: 'block' }} />
               <button
                 type="button"
@@ -606,9 +606,9 @@ const BannerModal = ({ onClose, onSave }) => {
               onClick={() => fileRef.current?.click()}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: '7px', height: '110px', width: '100%', background: '#fff',
-                border: '1.5px dashed #d8dde2', borderRadius: '8px',
-                cursor: 'pointer', color: '#5c6a78', marginBottom: '8px',
+                gap: '7px', height: '110px', width: '100%', background: 'var(--bg-card)',
+                border: '1.5px dashed var(--field-border)', borderRadius: '8px',
+                cursor: 'pointer', color: 'var(--text-muted)', marginBottom: '8px',
               }}
             >
               <Upload size={20} aria-hidden="true" />
@@ -618,7 +618,7 @@ const BannerModal = ({ onClose, onSave }) => {
           )}
           <input ref={fileRef} id="b-img" type="file" accept="image/*" onChange={pick} style={{ display: 'none' }} />
           {file && (
-            <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
               {file.name} · {(file.size / 1024).toFixed(0)}KB
             </div>
           )}
@@ -746,7 +746,7 @@ const BankAccountModal = ({ account, onClose, onSave }) => {
           />
           <span>
             Offer this account first when recording a buyer.
-            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '2px' }}>
+            <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '2px' }}>
               Only one account can be the default, so this takes it off whichever holds it now.
             </span>
           </span>

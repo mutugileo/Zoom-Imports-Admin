@@ -56,15 +56,15 @@ export const AdminBuyers = () => {
           <button
             type="button"
             onClick={() => setSelectedId(null)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'none', border: 'none', padding: '22px 0 0', fontSize: 'var(--text-sm)', fontWeight: 600, color: '#5f6b7a', cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'none', border: 'none', padding: '22px 0 0', fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-muted)', cursor: 'pointer' }}
           >
             <ArrowLeft size={15} /> All buyers
           </button>
 
           <div className="admin-page-header" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', padding: '14px 0 24px', borderBottom: '1px solid var(--band-line)' }}>
             <div>
-              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>{selected.name}</h1>
-              <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginTop: '5px' }}>
+              <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>{selected.name}</h1>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '5px' }}>
                 {invoiceNumberFor(selected)} · bought {selected.vehicleName || 'a vehicle'}
                 {selected.saleDate ? ` on ${selected.saleDate}` : ''}
               </p>
@@ -148,11 +148,11 @@ export const AdminBuyers = () => {
       <div className="admin-page" style={{ padding: '0 32px 32px' }}>
 
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>Buyers</h1>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>Buyers</h1>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
-              <Search size={15} color="#5c6a78" />
+            <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
+              <Search size={15} color="var(--text-muted)" />
               <input
                 type="text"
                 placeholder="Search name, phone, car, invoice…"
@@ -173,7 +173,7 @@ export const AdminBuyers = () => {
           <p role="alert" style={{ fontSize: 'var(--text-sm)', color: '#b3261e', marginTop: '14px' }}>{error}</p>
         )}
 
-        <div className="admin-table-card" style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', marginTop: '18px' }}>
+        <div className="admin-table-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)', marginTop: '18px' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -193,10 +193,10 @@ export const AdminBuyers = () => {
                   already on screen with a spinner — the table flashed empty
                   while the footer underneath still counted the rows it had. */}
               {buyersLoading && buyers.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading buyers…</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading buyers…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a', lineHeight: 1.65 }}>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
                     {buyers.length === 0
                       ? 'No buyers recorded yet. Mark a car as sold on the Vehicles screen, then record who bought it — that is what an invoice is made from.'
                       : 'No buyers match this search.'}
@@ -208,12 +208,12 @@ export const AdminBuyers = () => {
                   onClick={() => setSelectedId(b.id)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <td style={{ fontWeight: 600, color: '#16232e' }}>{b.name}</td>
-                  <td style={{ color: '#5f6b7a' }}>{b.phone}</td>
+                  <td style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{b.name}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{b.phone}</td>
                   <td style={{ color: 'var(--primary-ink)', fontWeight: 600 }}>
                     {b.vehicleName || '—'}
                     {b.vehicleReg && (
-                      <span style={{ display: 'block', fontWeight: 400, fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+                      <span style={{ display: 'block', fontWeight: 400, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                         {b.vehicleReg}
                       </span>
                     )}
@@ -221,8 +221,8 @@ export const AdminBuyers = () => {
                   <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
                     {b.salePrice == null ? '—' : formatKES(b.salePrice)}
                   </td>
-                  <td style={{ fontSize: 'var(--text-sm)', color: '#5c6a78' }}>{b.saleDate || '—'}</td>
-                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: '#5c6a78' }}>
+                  <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{b.saleDate || '—'}</td>
+                  <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     {invoiceNumberFor(b)}
                   </td>
                   <td>
@@ -249,12 +249,12 @@ export const AdminBuyers = () => {
 };
 
 const Card = ({ title, note, children }) => (
-  <div style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5f6b7a' }}>
+  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
       {title}
     </div>
     {note && (
-      <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', lineHeight: 1.6, margin: '6px 0 0' }}>{note}</p>
+      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.6, margin: '6px 0 0' }}>{note}</p>
     )}
     <div style={{ marginTop: '12px' }}>{children}</div>
   </div>
@@ -265,8 +265,8 @@ const Card = ({ title, note, children }) => (
    difference between "nothing here" and "nobody entered it" matters. */
 const Line = ({ label, value }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', padding: '4px 0' }}>
-    <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>{label}</span>
-    <span style={{ fontSize: 'var(--text-sm)', color: value ? '#16232e' : '#98a3ad', fontWeight: value ? 600 : 400, textAlign: 'right' }}>
+    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{label}</span>
+    <span style={{ fontSize: 'var(--text-sm)', color: value ? 'var(--text-dark)' : '#98a3ad', fontWeight: value ? 600 : 400, textAlign: 'right' }}>
       {value || 'not on file'}
     </span>
   </div>

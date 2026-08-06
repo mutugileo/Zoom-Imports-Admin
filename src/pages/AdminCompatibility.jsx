@@ -52,21 +52,21 @@ export const AdminCompatibility = () => {
         {/* Header */}
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
           <div>
-            <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>
+            <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
               Vehicle Compatibility Mapping
             </h1>
-            <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', marginTop: '2px' }}>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '2px' }}>
               Map spare parts to vehicle makes, models, and manufacturing year ranges to power search recommendations.
             </p>
           </div>
 
           <button onClick={() => setIsModalOpen(true)} className="btn-accent">
-            <Plus size={16} /> Add Compatibility Mapping
+            <Plus size={16} /> Add Mapping
           </button>
         </div>
 
         {/* Table */}
-        <div className="admin-table-card" style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', marginTop: '24px', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="admin-table-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', marginTop: '24px', boxShadow: 'var(--shadow-sm)' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -80,16 +80,16 @@ export const AdminCompatibility = () => {
             </thead>
             <tbody>
               {compatibilityLoading ? (
-                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading compatibility rules…</td></tr>
+                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading compatibility rules…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     No fitment rules yet. These tell customers which vehicles a part fits — add a spare part first, then map it here.
                   </td>
                 </tr>
               ) : page.visible.map(c => (
                 <tr key={c.id}>
-                  <td style={{ fontWeight: 600, color: '#16232e' }}>
+                  <td style={{ fontWeight: 600, color: 'var(--text-dark)' }}>
                     {c.part}
                     {rulePartId(c, parts) == null && (
                       /* The rule points at no part we hold — almost always a
@@ -100,9 +100,9 @@ export const AdminCompatibility = () => {
                       </div>
                     )}
                   </td>
-                  <td style={{ color: '#5f6b7a' }}>{c.brand}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{c.brand}</td>
                   <td>
-                    <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--primary-ink)', background: '#e6eff2', padding: '4px 10px', borderRadius: '20px' }}>
+                    <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--primary-ink)', background: 'var(--primary-light)', padding: '4px 10px', borderRadius: '20px' }}>
                       {c.make}
                     </span>
                   </td>
@@ -130,20 +130,20 @@ export const AdminCompatibility = () => {
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>
                 Add New Vehicle Compatibility Mapping
               </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+              <button onClick={() => setIsModalOpen(false)} style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Spare part *</label>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Spare part *</label>
                 {/* Chosen from the shelf, never typed. A typed name that drifts
                     from the catalogue is a rule that quietly does nothing. */}
-                <select required value={formData.partId} onChange={(e) => setFormData({ ...formData, partId: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                <select required value={formData.partId} onChange={(e) => setFormData({ ...formData, partId: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                   <option value="">Select a part…</option>
                   {parts.map((p) => (
                     <option key={p.id} value={p.id}>{p.name} — {p.brand}</option>
@@ -153,8 +153,8 @@ export const AdminCompatibility = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Fits model *</label>
-                  <select required value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fits model *</label>
+                  <select required value={formData.model} onChange={(e) => setFormData({ ...formData, model: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="">Select a model…</option>
                     <option value="All">All Mazda models</option>
                     {MAZDA_MODEL_GROUPS.map((g) => (
@@ -165,8 +165,8 @@ export const AdminCompatibility = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Year range</label>
-                  <input type="text" value={formData.years} onChange={(e) => setFormData({ ...formData, years: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Year range</label>
+                  <input type="text" value={formData.years} onChange={(e) => setFormData({ ...formData, years: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
 

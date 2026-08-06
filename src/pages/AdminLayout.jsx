@@ -18,13 +18,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  X
+  X,
+  Sun,
+  Moon
 , Layers, Star, ReceiptText } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
 export const AdminLayout = ({ children }) => {
-  const { currentView, navigateTo, currentUser, canView, signOut, idleWarning, staySignedIn } = useApp();
+  const { currentView, navigateTo, currentUser, canView, signOut, idleWarning, staySignedIn, theme, toggleTheme } = useApp();
 
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_COLLAPSED_KEY) === '1'; } catch { return false; }
@@ -87,12 +89,25 @@ export const AdminLayout = ({ children }) => {
           <Menu size={21} aria-hidden="true" />
         </button>
         <span className="admin-mobile-brand">
-          <CarMark height={19} color="#000000" />
+          <CarMark height={19} color="var(--on-sidebar)" />
           <span>Zoom Imports</span>
         </span>
-        <span className="admin-mobile-avatar" aria-label={currentUser ? `Signed in as ${currentUser.name}` : 'Admin'}>
-          {currentUser ? initialsOf(currentUser.name) : 'ZI'}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: '4px', display: 'flex', color: 'var(--on-sidebar)'
+            }}
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+          </button>
+          <span className="admin-mobile-avatar" aria-label={currentUser ? `Signed in as ${currentUser.name}` : 'Admin'}>
+            {currentUser ? initialsOf(currentUser.name) : 'ZI'}
+          </span>
+        </div>
       </header>
 
       {mobileOpen && (
@@ -137,7 +152,7 @@ export const AdminLayout = ({ children }) => {
           style={{
             position: 'absolute', top: '28px', right: '-13px',
             width: '26px', height: '26px', borderRadius: '999px',
-            border: '1px solid var(--border-medium)', background: '#ffffff',
+            border: '1px solid var(--border-medium)', background: 'var(--bg-card)',
             color: 'var(--primary-ink)', display: 'flex', alignItems: 'center',
             justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)',
             zIndex: 5, padding: 0,
@@ -155,7 +170,7 @@ export const AdminLayout = ({ children }) => {
           <div
             style={{
               padding: railCollapsed ? '0 0 22px' : '0 24px 22px',
-              borderBottom: '1px solid rgba(0,0,0,0.14)',
+              borderBottom: '1px solid var(--sidebar-line)',
               display: 'flex', flexDirection: 'column',
               alignItems: railCollapsed ? 'center' : 'flex-start',
             }}
@@ -163,18 +178,18 @@ export const AdminLayout = ({ children }) => {
             {/* Black, not white: a graphical mark needs 3:1 against its ground
                 and white on this blue is 2.43. Black is 8.64. */}
             <div style={{ marginBottom: railCollapsed ? 0 : '10px' }}>
-              <CarMark height={24} color="#000000" />
+              <CarMark height={24} color="var(--on-sidebar)" />
             </div>
             {!railCollapsed && (
               <>
-                <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 'var(--text-xl)', color: '#000' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 'var(--text-xl)', color: 'var(--on-sidebar)' }}>
                   Zoom Imports
                 </div>
                 <div
                   style={{
                     fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700,
                     letterSpacing: '0.09em', textTransform: 'uppercase',
-                    color: 'rgba(0,0,0,.72)', marginTop: '4px',
+                    color: 'color-mix(in srgb, var(--on-sidebar) 72%, transparent)', marginTop: '4px',
                   }}
                 >
                   Dealership portal
@@ -215,7 +230,7 @@ export const AdminLayout = ({ children }) => {
               style={{
                 padding: railCollapsed ? '16px 0 12px' : '16px 14px 12px',
                 margin: '0 0 6px',
-                borderTop: '1px solid rgba(0,0,0,0.14)',
+                borderTop: '1px solid var(--sidebar-line)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: railCollapsed ? 0 : '10px', justifyContent: railCollapsed ? 'center' : 'flex-start' }}>
@@ -226,7 +241,7 @@ export const AdminLayout = ({ children }) => {
                   title={railCollapsed ? currentUser.name : undefined}
                   style={{
                     width: '34px', height: '34px', borderRadius: '999px', flexShrink: 0,
-                    background: '#ffffff', color: 'var(--primary-ink)', fontSize: 'var(--text-sm)', fontWeight: 700,
+                    background: 'var(--bg-card)', color: 'var(--primary-ink)', fontSize: 'var(--text-sm)', fontWeight: 700,
                     letterSpacing: '0.02em',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
@@ -235,10 +250,10 @@ export const AdminLayout = ({ children }) => {
                 </span>
                 {!railCollapsed && (
                   <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 700, color: '#000', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'block', fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--on-sidebar)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {currentUser.name}
                     </span>
-                    <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'rgba(0,0,0,.62)', marginTop: '1px' }}>
+                    <span style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'color-mix(in srgb, var(--on-sidebar) 62%, transparent)', marginTop: '1px' }}>
                       {currentUser.role}
                     </span>
                   </span>
@@ -250,8 +265,8 @@ export const AdminLayout = ({ children }) => {
                 style={{
                   marginTop: '10px', width: '100%', padding: '8px 10px',
                   fontSize: 'var(--text-sm)', fontWeight: 700, cursor: 'pointer',
-                  color: '#000', background: 'rgba(255,255,255,0.65)',
-                  border: '1px solid rgba(0,0,0,0.14)', borderRadius: 'var(--radius-pill)',
+                  color: 'var(--on-sidebar)', background: 'var(--sidebar-hover)',
+                  border: '1px solid var(--sidebar-line)', borderRadius: 'var(--radius-pill)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: railCollapsed ? 0 : '7px',
                 }}
               >
@@ -259,13 +274,38 @@ export const AdminLayout = ({ children }) => {
               </button>
             </div>
           )}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={railCollapsed ? `Switch to ${theme === 'dark' ? 'light' : 'dark'} mode` : undefined}
+            style={{
+              width: '100%',
+              padding: railCollapsed ? '9px 0' : '9px 14px',
+              margin: '6px 0',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--on-sidebar)',
+              background: 'rgba(255,255,255,0.45)',
+              border: '1px solid rgba(0,0,0,0.12)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: railCollapsed ? 'center' : 'flex-start',
+              gap: railCollapsed ? 0 : '8px',
+              transition: 'background 0.2s ease',
+            }}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {!railCollapsed && (theme === 'dark' ? 'Light Theme' : 'Dark Theme')}
+          </button>
           <a
             href={import.meta.env?.VITE_WEBSITE_URL || 'http://localhost:3000'}
             title={railCollapsed ? 'Exit to Customer Site' : undefined}
             style={{
               padding: railCollapsed ? '11px 0' : '11px 14px',
               fontSize: 'var(--text-sm)',
-              color: '#000',
+              color: 'var(--on-sidebar)',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',

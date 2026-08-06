@@ -27,7 +27,7 @@ export const VehiclePayments = ({ vehicle }) => {
 
   if (cnf === 0 && landed === 0) {
     return (
-      <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', lineHeight: 1.7 }}>
+      <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.7 }}>
         No ledger yet for this vehicle. Enter the CNF and the percentage paid on the
         Costs tab and the supplier balance appears here.
       </p>
@@ -41,8 +41,8 @@ export const VehiclePayments = ({ vehicle }) => {
         gap: '16px', padding: '11px 0', borderBottom: '1px solid var(--band-line)',
       }}
     >
-      <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>{name}</span>
-      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: tone ?? '#16232e', fontFamily: 'IBM Plex Mono, monospace' }}>
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{name}</span>
+      <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: tone ?? 'var(--text-dark)', fontFamily: 'IBM Plex Mono, monospace' }}>
         {value}
       </span>
     </div>
@@ -53,10 +53,10 @@ export const VehiclePayments = ({ vehicle }) => {
       <section
         style={{
           border: '1px solid var(--band-line)', borderRadius: '10px',
-          padding: '18px', marginBottom: '16px', background: '#fafbfc',
+          padding: '18px', marginBottom: '16px', background: 'var(--bg-app)',
         }}
       >
-        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '12px' }}>
+        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '12px' }}>
           Supplier balance (CNF)
         </div>
 
@@ -73,15 +73,15 @@ export const VehiclePayments = ({ vehicle }) => {
         {row('Outstanding to supplier', formatKES(owed), owed > 0 ? 'var(--accent-text)' : 'var(--primary-ink)')}
       </section>
 
-      <section style={{ border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px', background: '#fff' }}>
-        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '4px' }}>
+      <section style={{ border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px', background: 'var(--bg-card)' }}>
+        <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px' }}>
           Already settled
         </div>
         {row('Clearing and landing', formatKES(landed))}
         {row('Repairs and other costs', formatKES(expensesTotal(costs)))}
         {row('Total spent on this vehicle', formatKES(totalCost(costs)))}
 
-        <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '12px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.6 }}>
           Clearing and post-arrival costs are treated as paid at the point they are
           entered. Only the CNF carries a running balance, because it is the only
           one invoiced ahead of the work.

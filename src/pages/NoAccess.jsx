@@ -20,24 +20,24 @@ export const NoAccess = () => {
         style={{
           margin: '48px 32px',
           padding: '56px 32px',
-          background: '#fff',
+          background: 'var(--bg-card)',
           border: '1px solid var(--band-line)',
           borderRadius: '12px',
           textAlign: 'center',
         }}
       >
-        <Lock size={26} color="#5f6b7a" aria-hidden="true" />
+        <Lock size={26} color="var(--text-muted)" aria-hidden="true" />
         <h1
           style={{
             fontFamily: 'Source Serif 4, serif',
             fontSize: 'var(--text-3xl)',
-            color: '#16232e',
+            color: 'var(--text-dark)',
             margin: '12px 0 8px',
           }}
         >
           You do not have access to this page
         </h1>
-        <p style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', maxWidth: '46ch', margin: '0 auto 20px', lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', maxWidth: '46ch', margin: '0 auto 20px', lineHeight: 1.6 }}>
           Your role is <strong>{currentUser?.role}</strong>. Ask a Superadmin if you
           need this added.
         </p>

@@ -135,12 +135,12 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
             <div style={{ display: 'flex', gap: '7px', marginBottom: '9px', flexWrap: 'wrap' }}>
               <span className={`badge badge-${vehicle.status.toLowerCase()}`}>{vehicle.status}</span>
               {vehicle.featured && (
-                <span className="badge" style={{ background: 'rgba(255,255,255,0.16)', color: '#fff' }}>
+                <span className="badge" style={{ background: 'rgba(255,255,255,0.16)', color: 'var(--bg-card)' }}>
                   <Star size={11} fill="#f2a565" color="#f2a565" /> Featured
                 </span>
               )}
             </div>
-            <h2 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-3xl)', fontWeight: 600, color: '#fff', lineHeight: 1.15 }}>
+            <h2 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-3xl)', fontWeight: 600, color: 'var(--bg-card)', lineHeight: 1.15 }}>
               {vehicle.name}
             </h2>
             <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--text-xs)', color: 'rgba(244,242,236,0.75)', marginTop: '4px' }}>
@@ -157,7 +157,7 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
           aria-label="Vehicle record"
           style={{
             display: 'flex', gap: '2px', padding: '0 24px',
-            borderBottom: '1px solid var(--band-line)', background: '#fff',
+            borderBottom: '1px solid var(--band-line)', background: 'var(--bg-card)',
           }}
         >
           {visibleTabs.map((t) => {
@@ -174,7 +174,7 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
                   border: 'none', background: 'transparent', cursor: t.stub ? 'default' : 'pointer',
                   padding: '13px 14px', fontSize: 'var(--text-sm)',
                   fontWeight: active ? 700 : 500,
-                  color: t.stub ? '#a3adb8' : active ? 'var(--primary-ink)' : '#5f6b7a',
+                  color: t.stub ? '#a3adb8' : active ? 'var(--primary-ink)' : 'var(--text-muted)',
                   borderBottom: `2px solid ${active ? 'var(--primary-ink)' : 'transparent'}`,
                   marginBottom: '-1px',
                 }}
@@ -198,16 +198,16 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
                 <div
                   style={{
                     fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em',
-                    textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '8px',
+                    textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px',
                   }}
                 >
                   {group.title}
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1px', background: 'var(--band-line)', border: '1px solid var(--band-line)', borderRadius: '8px', overflow: 'hidden' }}>
                   {rows.map((key) => (
-                    <div key={key} style={{ background: '#fff', padding: '10px 13px' }}>
-                      <dt style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginBottom: '3px' }}>{humanise(key)}</dt>
-                      <dd style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e', wordBreak: 'break-word' }}>
+                    <div key={key} style={{ background: 'var(--bg-card)', padding: '10px 13px' }}>
+                      <dt style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '3px' }}>{humanise(key)}</dt>
+                      <dd style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)', wordBreak: 'break-word' }}>
                         {present(key, vehicle[key])}
                       </dd>
                     </div>
@@ -219,14 +219,14 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
 
           {extras.length > 0 && (
             <section style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '8px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
                 Other fields
               </div>
               <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1px', background: 'var(--band-line)', border: '1px solid var(--band-line)', borderRadius: '8px', overflow: 'hidden' }}>
                 {extras.map((key) => (
-                  <div key={key} style={{ background: '#fff', padding: '10px 13px' }}>
-                    <dt style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginBottom: '3px' }}>{humanise(key)}</dt>
-                    <dd style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#16232e', wordBreak: 'break-word' }}>
+                  <div key={key} style={{ background: 'var(--bg-card)', padding: '10px 13px' }}>
+                    <dt style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '3px' }}>{humanise(key)}</dt>
+                    <dd style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)', wordBreak: 'break-word' }}>
                       {present(key, vehicle[key])}
                     </dd>
                   </div>
@@ -237,10 +237,10 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
 
           {vehicle.description && (
             <section style={{ marginBottom: '20px' }}>
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '8px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
                 Description
               </div>
-              <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: '#333d49', background: '#f9f8f6', border: '1px solid rgba(27,36,48,.08)', borderRadius: '8px', padding: '14px 16px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.7, color: 'var(--text-body)', background: '#f9f8f6', border: '1px solid rgba(27,36,48,.08)', borderRadius: '8px', padding: '14px 16px' }}>
                 {vehicle.description}
               </p>
             </section>
@@ -248,7 +248,7 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
 
           {vehicle.img && (
             <section style={{ marginBottom: '22px' }}>
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#5f6b7a', marginBottom: '8px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
                 Photo URL
               </div>
               <a

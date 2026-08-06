@@ -191,7 +191,7 @@ export const AdminVehicles = () => {
         
         {/* Header */}
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
             Vehicle Inventory Management
           </h1>
 
@@ -223,7 +223,7 @@ export const AdminVehicles = () => {
                     fontWeight: 600,
                     cursor: 'pointer',
                     border: isActive ? 'none' : '1px solid var(--border-medium)',
-                    background: isActive ? 'var(--primary)' : '#fff',
+                    background: isActive ? 'var(--primary)' : 'var(--bg-card)',
                     color: isActive ? '#000' : 'var(--text-body)'
                   }}
                 >
@@ -233,8 +233,8 @@ export const AdminVehicles = () => {
             })}
           </div>
 
-          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '240px' }}>
-            <Search size={15} color="#5c6a78" />
+          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '240px' }}>
+            <Search size={15} color="var(--text-muted)" />
             <input 
               type="text" 
               placeholder="Search vehicles..." 
@@ -403,7 +403,7 @@ export const AdminVehicles = () => {
         </div>
 
         {/* Desktop table */}
-        <div className="admin-table-card vehicle-desktop-list" style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="admin-table-card vehicle-desktop-list" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -421,10 +421,10 @@ export const AdminVehicles = () => {
             </thead>
             <tbody>
               {vehiclesLoading ? (
-                <tr><td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading vehicles…</td></tr>
+                <tr><td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading vehicles…</td></tr>
               ) : buckets.length === 0 ? (
                 <tr>
-                  <td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                  <td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {vehicles.length === 0
                       ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
                       : 'No vehicles match this search.'}
@@ -439,20 +439,20 @@ export const AdminVehicles = () => {
                       because "what did this shipment make" is the question a
                       group exists to answer. */}
                   <tr>
-                    <td colSpan={mayCosts ? 10 : 8} style={{ background: '#eef2f6', padding: '10px 14px' }}>
+                    <td colSpan={mayCosts ? 10 : 8} style={{ background: 'var(--bg-cream)', padding: '10px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                          <strong style={{ fontSize: 'var(--text-sm)', color: '#16232e' }}>{group.name}</strong>
+                          <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{group.name}</strong>
                           {group.id && (
-                            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+                            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                               {group.id}
                             </span>
                           )}
                           {group.type && (
-                            <span className="badge" style={{ background: '#e6eff2', color: 'var(--primary-ink)' }}>{group.type}</span>
+                            <span className="badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>{group.type}</span>
                           )}
                         </span>
-                        <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a', fontFamily: 'IBM Plex Mono, monospace' }}>
+                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono, monospace' }}>
                           {rows.length} unit{rows.length === 1 ? '' : 's'}
                           {roll && roll.costedUnits > 0 && (
                             <>
@@ -483,28 +483,28 @@ export const AdminVehicles = () => {
                     ) : (
                       <span
                         aria-hidden="true"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '38px', borderRadius: '6px', background: '#edf1f6', color: '#8a97a5' }}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '38px', borderRadius: '6px', background: 'var(--bg-app)', color: '#8a97a5' }}
                       >
                         <Car size={16} strokeWidth={1.8} />
                       </span>
                     )}
                   </td>
-                  <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: '#16232e', whiteSpace: 'nowrap' }}>
+                  <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: 'var(--text-dark)', whiteSpace: 'nowrap' }}>
                     {v.stockId || <span style={{ color: 'var(--accent-text)' }}>unassigned</span>}
                   </td>
                   <td>
-                    <div style={{ fontWeight: 600, color: '#16232e' }}>{v.name} <span style={{ fontWeight: 400, color: '#5f6b7a' }}>{v.year}</span></div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{v.name} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{v.year}</span></div>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                       {v.mileage.toLocaleString()} km · {v.trans}
                       {v.regNumber ? ` · ${v.regNumber}` : ''}
                     </div>
                   </td>
                   <td>
-                    <span style={{ fontSize: 'var(--text-sm)', color: '#5f6b7a' }}>{v.stage || '—'}</span>
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{v.stage || '—'}</span>
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>{formatKES(v.price)}</td>
                   {mayCosts && (
-                    <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-sm)', color: '#333d49' }}>
+                    <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-sm)', color: 'var(--text-body)' }}>
                       {hasLedger(vehicleCosts[v.id]) ? formatKES(totalCost(vehicleCosts[v.id])) : '—'}
                     </td>
                   )}
@@ -513,7 +513,7 @@ export const AdminVehicles = () => {
                       {hasLedger(vehicleCosts[v.id]) ? (
                         <span style={{ color: profit(vehicleCosts[v.id], v.price) < 0 ? '#a13f3f' : 'var(--primary-ink)', fontWeight: 600 }}>
                           {formatKES(profit(vehicleCosts[v.id], v.price))}
-                          <span style={{ color: '#5f6b7a', fontWeight: 400 }}>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
                             {' '}{formatMargin(profitMargin(vehicleCosts[v.id], v.price))}
                           </span>
                         </span>
@@ -544,7 +544,7 @@ export const AdminVehicles = () => {
                     {v.approvalStatus === 'Approved' && mayWrite && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setVehicleApproval(v.id, 'Pending'); }}
-                        style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', color: '#5f6b7a', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         Take off site
                       </button>
@@ -587,12 +587,12 @@ export const AdminVehicles = () => {
                       aria-label={`${v.featured ? 'Unfeature' : 'Feature'} ${v.name}`}
                       style={{ border: 'none', background: 'transparent', cursor: mayWrite ? 'pointer' : 'default' }}
                     >
-                      <Star size={16} fill={v.featured ? 'var(--primary-ink)' : 'none'} color={v.featured ? 'var(--primary-ink)' : '#5c6a78'} />
+                      <Star size={16} fill={v.featured ? 'var(--primary-ink)' : 'none'} color={v.featured ? 'var(--primary-ink)' : 'var(--text-muted)'} />
                     </button>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      <button onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }} style={{ border: 'none', background: 'transparent', color: '#333d49', cursor: 'pointer', fontWeight: 600 }}>
+                      <button onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }} style={{ border: 'none', background: 'transparent', color: 'var(--text-body)', cursor: 'pointer', fontWeight: 600 }}>
                         <Eye size={15} /> View
                       </button>
                       {mayWrite && (
@@ -649,10 +649,10 @@ export const AdminVehicles = () => {
         >
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: '#16232e' }}>
+              <h3 style={{ fontFamily: 'Source Serif 4, serif', fontSize: 'var(--text-2xl)', color: 'var(--text-dark)' }}>
                 {editingVehicle ? 'Edit Vehicle Listing' : 'Add New Vehicle Listing'}
               </h3>
-              <button onClick={closeModal} aria-label="Close" style={{ border: 'none', background: '#edf1f6', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
+              <button onClick={closeModal} aria-label="Close" style={{ border: 'none', background: 'var(--bg-app)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
@@ -666,7 +666,7 @@ export const AdminVehicles = () => {
                   variant the list cannot know ("Axela Hybrid", "Prado TX"). */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Mazda model *</label>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Mazda model *</label>
                   <select
                     value={modelOf(formData.name) || ''}
                     onChange={(e) => {
@@ -674,7 +674,7 @@ export const AdminVehicles = () => {
                       if (!picked) return;
                       setFormData({ ...formData, name: `Mazda ${picked}`, make: 'Mazda' });
                     }}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}
                   >
                     <option value="">Select a model…</option>
                     {MAZDA_MODEL_GROUPS.map((g) => (
@@ -685,16 +685,16 @@ export const AdminVehicles = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Make *</label>
-                  <input type="text" required value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Make *</label>
+                  <input type="text" required value={formData.make} onChange={(e) => setFormData({ ...formData, make: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
                   Listing name * <span style={{ fontWeight: 400 }}>— add a trim or variant if there is one</span>
                 </label>
-                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                <input type="text" required value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 {formData.name && !modelOf(formData.name) && (
                   /* Says it plainly rather than saving something the storefront
                      will quietly refuse to file under any model. */
@@ -706,16 +706,16 @@ export const AdminVehicles = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Year</label>
-                  <input type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Year</label>
+                  <input type="number" value={formData.year} onChange={(e) => setFormData({ ...formData, year: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Price (KES)</label>
-                  <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Price (KES)</label>
+                  <input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Mileage (km)</label>
-                  <input type="number" value={formData.mileage} onChange={(e) => setFormData({ ...formData, mileage: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Mileage (km)</label>
+                  <input type="number" value={formData.mileage} onChange={(e) => setFormData({ ...formData, mileage: Number(e.target.value) })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
               </div>
 
@@ -725,12 +725,12 @@ export const AdminVehicles = () => {
                   actually was — the defaults could not be corrected. */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Engine</label>
-                  <input type="text" value={formData.engine || ''} placeholder="2.2L" onChange={(e) => setFormData({ ...formData, engine: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Engine</label>
+                  <input type="text" value={formData.engine || ''} placeholder="2.2L" onChange={(e) => setFormData({ ...formData, engine: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Body</label>
-                  <select value={formData.body || ''} onChange={(e) => setFormData({ ...formData, body: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Body</label>
+                  <select value={formData.body || ''} onChange={(e) => setFormData({ ...formData, body: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="">Select…</option>
                     {['Hatchback', 'Sedan', 'Wagon', 'SUV', 'Crossover', 'MPV', 'Van', 'Pickup', 'Coupe', 'Convertible'].map((b) => (
                       <option key={b} value={b}>{b}</option>
@@ -738,12 +738,12 @@ export const AdminVehicles = () => {
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Colour</label>
-                  <input type="text" value={formData.color || ''} placeholder="Pearl White" onChange={(e) => setFormData({ ...formData, color: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Colour</label>
+                  <input type="text" value={formData.color || ''} placeholder="Pearl White" onChange={(e) => setFormData({ ...formData, color: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Condition</label>
-                  <select value={formData.condition || ''} onChange={(e) => setFormData({ ...formData, condition: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Condition</label>
+                  <select value={formData.condition || ''} onChange={(e) => setFormData({ ...formData, condition: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="">Select…</option>
                     {['Brand New', 'Foreign Used', 'Locally Used'].map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -751,32 +751,32 @@ export const AdminVehicles = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>
                   Condition notes <span style={{ fontWeight: 400 }}>— printed on the listing as &ldquo;What our inspector found&rdquo;</span>
                 </label>
-                <textarea rows={3} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', resize: 'vertical', fontFamily: 'inherit' }} />
+                <textarea rows={3} value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', resize: 'vertical', fontFamily: 'inherit' }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Fuel Type</label>
-                  <select value={formData.fuel} onChange={(e) => setFormData({ ...formData, fuel: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fuel Type</label>
+                  <select value={formData.fuel} onChange={(e) => setFormData({ ...formData, fuel: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="Petrol">Petrol</option>
                     <option value="Diesel">Diesel</option>
                     <option value="Hybrid">Hybrid</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Transmission</label>
-                  <select value={formData.trans} onChange={(e) => setFormData({ ...formData, trans: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Transmission</label>
+                  <select value={formData.trans} onChange={(e) => setFormData({ ...formData, trans: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="Automatic">Automatic</option>
                     <option value="Manual">Manual</option>
                     <option value="CVT">CVT</option>
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Status</label>
-                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Status</label>
+                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     <option value="Available">Available</option>
                     <option value="Reserved">Reserved</option>
                     <option value="Sold">Sold</option>
@@ -786,8 +786,8 @@ export const AdminVehicles = () => {
                     Us" badge and its inspection guarantee both read from here, so
                     it has to be set by whoever lists the car. */}
                 <div>
-                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Seller</label>
-                  <select value={formData.listing || 'owned'} onChange={(e) => setFormData({ ...formData, listing: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                  <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Seller</label>
+                  <select value={formData.listing || 'owned'} onChange={(e) => setFormData({ ...formData, listing: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                     {Object.entries(LISTING_TYPES).map(([id, t]) => (
                       <option key={id} value={id}>{t.label}</option>
                     ))}
@@ -798,39 +798,39 @@ export const AdminVehicles = () => {
               {/* Where this car sits in the yard's own bookkeeping. Stock ID is
                   issued on save and never shown as editable — it goes on the
                   windscreen card and the logbook file, so it must not drift. */}
-              <div style={{ border: '1px solid var(--band-line)', borderRadius: '8px', padding: '14px', background: '#fafbfc' }}>
+              <div style={{ border: '1px solid var(--band-line)', borderRadius: '8px', padding: '14px', background: 'var(--bg-app)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
-                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: '#16232e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Organisation
                   </div>
-                  <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: '#5f6b7a' }}>
+                  <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     {formData.stockId || 'Stock ID issued on save'}
                   </span>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Group</label>
-                    <select value={formData.groupId || ''} onChange={(e) => setFormData({ ...formData, groupId: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Group</label>
+                    <select value={formData.groupId || ''} onChange={(e) => setFormData({ ...formData, groupId: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                       <option value="">Ungrouped</option>
                       {vehicleGroups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Stage</label>
-                    <select value={formData.stage || 'In Yard'} onChange={(e) => setFormData({ ...formData, stage: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }}>
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Stage</label>
+                    <select value={formData.stage || 'In Yard'} onChange={(e) => setFormData({ ...formData, stage: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
                       {STAGES.map((st) => <option key={st} value={st}>{st}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Registration number</label>
-                    <input type="text" value={formData.regNumber || ''} placeholder="KDN 412A — blank until registered" onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Registration number</label>
+                    <input type="text" value={formData.regNumber || ''} placeholder="KDN 412A — blank until registered" onChange={(e) => setFormData({ ...formData, regNumber: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Current location</label>
-                    <input type="text" value={formData.location || ''} placeholder="Thindigua Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Current location</label>
+                    <input type="text" value={formData.location || ''} placeholder="Thindigua Yard" onChange={(e) => setFormData({ ...formData, location: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                 </div>
-                <p style={{ fontSize: 'var(--text-xs)', color: '#5f6b7a', marginTop: '9px', lineHeight: 1.5 }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '9px', lineHeight: 1.5 }}>
                   Stage is internal — where the car physically is. It is separate from
                   Status above, which is what customers see on the site.
                 </p>
@@ -841,39 +841,39 @@ export const AdminVehicles = () => {
                   and the whole "documented before it's driven" promise is these
                   five fields. Until now they could only be set by editing the
                   seed data by hand. */}
-              <div style={{ border: '1px solid #e4e8ec', borderRadius: '8px', padding: '14px', background: '#fafbfc' }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: '#16232e', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
+              <div style={{ border: '1px solid #e4e8ec', borderRadius: '8px', padding: '14px', background: 'var(--bg-app)' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--text-dark)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px' }}>
                   Dossier
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Chassis number</label>
-                    <input type="text" value={formData.chassis || ''} placeholder="BM5FS-1204471" onChange={(e) => setFormData({ ...formData, chassis: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Chassis number</label>
+                    <input type="text" value={formData.chassis || ''} placeholder="BM5FS-1204471" onChange={(e) => setFormData({ ...formData, chassis: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Auction grade</label>
-                    <input type="text" value={formData.grade || ''} placeholder="4.5 B" onChange={(e) => setFormData({ ...formData, grade: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Auction grade</label>
+                    <input type="text" value={formData.grade || ''} placeholder="4.5 B" onChange={(e) => setFormData({ ...formData, grade: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Inspection</label>
-                    <input type="text" value={formData.inspection || ''} placeholder="JEVIC verified" onChange={(e) => setFormData({ ...formData, inspection: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Inspection</label>
+                    <input type="text" value={formData.inspection || ''} placeholder="JEVIC verified" onChange={(e) => setFormData({ ...formData, inspection: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>Port of entry</label>
-                    <input type="text" value={formData.port || ''} placeholder="Mombasa" onChange={(e) => setFormData({ ...formData, port: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Port of entry</label>
+                    <input type="text" value={formData.port || ''} placeholder="Mombasa" onChange={(e) => setFormData({ ...formData, port: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '2px' }}>URL slug</label>
-                    <input type="text" value={formData.slug || ''} placeholder="auto-generated from name and year if left blank" onChange={(e) => setFormData({ ...formData, slug: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)' }} />
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>URL slug</label>
+                    <input type="text" value={formData.slug || ''} placeholder="auto-generated from name and year if left blank" onChange={(e) => setFormData({ ...formData, slug: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
                   </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '18px', marginTop: '12px', flexWrap: 'wrap' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: 'var(--text-sm)', color: '#333d49', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: 'var(--text-sm)', color: 'var(--text-body)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={!!formData.odometerVerified} onChange={(e) => setFormData({ ...formData, odometerVerified: e.target.checked })} />
                     Odometer verified
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: 'var(--text-sm)', color: '#333d49', cursor: 'pointer' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: 'var(--text-sm)', color: 'var(--text-body)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={!!formData.dutyPaid} onChange={(e) => setFormData({ ...formData, dutyPaid: e.target.checked })} />
                     Duty paid
                   </label>
@@ -881,7 +881,7 @@ export const AdminVehicles = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: '#5f6b7a', display: 'block', marginBottom: '6px' }}>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                   Photos <span style={{ fontWeight: 400 }}>— the first one is the cover shown on the website</span>
                 </label>
                 <ImagePicker

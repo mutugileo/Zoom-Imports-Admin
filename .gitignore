@@ -1,9 +1,12 @@
 node_modules/
 dist/
 .DS_Store
+.asset-cache/
+audits/
 .env
 .env.local
 .env.*.local
 
 # Local Netlify folder
 .netlify
+

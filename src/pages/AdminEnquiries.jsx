@@ -31,12 +31,12 @@ export const AdminEnquiries = () => {
         
         {/* Header */}
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: '#16232e' }}>
+          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
             Customer Enquiries & Test Drive Requests
           </h1>
 
-          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
-            <Search size={15} color="#5c6a78" />
+          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
+            <Search size={15} color="var(--text-muted)" />
             <input 
               type="text" 
               placeholder="Search customer, vehicle..." 
@@ -63,7 +63,7 @@ export const AdminEnquiries = () => {
                   fontWeight: 600,
                   cursor: 'pointer',
                   border: isActive ? 'none' : '1px solid var(--border-medium)',
-                  background: isActive ? 'var(--primary)' : '#fff',
+                  background: isActive ? 'var(--primary)' : 'var(--bg-card)',
                   color: isActive ? '#000' : 'var(--text-body)'
                 }}
               >
@@ -74,7 +74,7 @@ export const AdminEnquiries = () => {
         </div>
 
         {/* Table */}
-        <div className="admin-table-card" style={{ background: '#fff', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+        <div className="admin-table-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <table className="admin-table">
             <thead>
               <tr>
@@ -89,10 +89,10 @@ export const AdminEnquiries = () => {
             </thead>
             <tbody>
               {enquiriesLoading ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>Loading enquiries…</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading enquiries…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: '#5f6b7a' }}>
+                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {enquiries.length === 0
                       ? 'No enquiries yet. Test drive, callback and quotation requests from the website land here.'
                       : 'No enquiries match this filter.'}
@@ -102,8 +102,8 @@ export const AdminEnquiries = () => {
                 const style = enquiryStatusStyle[e.status] || { bg: '#f0f0f0', fg: '#333' };
                 return (
                   <tr key={e.id}>
-                    <td style={{ fontWeight: 600, color: '#16232e' }}>{e.customer}</td>
-                    <td style={{ color: '#5f6b7a' }}>{e.phone}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{e.customer}</td>
+                    <td style={{ color: 'var(--text-muted)' }}>{e.phone}</td>
                     <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>{e.vehicle}</td>
                     <td>{e.type}</td>
                     <td>
@@ -111,12 +111,12 @@ export const AdminEnquiries = () => {
                         {e.status}
                       </span>
                     </td>
-                    <td style={{ fontSize: 'var(--text-sm)', color: '#5c6a78' }}>{e.date}</td>
+                    <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{e.date}</td>
                     <td>
                       <select
                         value={e.status}
                         onChange={(ev) => updateEnquiryStatus(e.id, ev.target.value)}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #d8dde2', fontSize: 'var(--text-sm)', outline: 'none' }}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none' }}
                       >
                         <option value="New">New</option>
                         <option value="Contacted">Contacted</option>
