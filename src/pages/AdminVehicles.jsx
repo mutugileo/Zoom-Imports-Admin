@@ -35,6 +35,25 @@ export const AdminVehicles = () => {
   const mayDelete = can('catalogue:delete');
 
   const [search, setSearch] = useState('');
+
+  /**
+   * What a car's profit is measured against.
+   *
+   * For a sold unit that is the price it ACTUALLY fetched, not the price it
+   * was advertised at. shared/lib/sales.js puts it plainly: "a profit figure
+   * built on the asking price is a profit the yard never made." Every profit
+   * cell here used v.price regardless of status, so a car listed at 1,400,000
+   * and sold at 1,330,000 reported 70,000 of margin that never existed.
+   *
+   * Unsold cars keep the asking price — for them it is a projection, and that
+   * is the only number available.
+   */
+  const profitBasis = (v) => {
+    const sale = saleFor(v.id);
+    const achieved = Number(sale?.price);
+    return Number.isFinite(achieved) && achieved > 0 ? achieved : v.price;
+  };
+
   const [filterStatus, setFilterStatus] = useState('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState(null);
@@ -344,8 +363,8 @@ export const AdminVehicles = () => {
                             <span>
                               <small>Profit</small>
                               {ledger ? (
-                                <strong className={profit(vehicleCosts[v.id], v.price) < 0 ? 'is-negative' : ''}>
-                                  {formatKES(profit(vehicleCosts[v.id], v.price))} {formatMargin(profitMargin(vehicleCosts[v.id], v.price))}
+                                <strong className={profit(vehicleCosts[v.id], profitBasis(v)) < 0 ? 'is-negative' : ''}>
+                                  {formatKES(profit(vehicleCosts[v.id], profitBasis(v)))} {formatMargin(profitMargin(vehicleCosts[v.id], profitBasis(v)))}
                                 </strong>
                               ) : <strong>—</strong>}
                             </span>
@@ -511,10 +530,10 @@ export const AdminVehicles = () => {
                   {mayCosts && (
                     <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-sm)' }}>
                       {hasLedger(vehicleCosts[v.id]) ? (
-                        <span style={{ color: profit(vehicleCosts[v.id], v.price) < 0 ? '#a13f3f' : 'var(--primary-ink)', fontWeight: 600 }}>
-                          {formatKES(profit(vehicleCosts[v.id], v.price))}
+                        <span style={{ color: profit(vehicleCosts[v.id], profitBasis(v)) < 0 ? '#a13f3f' : 'var(--primary-ink)', fontWeight: 600 }}>
+                          {formatKES(profit(vehicleCosts[v.id], profitBasis(v)))}
                           <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                            {' '}{formatMargin(profitMargin(vehicleCosts[v.id], v.price))}
+                            {' '}{formatMargin(profitMargin(vehicleCosts[v.id], profitBasis(v)))}
                           </span>
                         </span>
                       ) : '—'}
