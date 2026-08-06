@@ -21,6 +21,10 @@
 const BY_CODE = {
   // Unique violation — resolved further by constraint name below.
   23505: () => 'Something with these details already exists.',
+  /* Raised by the public-submission throttle. Says what to do next rather
+     than what the database objected to — the person is not doing anything
+     wrong, they have simply hit the hourly cap. */
+  53400: () => 'You have submitted several listings already. Try again in an hour, or send them to us on WhatsApp.',
   // Foreign key violation.
   23503: () => 'That is still linked to another record, so it cannot be removed yet.',
   // Not-null violation.
