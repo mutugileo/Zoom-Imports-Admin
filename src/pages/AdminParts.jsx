@@ -69,8 +69,15 @@ export const AdminParts = () => {
     setEditingPart(part);
     /* Fitment is edited here now, so the form has to arrive holding whatever
        is already on record for this part. */
+    /* The union of both sources, not one or the other. A part can carry a
+       model in its own `compat` field AND a rule naming different ones — this
+       catalogue has exactly that case. Seeding from the rule alone would drop
+       the compat model the moment someone opened and saved the part, silently
+       narrowing what the shop thinks it fits. Showing both lets whoever is
+       looking untick whichever is wrong. */
     const rule = compatibility.find((c) => c.partId === part.id);
-    setFormData({ ...part, models: rule?.modelIds ?? (part.compat ? [part.compat] : []) });
+    const models = [...new Set([...(rule?.modelIds ?? []), ...(part.compat ? [part.compat] : [])])];
+    setFormData({ ...part, models });
     setBuyPrice(partCostFor(part.id) ?? '');
     setIsModalOpen(true);
   };
