@@ -187,6 +187,16 @@ const PinLogin = ({ rememberedEmail }) => {
 
   useEffect(() => {
     const onKey = (e) => {
+      /* The pad listens on the window so someone can walk up and just start
+         typing their PIN. That must stop at the edge of a text field: this
+         handler swallowed every digit and every Backspace whatever had focus,
+         so in the email box Backspace deleted nothing and a digit went to the
+         PIN instead of the address. */
+      const el = e.target;
+      const isTyping = el instanceof HTMLElement
+        && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      if (isTyping) return;
+
       if (/^\d$/.test(e.key)) { e.preventDefault(); digit(e.key); }
       else if (e.key === 'Backspace') { e.preventDefault(); backspace(); }
     };
