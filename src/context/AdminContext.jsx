@@ -460,20 +460,51 @@ export const AdminProvider = ({ children }) => {
 
   useEffect(() => { refreshParts(); }, [refreshParts]);
 
+  /**
+   * Fitment saved with the part, not on a separate screen.
+   *
+   * `data.models` is the list of Mazda models chosen on the part form. It is
+   * written to compatibility_rules as one row per part, which is what
+   * buildFitmentIndex reads, while `compat` keeps the first model so the
+   * text-based resolution every surface already does still works.
+   *
+   * Rewritten rather than appended: the form shows the complete set, so
+   * saving it is the whole truth about what this part fits. Leaving old rows
+   * behind would mean unticking a model never actually removed it.
+   */
+  const saveFitmentForPart = useCallback(async (partId, models) => {
+    if (!partId) return;
+    await supabase.from('compatibility_rules').delete().eq('part_id', partId);
+    if (!models || models.length === 0) return;
+    const part = parts.find((x) => x.id === partId);
+    await supabase.from('compatibility_rules').insert({
+      part_id: partId,
+      part_name_legacy: part?.name ?? null,
+      make: 'Mazda',
+      model_ids: models,
+      model_legacy: models.join(', '),
+    });
+  }, [parts]);
+
   const savePart = useCallback(async (data) => {
     if (data.id) {
       const { error } = await supabase.from('parts').update(partToRow(data)).eq('id', data.id);
       if (error) return { ok: false, reason: friendlyError(error, 'Could not save this part. Try again.') };
-      await refreshParts();
+      await saveFitmentForPart(data.id, data.models);
+      await Promise.all([refreshParts(), refreshCompatibility()]);
       logActivity(`${data.name} updated`);
       return { ok: true };
     }
-    const { error } = await supabase.from('parts').insert(partToRow(data));
+    /* The id is needed to attach the fitment, so the insert asks for the row
+       back rather than firing and forgetting. */
+    const { data: created, error } = await supabase
+      .from('parts').insert(partToRow(data)).select('id').single();
     if (error) return { ok: false, reason: friendlyError(error, 'Could not save this part. Try again.') };
-    await refreshParts();
+    await saveFitmentForPart(created?.id, data.models);
+    await Promise.all([refreshParts(), refreshCompatibility()]);
     logActivity(`${data.name} added to parts catalogue`);
     return { ok: true };
-  }, [refreshParts, logActivity]);
+  }, [refreshParts, refreshCompatibility, saveFitmentForPart, logActivity]);
 
   const deletePart = useCallback(async (id) => {
     const gone = parts.find((p) => p.id === id);

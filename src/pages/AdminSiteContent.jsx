@@ -176,6 +176,16 @@ export const AdminSiteContent = () => {
               </button>
             </div>
 
+            {/* What this feature is for. The strip is conditional, so an empty
+                list is a working state rather than an unfinished one. */}
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.6, padding: '14px 20px 0', margin: 0 }}>
+              Upload a banner when you have a real promotion — a sale, a
+              shipment arriving, a service offer. The strip appears on the
+              homepage while a banner exists and disappears when you remove it.
+              The hero above it always shows live vehicles, so leaving this
+              empty is perfectly normal.
+            </p>
+
             <div style={{ padding: '20px' }}>
               {siteContent.banners.length === 0 ? (
                 /* One empty state, not a row of numbered placeholder tiles.

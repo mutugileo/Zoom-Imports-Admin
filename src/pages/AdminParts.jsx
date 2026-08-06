@@ -10,7 +10,7 @@ import { Pagination } from '../components/Pagination';
 import { ImagePicker } from '../components/ImagePicker';
 
 export const AdminParts = () => {
-  const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, setPartApproval, formatKES, can } = useApp();
+  const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, setPartApproval, formatKES, can, compatibility } = useApp();
 
   const mayWrite = can('catalogue:write');
   const mayDelete = can('catalogue:delete');
@@ -32,6 +32,7 @@ export const AdminParts = () => {
     price: 5000,
     promo: null,
     compat: '',
+    models: [],
     stock: 15,
     sku: '',
     partNumber: '',
@@ -66,7 +67,10 @@ export const AdminParts = () => {
 
   const handleOpenEditModal = (part) => {
     setEditingPart(part);
-    setFormData({ ...part });
+    /* Fitment is edited here now, so the form has to arrive holding whatever
+       is already on record for this part. */
+    const rule = compatibility.find((c) => c.partId === part.id);
+    setFormData({ ...part, models: rule?.modelIds ?? (part.compat ? [part.compat] : []) });
     setBuyPrice(partCostFor(part.id) ?? '');
     setIsModalOpen(true);
   };
@@ -305,18 +309,51 @@ export const AdminParts = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fits which Mazda model</label>
-                {/* A model, not a make. This is what the shop's fitment filter
-                    compares against, and the old default of "Mazda" matched no
-                    filter on the site at all. */}
-                <select value={formData.compat || ''} onChange={(e) => setFormData({ ...formData, compat: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }}>
-                  <option value="">Select a model…</option>
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Fits which Mazda models</label>
+                {/* Chosen here rather than on the Compatibility screen. A part
+                    almost always fits more than one model, and making that a
+                    second trip meant it usually never happened — the rules
+                    table sat empty while every part carried a single model in
+                    its own text field, and the shop's three surfaces each
+                    answered the fitment question differently as a result.
+
+                    Saving writes one rule for this part with every model
+                    ticked, and keeps `compat` as the first so the older
+                    text-based matching still resolves. */}
+                <div style={{ border: '1px solid var(--field-border)', borderRadius: '6px', maxHeight: '190px', overflowY: 'auto', padding: '8px 10px', background: 'var(--bg-card)' }}>
                   {MAZDA_MODEL_GROUPS.map((g) => (
-                    <optgroup key={g.group} label={g.group}>
-                      {g.models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
-                    </optgroup>
+                    <div key={g.group} style={{ marginBottom: '8px' }}>
+                      <div className="mono" style={{ fontSize: 'var(--text-2xs)', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px' }}>
+                        {g.group}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
+                        {g.models.map((m) => {
+                          const on = (formData.models ?? []).includes(m.id);
+                          return (
+                            <label key={m.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: 'var(--text-sm)', color: 'var(--text-body)', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={on}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? [...(formData.models ?? []), m.id]
+                                    : (formData.models ?? []).filter((x) => x !== m.id);
+                                  setFormData({ ...formData, models: next, compat: next[0] ?? '' });
+                                }}
+                              />
+                              {m.label}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   ))}
-                </select>
+                </div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-dim)', marginTop: '4px' }}>
+                  {(formData.models ?? []).length === 0
+                    ? 'No models ticked — the part will show "Check fitment" on the site.'
+                    : `Fits ${(formData.models ?? []).length} model${(formData.models ?? []).length === 1 ? '' : 's'}.`}
+                </div>
               </div>
 
               <div>
