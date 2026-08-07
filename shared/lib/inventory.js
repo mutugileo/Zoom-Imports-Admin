@@ -104,3 +104,55 @@ export const groupVehicles = (vehicles, groups) => {
   const loose = vehicles.filter((v) => !groups.some((g) => g.id === v.groupId));
   return loose.length ? [...buckets, { group: UNGROUPED, vehicles: loose }] : buckets;
 };
+
+/* ───────────────────────── Holding time ───────────────────────── */
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How long a car has been on the books.
+ *
+ * For an importer this is the quiet cost: a unit at 120 days has eaten margin
+ * in floor space, insurance and tied-up capital that no cost line records. The
+ * ledger tracks what was spent to land the car; nothing tracked how long it
+ * then sat.
+ *
+ * A sold car is measured to the date it sold, not to today — otherwise every
+ * car the yard has ever sold keeps ageing forever and the number stops meaning
+ * anything. Returns null when there is no start date rather than 0, because
+ * "arrived today" and "we do not know when this arrived" are different facts.
+ */
+export const daysOnLot = (vehicle, sale = null, now = new Date()) => {
+  if (!vehicle?.createdAt) return null;
+  const start = new Date(vehicle.createdAt);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const endRaw = sale?.date ? new Date(sale.date) : now;
+  const end = Number.isNaN(endRaw.getTime()) ? now : endRaw;
+
+  /* A sale dated before the record was created is contradictory, not a
+     same-day sale. It happens whenever stock is entered retroactively —
+     `created_at` is when the ROW was made, not when the car landed — and
+     clamping it to 0 would report "sold the day it arrived" for every
+     backfilled unit. Unknown is the truthful answer. */
+  if (end < start) return null;
+
+  return Math.floor((end - start) / MS_PER_DAY);
+};
+
+/**
+ * Bands for reading the number at a glance.
+ *
+ * The thresholds are a starting point, not a finding — nobody has measured
+ * this yard's own turn yet. They exist so the column can be scanned; move them
+ * once there is enough history to say what "slow" actually is here.
+ */
+export const AGEING_BANDS = [
+  { id: 'fresh', upTo: 30, label: 'Fresh' },
+  { id: 'settling', upTo: 60, label: 'Settling' },
+  { id: 'ageing', upTo: 90, label: 'Ageing' },
+  { id: 'stale', upTo: Infinity, label: 'Slow mover' },
+];
+
+export const ageingBand = (days) =>
+  days == null ? null : AGEING_BANDS.find((b) => days <= b.upTo) ?? AGEING_BANDS[AGEING_BANDS.length - 1];

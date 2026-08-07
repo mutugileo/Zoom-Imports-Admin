@@ -7,6 +7,9 @@
 export const vehicleFromRow = (r) => ({
   id: r.id,
   name: r.name,
+  /* When the car entered the system. Read-only — it is never written back by
+     vehicleToRow, so an edit cannot reset a unit's age. */
+  createdAt: r.created_at,
   stockId: r.stock_id,
   stage: r.stage,
   groupId: r.group_id || '',

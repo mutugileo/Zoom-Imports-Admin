@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { LISTING_TYPES } from '@shared/lib/format';
-import { groupVehicles, STAGES } from '@shared/lib/inventory';
+import { groupVehicles, STAGES, daysOnLot, ageingBand } from '@shared/lib/inventory';
 import { MAZDA_MODEL_GROUPS, modelOf } from '@shared/data/mazdaModels';
 import { totalCost, profit, profitMargin, formatMargin, hasLedger, rollUp } from '@shared/lib/costing';
 import { useApp } from '../context/AdminContext';
@@ -430,6 +430,7 @@ export const AdminVehicles = () => {
                 <th>Stock ID</th>
                 <th>Vehicle</th>
                 <th>Stage</th>
+                <th>On lot</th>
                 <th>Price</th>
                 {mayCosts && <th>Total cost</th>}
                 {mayCosts && <th>Profit</th>}
@@ -440,10 +441,10 @@ export const AdminVehicles = () => {
             </thead>
             <tbody>
               {vehiclesLoading ? (
-                <tr><td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading vehicles…</td></tr>
+                <tr><td colSpan={mayCosts ? 11 : 9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading vehicles…</td></tr>
               ) : buckets.length === 0 ? (
                 <tr>
-                  <td colSpan={mayCosts ? 10 : 8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={mayCosts ? 11 : 9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {vehicles.length === 0
                       ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
                       : 'No vehicles match this search.'}
@@ -458,7 +459,7 @@ export const AdminVehicles = () => {
                       because "what did this shipment make" is the question a
                       group exists to answer. */}
                   <tr>
-                    <td colSpan={mayCosts ? 10 : 8} style={{ background: 'var(--bg-cream)', padding: '10px 14px' }}>
+                    <td colSpan={mayCosts ? 11 : 9} style={{ background: 'var(--bg-cream)', padding: '10px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
                         <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
                           <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{group.name}</strong>
@@ -520,6 +521,29 @@ export const AdminVehicles = () => {
                   </td>
                   <td>
                     <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{v.stage || '—'}</span>
+                  </td>
+                  {/* Holding time. A sold unit stops ageing at its sale date;
+                      an unknown arrival prints as unknown, not as zero. */}
+                  <td>
+                    {(() => {
+                      const sale = v.status === 'Sold' ? saleFor(v.id) : null;
+                      const days = daysOnLot(v, sale);
+                      if (days == null) {
+                        return <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dim)' }}>—</span>;
+                      }
+                      const band = ageingBand(days);
+                      const tone = band.id === 'stale' ? '#e5484d'
+                        : band.id === 'ageing' ? 'var(--accent-text)'
+                        : 'var(--text-muted)';
+                      return (
+                        <span
+                          title={`${band.label}${sale ? ' · to date of sale' : ''}`}
+                          style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: tone, fontWeight: band.id === 'stale' ? 700 : 500, whiteSpace: 'nowrap' }}
+                        >
+                          {days}d{sale ? ' *' : ''}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>{formatKES(v.price)}</td>
                   {mayCosts && (
