@@ -494,8 +494,20 @@ export const AdminProvider = ({ children }) => {
    */
   const saveFitmentForPart = useCallback(async (partId, models) => {
     if (!partId) return;
+    /* `undefined` and `[]` are different instructions and conflating them lost
+       real data.
+     *
+     * undefined — this caller is not managing fitment (a save from a screen
+     *   with no model picker). Leave whatever is on record alone.
+     * []        — the picker was shown and everything was unticked. That is a
+     *   deliberate clear.
+     *
+     * The delete used to run before this check, so ANY save without a models
+     * list wiped the part's fitment and inserted nothing in its place. */
+    if (models === undefined || models === null) return;
+
     await supabase.from('compatibility_rules').delete().eq('part_id', partId);
-    if (!models || models.length === 0) return;
+    if (models.length === 0) return;
     const part = parts.find((x) => x.id === partId);
     await supabase.from('compatibility_rules').insert({
       part_id: partId,
