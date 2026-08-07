@@ -6,7 +6,7 @@ import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 
 export const AdminOrders = () => {
-  const { orders, ordersLoading, updateOrderStatus, formatKES } = useApp();
+  const { orders, ordersLoading, updateOrderStatus, updateOrderPayment, formatKES } = useApp();
   
   /* The table shows `itemsFmt`, a truncated one-line summary. What the yard
      actually needs when picking an order is the lines themselves — which part,
@@ -95,6 +95,7 @@ export const AdminOrders = () => {
                 <th>Phone Number</th>
                 <th>Items Summary</th>
                 <th>Total</th>
+                <th>Payment</th>
                 <th>Status</th>
                 <th>Date</th>
                 <th>Action</th>
@@ -102,10 +103,10 @@ export const AdminOrders = () => {
             </thead>
             <tbody>
               {ordersLoading ? (
-                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading orders…</td></tr>
+                <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading orders…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {orders.length === 0
                       ? 'No orders yet. Parts orders placed on the website arrive here for fulfilment — they are not added by hand.'
                       : 'No orders match this filter.'}
@@ -124,6 +125,27 @@ export const AdminOrders = () => {
                     <td style={{ color: 'var(--text-muted)' }}>{o.phone}</td>
                     <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', maxWidth: '240px' }}>{o.itemsFmt}</td>
                     <td style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{formatKES(o.total)}</td>
+                    {/* Money in, kept apart from fulfilment. An order can be
+                        Delivered and Unpaid, and showing one status for both is
+                        how a debt goes unnoticed. */}
+                    <td>
+                      {(() => {
+                        const tone = o.paymentStatus === 'Paid' ? 'var(--verify)'
+                          : o.paymentStatus === 'Part paid' ? 'var(--accent-text)'
+                          : o.paymentStatus === 'Refunded' ? 'var(--text-muted)'
+                          : '#e5484d';
+                        return (
+                          <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: tone, whiteSpace: 'nowrap' }}>
+                            {o.paymentStatus || 'Unpaid'}
+                            {o.paymentRef && (
+                              <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontWeight: 400, color: 'var(--text-muted)', fontSize: 'var(--text-2xs)' }}>
+                                {o.paymentRef}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })()}
+                    </td>
                     <td>
                       <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-pill)', background: style.bg, color: style.fg }}>
                         {o.status}
@@ -156,7 +178,7 @@ export const AdminOrders = () => {
 
       </div>
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} formatKES={formatKES} onClose={() => setDetailOrder(null)} />
+        <OrderDetailModal order={detailOrder} formatKES={formatKES} onSavePayment={updateOrderPayment} onClose={() => setDetailOrder(null)} />
       )}
     </AdminLayout>
   );
@@ -173,7 +195,25 @@ export const AdminOrders = () => {
  * No cost or margin here: this is the same screen Sales Staff use, and what
  * the yard paid for a part is not theirs to see.
  */
-const OrderDetailModal = ({ order, formatKES, onClose }) => {
+const PAYMENT_STATES = ['Unpaid', 'Part paid', 'Paid', 'Refunded'];
+const PAYMENT_METHODS = ['M-Pesa', 'Bank transfer', 'Cash', 'Card'];
+
+const OrderDetailModal = ({ order, formatKES, onSavePayment, onClose }) => {
+  const [pay, setPay] = React.useState({
+    paymentStatus: order.paymentStatus || 'Unpaid',
+    paymentMethod: order.paymentMethod || 'M-Pesa',
+    paymentRef: order.paymentRef || '',
+  });
+  const [payBusy, setPayBusy] = React.useState(false);
+  const [paySaved, setPaySaved] = React.useState(false);
+
+  const savePayment = async () => {
+    setPayBusy(true);
+    const res = await onSavePayment(order.ref, pay);
+    setPayBusy(false);
+    if (res.ok) { setPaySaved(true); setTimeout(() => setPaySaved(false), 2200); }
+  };
+
   React.useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
@@ -249,6 +289,36 @@ const OrderDetailModal = ({ order, formatKES, onClose }) => {
               </tbody>
             </table>
           )}
+
+          {/* Reconciliation. The confirmation code is the whole point — without
+              it an M-Pesa statement cannot be matched to an order, which is the
+              job someone does at the end of every day. */}
+          <div style={{ marginTop: '18px', paddingTop: '14px', borderTop: '1px solid var(--border-light)' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              Payment
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', alignItems: 'end' }}>
+              <label style={{ display: 'block' }}>
+                <span className="field-label">Status</span>
+                <select className="field" value={pay.paymentStatus} onChange={(e) => setPay({ ...pay, paymentStatus: e.target.value })}>
+                  {PAYMENT_STATES.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'block' }}>
+                <span className="field-label">Method</span>
+                <select className="field" value={pay.paymentMethod} onChange={(e) => setPay({ ...pay, paymentMethod: e.target.value })}>
+                  {PAYMENT_METHODS.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </label>
+              <label style={{ display: 'block' }}>
+                <span className="field-label">Reference</span>
+                <input type="text" className="field" placeholder="M-Pesa code" value={pay.paymentRef} onChange={(e) => setPay({ ...pay, paymentRef: e.target.value })} />
+              </label>
+              <button type="button" className="btn-primary" onClick={savePayment} disabled={payBusy}>
+                {payBusy ? 'Saving…' : paySaved ? 'Saved' : 'Save payment'}
+              </button>
+            </div>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid var(--border-light)' }}>
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Order total</span>

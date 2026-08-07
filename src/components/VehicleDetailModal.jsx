@@ -1,6 +1,7 @@
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { VehicleCosts } from './VehicleCosts';
 import { VehiclePayments } from './VehiclePayments';
+import { VehicleDocuments } from './VehicleDocuments';
 import React, { useEffect, useCallback, useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { formatKES } from '@shared/lib/format';
@@ -51,8 +52,7 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'costs', label: 'Costs', permission: 'costs:view' },
   { id: 'payments', label: 'Payments', permission: 'costs:view' },
-  { id: 'documents', label: 'Documents', stub: true,
-    note: 'Will hold this car\'s logbook, import entry and inspection report. Needs file storage, which is not built yet.' },
+  { id: 'documents', label: 'Documents', permission: 'catalogue:write' },
   { id: 'activity', label: 'Activity', stub: true,
     note: 'Will show what changed on this car and who changed it. The activity log today is portal-wide, not per vehicle.' },
 ];
@@ -190,6 +190,7 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
         <div style={{ padding: '22px 24px 24px' }}>
           {activeTab === 'costs' && <VehicleCosts vehicle={vehicle} />}
           {activeTab === 'payments' && <VehiclePayments vehicle={vehicle} />}
+          {activeTab === 'documents' && <VehicleDocuments vehicle={vehicle} />}
 
           {activeTab === 'overview' && <>
           {GROUPS.map((group) => {

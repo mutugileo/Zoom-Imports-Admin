@@ -155,6 +155,13 @@ export const orderFromRow = (r) => ({
   status: r.status,
   delivery: r.delivery,
   date: r.order_date,
+  /* Whether the money actually arrived — a separate question from whether the
+     goods have. An order can be Delivered and Unpaid, and conflating the two
+     is how a debt goes unnoticed. */
+  paymentMethod: r.payment_method || '',
+  paymentRef: r.payment_ref || '',
+  paymentStatus: r.payment_status || 'Unpaid',
+  paidAt: r.paid_at,
 });
 
 export const enquiryFromRow = (r) => ({
@@ -424,3 +431,36 @@ export const buyerPaymentToRow = (p) => ({
   reference: p.reference || null,
   note: p.note || null,
 });
+
+/** Paperwork held against a vehicle. `fileUrl` is a storage PATH, not a URL —
+ *  the bucket is private, so it is exchanged for a short-lived signed link at
+ *  the moment someone asks to view it. */
+export const vehicleDocFromRow = (r) => ({
+  id: r.id,
+  vehicleId: r.vehicle_id,
+  kind: r.kind,
+  fileUrl: r.file_url,
+  fileName: r.file_name || '',
+  note: r.note || '',
+  uploadedAt: r.uploaded_at,
+});
+
+export const vehicleDocToRow = (d) => ({
+  vehicle_id: d.vehicleId,
+  kind: d.kind,
+  file_url: d.fileUrl,
+  file_name: d.fileName || null,
+  note: d.note || null,
+});
+
+/** The paperwork an imported unit actually travels with. */
+export const VEHICLE_DOC_KINDS = [
+  'Logbook',
+  'Import entry (IDF)',
+  'Bill of lading',
+  'JEVIC certificate',
+  'Duty / KRA receipt',
+  'Auction sheet',
+  'Transfer form',
+  'Other',
+];

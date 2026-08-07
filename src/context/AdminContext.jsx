@@ -28,6 +28,7 @@ import {
   billingFromRow, billingToRow,
   bankAccountFromRow, bankAccountToRow,
   buyerPaymentFromRow, buyerPaymentToRow,
+  vehicleDocFromRow, vehicleDocToRow,
 } from '@shared/lib/dbMap';
 
 /** Not a secret — see the comment on `signIn` below for what this is for. */
@@ -117,6 +118,8 @@ export const AdminProvider = ({ children }) => {
   const [bankAccounts, setBankAccounts] = useState([]);
   /* Money received from buyers. Staff-only, same reader as `buyers`. */
   const [buyerPayments, setBuyerPayments] = useState([]);
+  /* Vehicle paperwork. Rows only — the files sit in a PRIVATE bucket. */
+  const [vehicleDocs, setVehicleDocs] = useState([]);
 
   /**
    * Cost ledgers, keyed by vehicle id, from `vehicle_costs`.
@@ -584,6 +587,28 @@ export const AdminProvider = ({ children }) => {
    * figures. Re-completing an order does not re-snapshot: the first completion
    * is the one that happened.
    */
+  /**
+   * Whether the money arrived, recorded apart from fulfilment status.
+   *
+   * `paid_at` is stamped only on the transition into Paid, so the date means
+   * "when it was settled" and does not move every time someone edits the
+   * reference afterwards.
+   */
+  const updateOrderPayment = useCallback(async (ref, patch) => {
+    const row = {};
+    if (patch.paymentMethod !== undefined) row.payment_method = patch.paymentMethod || null;
+    if (patch.paymentRef !== undefined) row.payment_ref = patch.paymentRef || null;
+    if (patch.paymentStatus !== undefined) {
+      row.payment_status = patch.paymentStatus;
+      row.paid_at = patch.paymentStatus === 'Paid' ? new Date().toISOString() : null;
+    }
+    const { error } = await supabase.from('orders').update(row).eq('ref', ref);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not update the payment. Try again.') };
+    await refreshOrders();
+    if (patch.paymentStatus) logActivity(`Order ${ref} marked ${patch.paymentStatus.toLowerCase()}`);
+    return { ok: true };
+  }, [refreshOrders, logActivity]);
+
   const updateOrderStatus = useCallback(async (ref, status) => {
     const order = orders.find((o) => o.ref === ref);
     const { error } = await supabase.from('orders').update({ status }).eq('ref', ref);
@@ -815,6 +840,53 @@ export const AdminProvider = ({ children }) => {
     await refreshEnquiries();
     return { ok: true };
   }, [refreshEnquiries]);
+
+  /* ── Vehicle documents ───────────────────────────────────────────── */
+
+  const refreshVehicleDocs = useCallback(async () => {
+    if (!authUser) { setVehicleDocs([]); return; }
+    const { data, error } = await supabase
+      .from('vehicle_documents').select('*').order('uploaded_at', { ascending: false });
+    if (!error) setVehicleDocs((data ?? []).map(vehicleDocFromRow));
+  }, [authUser]);
+
+  useEffect(() => { refreshVehicleDocs(); }, [refreshVehicleDocs]);
+
+  const docsForVehicle = useCallback(
+    (vehicleId) => vehicleDocs.filter((d) => d.vehicleId === vehicleId),
+    [vehicleDocs]
+  );
+
+  const addVehicleDocument = useCallback(async (doc) => {
+    const { error } = await supabase.from('vehicle_documents').insert(vehicleDocToRow(doc));
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save this document. Try again.') };
+    await refreshVehicleDocs();
+    logActivity(`${doc.kind} added to a vehicle`);
+    return { ok: true };
+  }, [refreshVehicleDocs, logActivity]);
+
+  /* Removes the row AND the file. A document nobody can reach from a vehicle
+     is just a private file nobody is accounting for. */
+  const deleteVehicleDocument = useCallback(async (doc) => {
+    const { error } = await supabase.from('vehicle_documents').delete().eq('id', doc.id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not remove this document. Try again.') };
+    if (doc.fileUrl) await supabase.storage.from('vehicle-documents').remove([doc.fileUrl]);
+    await refreshVehicleDocs();
+    logActivity(`${doc.kind} removed from a vehicle`);
+    return { ok: true };
+  }, [refreshVehicleDocs, logActivity]);
+
+  /**
+   * A short-lived link to a private file.
+   *
+   * Minted on demand rather than stored: a URL that never expires is a public
+   * file with extra steps, and these carry owner names and ID numbers.
+   */
+  const signedDocumentUrl = useCallback(async (path) => {
+    const { data, error } = await supabase.storage
+      .from('vehicle-documents').createSignedUrl(path, 300);
+    return error ? null : data?.signedUrl ?? null;
+  }, []);
 
   /* ── Payments received from buyers ───────────────────────────────── */
 
@@ -1203,7 +1275,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor,
       orderCosts,
       addCompatibilityRule, removeCompatibilityRule,
-      updateOrderStatus, updateEnquiryStatus,
+      updateOrderStatus, updateOrderPayment, updateEnquiryStatus,
 
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
       adminProfiles, adminProfilesLoading, onlineUserIds, createStaffAccount, updateProfile, removeProfile,
@@ -1218,6 +1290,7 @@ export const AdminProvider = ({ children }) => {
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
+      vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
@@ -1246,6 +1319,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
+      vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
