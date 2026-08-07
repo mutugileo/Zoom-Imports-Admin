@@ -5,7 +5,7 @@ import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { RecordBuyerModal } from '../components/RecordBuyerModal';
 import { Invoice, invoiceNumberFor } from '../components/Invoice';
-import { Search, UserPlus, ArrowLeft, ReceiptText, Pencil, Trash2 } from 'lucide-react';
+import { Search, UserPlus, ArrowLeft, ReceiptText, Pencil, Trash2, Plus } from 'lucide-react';
 
 /**
  * Who bought what, and the paperwork that goes with it.
@@ -16,7 +16,10 @@ import { Search, UserPlus, ArrowLeft, ReceiptText, Pencil, Trash2 } from 'lucide
  * no use for, so the master/detail pair lives here where the id is meaningful.
  */
 export const AdminBuyers = () => {
-  const { buyers, buyersLoading, deleteBuyer, formatKES, can } = useApp();
+  const {
+    buyers, buyersLoading, deleteBuyer, formatKES, can,
+    paymentsForBuyer, balanceForBuyer, addBuyerPayment, deleteBuyerPayment,
+  } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
@@ -110,6 +113,16 @@ export const AdminBuyers = () => {
 
             <Card title="Sale">
               <Line label="Price" value={selected.salePrice == null ? null : formatKES(selected.salePrice)} />
+              <Line label="Paid" value={formatKES(balanceForBuyer(selected).paid)} />
+              {/* Reads as the headline figure because it is the one people ask
+                  about. Absent rather than zero when no price is agreed — a
+                  balance of 0 would say "paid in full". */}
+              <Line
+                label="Balance"
+                value={balanceForBuyer(selected).balance == null
+                  ? null
+                  : formatKES(balanceForBuyer(selected).balance)}
+              />
               <Line label="Date" value={selected.saleDate} />
               <Line label="Invoice" value={invoiceNumberFor(selected)} />
             </Card>
@@ -124,6 +137,18 @@ export const AdminBuyers = () => {
               </Card>
             </div>
           )}
+
+          <div style={{ marginTop: '18px' }}>
+            <PaymentsPanel
+              buyer={selected}
+              payments={paymentsForBuyer(selected.id)}
+              summary={balanceForBuyer(selected)}
+              formatKES={formatKES}
+              mayWrite={can('orders:write')}
+              onAdd={addBuyerPayment}
+              onRemove={deleteBuyerPayment}
+            />
+          </div>
 
           {can('orders:write') && (
             <button
@@ -269,5 +294,130 @@ const Line = ({ label, value }) => (
     <span style={{ fontSize: 'var(--text-sm)', color: value ? 'var(--text-dark)' : '#98a3ad', fontWeight: value ? 600 : 400, textAlign: 'right' }}>
       {value || 'not on file'}
     </span>
+  </div>
+);
+
+const PAYMENT_METHODS = ['M-Pesa', 'Bank transfer', 'Cash', 'Cheque'];
+
+/**
+ * What the buyer has actually handed over.
+ *
+ * A row per payment, not a running total: a deposit and a balance are two
+ * events with two dates and two M-Pesa codes, and "which payment was that
+ * code" is the question asked when a customer disputes anything.
+ */
+const PaymentsPanel = ({ buyer, payments, summary, formatKES, mayWrite, onAdd, onRemove }) => {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ amount: '', paidOn: new Date().toISOString().slice(0, 10), method: 'M-Pesa', reference: '', note: '' });
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    const amount = Number(form.amount);
+    if (!Number.isFinite(amount) || amount <= 0) { setError('Enter the amount received.'); return; }
+    setBusy(true);
+    const result = await onAdd({ ...form, amount, buyerId: buyer.id });
+    setBusy(false);
+    if (!result.ok) { setError(result.reason); return; }
+    setForm({ amount: '', paidOn: new Date().toISOString().slice(0, 10), method: 'M-Pesa', reference: '', note: '' });
+    setError('');
+    setOpen(false);
+  };
+
+  return (
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '10px' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+          Payments received
+        </div>
+        {mayWrite && (
+          <button type="button" onClick={() => setOpen((v) => !v)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Plus size={14} /> {open ? 'Cancel' : 'Record payment'}
+          </button>
+        )}
+      </div>
+
+      {summary.price != null && (
+        <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <Figure label="Agreed" value={formatKES(summary.price)} />
+          <Figure label="Received" value={formatKES(summary.paid)} />
+          <Figure
+            label="Outstanding"
+            value={formatKES(summary.balance)}
+            tone={summary.balance > 0 ? 'var(--accent-text)' : 'var(--verify)'}
+          />
+        </div>
+      )}
+
+      {payments.length === 0 ? (
+        <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', margin: '4px 0 0' }}>
+          Nothing received yet. The invoice will show the full price as outstanding.
+        </p>
+      ) : (
+        <table className="admin-table" style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              <th>Date</th><th>Method</th><th>Reference</th>
+              <th style={{ textAlign: 'right' }}>Amount</th><th />
+            </tr>
+          </thead>
+          <tbody>
+            {payments.map((p) => (
+              <tr key={p.id}>
+                <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)' }}>{p.paidOn}</td>
+                <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)' }}>{p.method}</td>
+                <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{p.reference || '—'}</td>
+                <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text-dark)' }}>{formatKES(p.amount)}</td>
+                <td style={{ textAlign: 'right' }}>
+                  {mayWrite && (
+                    <button
+                      type="button"
+                      onClick={() => { if (window.confirm(`Remove the ${formatKES(p.amount)} payment of ${p.paidOn}?`)) onRemove(p.id); }}
+                      aria-label={`Remove payment of ${formatKES(p.amount)}`}
+                      style={{ border: 'none', background: 'transparent', color: '#e5484d', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {open && mayWrite && (
+        <form onSubmit={submit} style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border-light)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px', alignItems: 'end' }}>
+          <label style={{ display: 'block' }}>
+            <span className="field-label">Amount (KES)</span>
+            <input type="number" className="field" value={form.amount} onChange={(e) => { setForm({ ...form, amount: e.target.value }); setError(''); }} autoFocus />
+          </label>
+          <label style={{ display: 'block' }}>
+            <span className="field-label">Date received</span>
+            <input type="date" className="field" value={form.paidOn} onChange={(e) => setForm({ ...form, paidOn: e.target.value })} />
+          </label>
+          <label style={{ display: 'block' }}>
+            <span className="field-label">Method</span>
+            <select className="field" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
+              {PAYMENT_METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </label>
+          <label style={{ display: 'block' }}>
+            <span className="field-label">Reference</span>
+            <input type="text" className="field" placeholder="M-Pesa code" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} />
+          </label>
+          <button type="submit" className="btn-primary" disabled={busy}>{busy ? 'Saving…' : 'Record'}</button>
+          {error && <p role="alert" style={{ gridColumn: '1 / -1', fontSize: 'var(--text-sm)', color: '#e5484d', margin: 0 }}>{error}</p>}
+        </form>
+      )}
+    </div>
+  );
+};
+
+const Figure = ({ label, value, tone }) => (
+  <div>
+    <div style={{ fontSize: 'var(--text-2xs)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</div>
+    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-md)', fontWeight: 700, color: tone || 'var(--text-dark)', marginTop: '2px' }}>{value}</div>
   </div>
 );

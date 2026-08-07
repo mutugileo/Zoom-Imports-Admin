@@ -52,7 +52,18 @@ const readableDate = (value) => {
  * KRA would assert something no data here supports.
  */
 export const Invoice = ({ buyer, onClose }) => {
-  const { siteContent, billing, formatKES } = useApp();
+  const { siteContent, billing, formatKES, paymentsForBuyer, balanceForBuyer } = useApp();
+
+  /* Balance Due is what is STILL owed, not the agreed price.
+   *
+   * This previously printed sale_price unconditionally, so a customer who had
+   * already paid a deposit was handed a document demanding the whole amount
+   * again. Payments are listed beneath the total so the arithmetic is on the
+   * page rather than asserted. */
+  const received = paymentsForBuyer ? paymentsForBuyer(buyer.id) : [];
+  const money = balanceForBuyer ? balanceForBuyer(buyer) : { paid: 0, balance: null };
+  const paidTotal = money.paid || 0;
+  const outstanding = money.balance;
   const contact = siteContent?.contact ?? {};
   const company = billing ?? {};
 
@@ -194,7 +205,9 @@ export const Invoice = ({ buyer, onClose }) => {
                   BALANCE DUE
                 </div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1f2328', marginTop: '2px' }}>
-                  {priced ? `Ksh. ${numericAmount}` : '—'}
+                  {priced
+                    ? `Ksh. ${(outstanding ?? Number(buyer.salePrice)).toLocaleString('en-US')}`
+                    : '—'}
                 </div>
               </div>
             </div>
@@ -277,6 +290,45 @@ export const Invoice = ({ buyer, onClose }) => {
                   {numericAmount}
                 </span>
               </div>
+
+              {/* The arithmetic, on the page. A customer who has paid a deposit
+                  should be able to see it accounted for rather than take the
+                  Balance Due on trust — and if a receipt is queried, the date
+                  and reference are printed here beside the amount. */}
+              {received.length > 0 && (
+                <>
+                  {received.map((p) => (
+                    <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.82rem', color: '#57606a' }}>
+                      <span>
+                        Paid {p.paidOn}
+                        {p.method ? ` · ${p.method}` : ''}
+                        {p.reference ? ` · ${p.reference}` : ''}
+                      </span>
+                      <span style={{ whiteSpace: 'nowrap' }}>
+                        &minus; {Number(p.amount).toLocaleString('en-US')}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+                    padding: '8px 0', borderTop: '1px solid #d8dee4', fontWeight: 700,
+                  }}>
+                    <span style={{ fontSize: '0.8rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#57606a' }}>
+                      Balance due
+                    </span>
+                    <span style={{ fontSize: '1.05rem', color: '#1f2328' }}>
+                      {priced ? (outstanding ?? 0).toLocaleString('en-US') : '—'}
+                    </span>
+                  </div>
+                  {/* Overpayment is not a negative balance to a customer; it is
+                      money owed back to them, and saying so is the honest read. */}
+                  {priced && outstanding < 0 && (
+                    <div style={{ fontSize: '0.78rem', color: '#57606a', paddingTop: '4px' }}>
+                      Overpaid by {Math.abs(outstanding).toLocaleString('en-US')} — refundable.
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 

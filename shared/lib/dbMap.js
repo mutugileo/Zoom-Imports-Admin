@@ -386,3 +386,31 @@ export const bankAccountToRow = (a) => ({
   sort_order: a.sortOrder ?? 0,
   active: a.active !== false,
 });
+
+/**
+ * One payment received from a buyer.
+ *
+ * Kept as rows rather than a running total on the buyer, because "when did it
+ * come in and under what M-Pesa code" is the question actually asked later,
+ * and a single `amount_paid` column cannot answer it.
+ */
+export const buyerPaymentFromRow = (r) => ({
+  id: r.id,
+  buyerId: r.buyer_id,
+  // Numeric arrives from PostgREST as a string so precision survives the wire.
+  amount: r.amount == null ? 0 : Number(r.amount),
+  paidOn: r.paid_on || '',
+  method: r.method || 'M-Pesa',
+  reference: r.reference || '',
+  note: r.note || '',
+  at: r.created_at,
+});
+
+export const buyerPaymentToRow = (p) => ({
+  buyer_id: p.buyerId,
+  amount: p.amount,
+  paid_on: p.paidOn || null,
+  method: p.method || 'M-Pesa',
+  reference: p.reference || null,
+  note: p.note || null,
+});

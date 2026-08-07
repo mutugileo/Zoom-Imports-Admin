@@ -27,6 +27,7 @@ import {
   buyerFromRow, buyerToRow,
   billingFromRow, billingToRow,
   bankAccountFromRow, bankAccountToRow,
+  buyerPaymentFromRow, buyerPaymentToRow,
 } from '@shared/lib/dbMap';
 
 /** Not a secret — see the comment on `signIn` below for what this is for. */
@@ -114,6 +115,8 @@ export const AdminProvider = ({ children }) => {
      kept off `site_contact` because that table is readable by `anon`. */
   const [billing, setBilling] = useState(null);
   const [bankAccounts, setBankAccounts] = useState([]);
+  /* Money received from buyers. Staff-only, same reader as `buyers`. */
+  const [buyerPayments, setBuyerPayments] = useState([]);
 
   /**
    * Cost ledgers, keyed by vehicle id, from `vehicle_costs`.
@@ -797,6 +800,55 @@ export const AdminProvider = ({ children }) => {
     return { ok: true };
   }, [buyers, refreshBuyers, logActivity]);
 
+  /* ── Payments received from buyers ───────────────────────────────── */
+
+  const refreshBuyerPayments = useCallback(async () => {
+    if (!authUser) { setBuyerPayments([]); return; }
+    const { data, error } = await supabase
+      .from('buyer_payments')
+      .select('*')
+      .order('paid_on', { ascending: true })
+      .order('id', { ascending: true });
+    if (!error) setBuyerPayments((data ?? []).map(buyerPaymentFromRow));
+  }, [authUser]);
+
+  useEffect(() => { refreshBuyerPayments(); }, [refreshBuyerPayments]);
+
+  const addBuyerPayment = useCallback(async (payment) => {
+    const { error } = await supabase.from('buyer_payments').insert(buyerPaymentToRow(payment));
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not record this payment. Try again.') };
+    await refreshBuyerPayments();
+    logActivity(`Payment of ${formatKES(payment.amount)} recorded`);
+    return { ok: true };
+  }, [refreshBuyerPayments, logActivity]);
+
+  const deleteBuyerPayment = useCallback(async (id) => {
+    const { error } = await supabase.from('buyer_payments').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not remove this payment. Try again.') };
+    await refreshBuyerPayments();
+    logActivity('Payment record removed');
+    return { ok: true };
+  }, [refreshBuyerPayments, logActivity]);
+
+  const paymentsForBuyer = useCallback(
+    (buyerId) => buyerPayments.filter((p) => p.buyerId === buyerId),
+    [buyerPayments]
+  );
+
+  /**
+   * What is still owed on a sale.
+   *
+   * `null` when no price has been agreed — an unpriced sale has no balance,
+   * and showing 0 would read as "paid in full".
+   */
+  const balanceForBuyer = useCallback((buyer) => {
+    if (!buyer || buyer.salePrice == null) return { paid: 0, balance: null, price: null };
+    const paid = buyerPayments
+      .filter((p) => p.buyerId === buyer.id)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    return { paid, balance: Number(buyer.salePrice) - paid, price: Number(buyer.salePrice) };
+  }, [buyerPayments]);
+
   /** Has this car already been handed to someone? Keyed on the traced id. */
   const buyerForVehicle = useCallback(
     (vehicleId) => buyers.find((b) => b.vehicleId === vehicleId) ?? null,
@@ -1149,6 +1201,7 @@ export const AdminProvider = ({ children }) => {
       reviews, reviewsLoading, setReviewStatus, removeReview,
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
       settings, setSetting,
@@ -1175,6 +1228,7 @@ export const AdminProvider = ({ children }) => {
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
       theme, toggleTheme
