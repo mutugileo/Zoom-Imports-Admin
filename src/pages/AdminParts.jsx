@@ -37,6 +37,7 @@ export const AdminParts = () => {
     sku: '',
     partNumber: '',
     img: null,
+    images: [],
     description: '',
   });
 
@@ -77,7 +78,10 @@ export const AdminParts = () => {
        looking untick whichever is wrong. */
     const rule = compatibility.find((c) => c.partId === part.id);
     const models = [...new Set([...(rule?.modelIds ?? []), ...(part.compat ? [part.compat] : [])])];
-    setFormData({ ...part, models });
+    /* Parts saved before the gallery existed have only a cover — start their
+       list from it so opening and saving does not drop the photo. */
+    const images = (part.images && part.images.length) ? part.images : (part.img ? [part.img] : []);
+    setFormData({ ...part, models, images });
     setBuyPrice(partCostFor(part.id) ?? '');
     setIsModalOpen(true);
   };
@@ -364,14 +368,15 @@ export const AdminParts = () => {
               </div>
 
               <div>
-                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Photo</label>
-                {/* A part carries one photo, so the picker is capped at one and
-                    bridged to the single `img` column as a one-item list. */}
+                <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Photos</label>
+                {/* One photo was enough for a boxed new part and useless for a
+                    used one, where condition is the whole question. First in
+                    the list is the cover, as with vehicles. */}
                 <ImagePicker
                   bucket="part-photos"
-                  value={formData.img ? [formData.img] : []}
-                  onChange={(imgs) => setFormData({ ...formData, img: imgs[0] ?? null })}
-                  max={1}
+                  value={formData.images ?? (formData.img ? [formData.img] : [])}
+                  onChange={(imgs) => setFormData({ ...formData, images: imgs, img: imgs[0] ?? null })}
+                  max={6}
                 />
               </div>
 

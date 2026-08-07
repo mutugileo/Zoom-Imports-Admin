@@ -87,6 +87,7 @@ export const partFromRow = (r) => ({
   compat: r.compat,
   stock: r.stock,
   img: r.img,
+  images: r.images || [],
   description: r.description,
   sku: r.sku,
   partNumber: r.part_number || '',
@@ -102,7 +103,10 @@ export const partToRow = (p) => ({
   promo: p.promo === '' || p.promo === undefined ? null : p.promo,
   compat: p.compat,
   stock: p.stock,
-  img: p.img,
+  /* Cover and gallery written from one source so they cannot drift: whatever
+     sits first in `images` IS the cover — the same rule vehicles follow. */
+  img: (p.images && p.images[0]) || p.img || null,
+  images: p.images || [],
   description: p.description,
   sku: p.sku,
   part_number: p.partNumber || '',
