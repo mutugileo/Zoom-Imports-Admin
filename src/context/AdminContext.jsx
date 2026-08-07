@@ -778,9 +778,11 @@ export const AdminProvider = ({ children }) => {
    */
   const saveBuyer = useCallback(async (data) => {
     const row = buyerToRow(data);
-    const { error } = data.id
-      ? await supabase.from('buyers').update(row).eq('id', data.id)
-      : await supabase.from('buyers').insert(row);
+    /* Returns the id so a caller can attach something to the new record —
+       the enquiry it came from, in particular. */
+    const { data: saved, error } = data.id
+      ? await supabase.from('buyers').update(row).eq('id', data.id).select('id').single()
+      : await supabase.from('buyers').insert(row).select('id').single();
     if (error) return { ok: false, reason: friendlyError(error, 'Could not save this buyer. Try again.') };
     await refreshBuyers();
     logActivity(
@@ -788,7 +790,7 @@ export const AdminProvider = ({ children }) => {
         ? `Buyer record updated for ${data.name}`
         : `${data.name} recorded as the buyer of ${data.vehicleName || 'a vehicle'}`
     );
-    return { ok: true };
+    return { ok: true, id: saved?.id ?? data.id };
   }, [refreshBuyers, logActivity]);
 
   const deleteBuyer = useCallback(async (id) => {
@@ -799,6 +801,20 @@ export const AdminProvider = ({ children }) => {
     logActivity(`Buyer record for ${gone?.name ?? 'a customer'} deleted`);
     return { ok: true };
   }, [buyers, refreshBuyers, logActivity]);
+
+  /**
+   * Marks which sale an enquiry turned into.
+   *
+   * Written after the buyer is saved rather than as part of it, so a failure
+   * to stamp the enquiry never costs the buyer record — the sale is the thing
+   * that matters, the link is bookkeeping on top of it.
+   */
+  const linkEnquiryToBuyer = useCallback(async (enquiryId, buyerId) => {
+    const { error } = await supabase.from('enquiries').update({ buyer_id: buyerId }).eq('id', enquiryId);
+    if (error) return { ok: false, reason: friendlyError(error, 'The buyer was saved, but the enquiry could not be linked.') };
+    await refreshEnquiries();
+    return { ok: true };
+  }, [refreshEnquiries]);
 
   /* ── Payments received from buyers ───────────────────────────────── */
 
@@ -1202,6 +1218,7 @@ export const AdminProvider = ({ children }) => {
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
+      linkEnquiryToBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
       settings, setSetting,
@@ -1229,6 +1246,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
+      linkEnquiryToBuyer,
       billing, saveBilling,
       bankAccounts, saveBankAccount, deleteBankAccount,
       theme, toggleTheme

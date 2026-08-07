@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search } from 'lucide-react';
+import { Search, UserPlus, Check } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
+import { RecordBuyerModal } from '../components/RecordBuyerModal';
 
 export const AdminEnquiries = () => {
-  const { enquiries, enquiriesLoading, updateEnquiryStatus } = useApp();
+  const { enquiries, enquiriesLoading, updateEnquiryStatus, buyers, linkEnquiryToBuyer, navigateTo, can } = useApp();
+
+  /* An enquiry that becomes a sale carries its name and phone across rather
+     than being re-keyed into the buyer form by hand. */
+  const [converting, setConverting] = useState(null);
 
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
@@ -82,6 +87,7 @@ export const AdminEnquiries = () => {
                 <th>Phone Number</th>
                 <th>Target Vehicle / Topic</th>
                 <th>Enquiry Type</th>
+                <th>Outcome</th>
                 <th>Status</th>
                 <th>Date</th>
                 <th>Action</th>
@@ -89,10 +95,10 @@ export const AdminEnquiries = () => {
             </thead>
             <tbody>
               {enquiriesLoading ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading enquiries…</td></tr>
+                <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading enquiries…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {enquiries.length === 0
                       ? 'No enquiries yet. Test drive, callback and quotation requests from the website land here.'
                       : 'No enquiries match this filter.'}
@@ -106,6 +112,36 @@ export const AdminEnquiries = () => {
                     <td style={{ color: 'var(--text-muted)' }}>{e.phone}</td>
                     <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>{e.vehicle}</td>
                     <td>{e.type}</td>
+                    {/* Where the lead went. Most never convert, and an empty
+                        cell says that honestly — this is the column that makes
+                        "did following up work?" answerable at all. */}
+                    <td>
+                      {e.buyerId ? (
+                        (() => {
+                          const b = buyers.find((x) => x.id === e.buyerId);
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => navigateTo('admin-buyers')}
+                              title={b ? `Sold to ${b.name}` : 'Recorded as a buyer'}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: 'var(--verify)', fontWeight: 600, fontSize: 'var(--text-xs)' }}
+                            >
+                              <Check size={13} /> {b ? b.name : 'Bought'}
+                            </button>
+                          );
+                        })()
+                      ) : can('orders:write') ? (
+                        <button
+                          type="button"
+                          onClick={() => setConverting(e)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', border: 'none', background: 'transparent', padding: 0, cursor: 'pointer', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}
+                        >
+                          <UserPlus size={13} /> Record as buyer
+                        </button>
+                      ) : (
+                        <span style={{ color: 'var(--text-dim)', fontSize: 'var(--text-xs)' }}>—</span>
+                      )}
+                    </td>
                     <td>
                       <span style={{ fontSize: 'var(--text-xs)', fontWeight: 600, padding: '4px 10px', borderRadius: 'var(--radius-pill)', background: style.bg, color: style.fg }}>
                         {e.status}
@@ -132,6 +168,15 @@ export const AdminEnquiries = () => {
         </div>
 
       </div>
+      {converting && (
+        <RecordBuyerModal
+          prefill={{ name: converting.customer, phone: converting.phone }}
+          onClose={() => setConverting(null)}
+          onSaved={async (buyerId) => {
+            if (buyerId) await linkEnquiryToBuyer(converting.id, buyerId);
+          }}
+        />
+      )}
     </AdminLayout>
   );
 };

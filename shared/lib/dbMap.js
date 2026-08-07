@@ -159,6 +159,9 @@ export const orderFromRow = (r) => ({
 
 export const enquiryFromRow = (r) => ({
   id: r.id,
+  /* Set once the enquiry becomes a sale. Null is the normal state — most
+     enquiries never convert, and that is information too. */
+  buyerId: r.buyer_id ?? null,
   customer: r.customer,
   vehicle: r.vehicle,
   type: r.type,

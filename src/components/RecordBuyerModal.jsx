@@ -25,7 +25,7 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
  * that is the figure actually achieved rather than the one on the windscreen.
  * They stay editable: a deposit-and-balance deal is not always the sale row.
  */
-export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
+export const RecordBuyerModal = ({ vehicle = null, buyer = null, prefill = null, onClose, onSaved = null }) => {
   const { vehicles, saveBuyer, saleFor, buyerForVehicle, formatKES, bankAccounts } = useApp();
   const editing = Boolean(buyer);
 
@@ -46,9 +46,11 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
   );
 
   const [form, setForm] = useState(() => ({
-    name: buyer?.name ?? '',
-    phone: buyer?.phone ?? '',
-    email: buyer?.email ?? '',
+    /* `prefill` carries a name and phone across from an enquiry, so a lead
+       that converts is not re-keyed by hand. */
+    name: buyer?.name ?? prefill?.name ?? '',
+    phone: buyer?.phone ?? prefill?.phone ?? '',
+    email: buyer?.email ?? prefill?.email ?? '',
     idNumber: buyer?.idNumber ?? '',
     address: buyer?.address ?? '',
     notes: buyer?.notes ?? '',
@@ -144,6 +146,7 @@ export const RecordBuyerModal = ({ vehicle = null, buyer = null, onClose }) => {
     });
 
     if (!result.ok) { setError(result.reason || 'Could not save this buyer.'); return; }
+    if (onSaved) await onSaved(result.id);
     onClose();
   }, [form, picked, pickedBank, buyer, saveBuyer, onClose]);
 
