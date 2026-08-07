@@ -27,6 +27,14 @@ export const VehicleDocuments = ({ vehicle }) => {
   const [kind, setKind] = useState(VEHICLE_DOC_KINDS[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /* Two-step inline confirm rather than window.confirm.
+   *
+   * A native dialog raised from inside a focus-trapped modal is an unreliable
+   * place to ask — the trap and the dialog both want the same focus, and when
+   * it goes wrong the click simply does nothing, which is exactly what was
+   * reported here. An inline confirm cannot be swallowed and shows what is
+   * about to happen. */
+  const [confirming, setConfirming] = useState(null);
 
   const mayWrite = can('catalogue:write');
   const docs = docsForVehicle(vehicle.id);
@@ -74,8 +82,11 @@ export const VehicleDocuments = ({ vehicle }) => {
   };
 
   const remove = async (doc) => {
-    if (!window.confirm(`Delete the ${doc.kind} for ${vehicle.name}? The file is removed too.`)) return;
+    setError('');
+    setBusy(true);
     const result = await deleteVehicleDocument(doc);
+    setBusy(false);
+    setConfirming(null);
     if (!result.ok) setError(result.reason);
   };
 
@@ -111,18 +122,39 @@ export const VehicleDocuments = ({ vehicle }) => {
                 </td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button
-                    type="button" onClick={() => open(d)}
+                    type="button" onClick={(e) => { e.stopPropagation(); open(d); }}
                     style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-xs)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
                     <ExternalLink size={13} /> View
                   </button>
                   {mayWrite && (
-                    <button
-                      type="button" onClick={() => remove(d)} aria-label={`Delete ${d.kind}`}
-                      style={{ border: 'none', background: 'transparent', color: '#e5484d', cursor: 'pointer', marginLeft: '10px' }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    confirming === d.id ? (
+                      <span style={{ marginLeft: '10px', display: 'inline-flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                          type="button" disabled={busy}
+                          onClick={(e) => { e.stopPropagation(); remove(d); }}
+                          style={{ border: 'none', background: 'transparent', color: '#e5484d', fontWeight: 700, fontSize: 'var(--text-xs)', cursor: 'pointer' }}
+                        >
+                          {busy ? 'Deleting…' : 'Delete file'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setConfirming(null); }}
+                          style={{ border: 'none', background: 'transparent', color: 'var(--text-muted)', fontSize: 'var(--text-xs)', cursor: 'pointer' }}
+                        >
+                          Keep
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setError(''); setConfirming(d.id); }}
+                        aria-label={`Delete ${d.kind}`}
+                        style={{ border: 'none', background: 'transparent', color: '#e5484d', cursor: 'pointer', marginLeft: '10px' }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )
                   )}
                 </td>
               </tr>
