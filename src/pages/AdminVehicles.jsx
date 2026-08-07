@@ -453,11 +453,17 @@ export const AdminVehicles = () => {
               ) : buckets.map(({ group, vehicles: rows }) => {
                 if (rows.length === 0) return null;
                 const roll = mayCosts ? rollUp(rows, vehicleCosts) : null;
+                /* A single "Ungrouped" band above every row says nothing about
+                   the stock — it reports that shipments are not in use, which
+                   is not what this table is for. The header appears once there
+                   is a real grouping to distinguish. */
+                const onlyLooseStock = buckets.length === 1 && !buckets[0].group.id;
                 return (
                 <React.Fragment key={group.id || 'ungrouped'}>
                   {/* One header row per group. Consolidated figures sit here
                       because "what did this shipment make" is the question a
                       group exists to answer. */}
+                  {!onlyLooseStock && (
                   <tr>
                     <td colSpan={mayCosts ? 11 : 9} style={{ background: 'var(--bg-cream)', padding: '10px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
@@ -491,6 +497,7 @@ export const AdminVehicles = () => {
                       </div>
                     </td>
                   </tr>
+                  )}
                   {rows.map(v => (
                 <tr
                   key={v.id}
