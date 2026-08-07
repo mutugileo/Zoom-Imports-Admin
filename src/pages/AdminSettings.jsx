@@ -142,6 +142,13 @@ const relative = (ts) => {
 export const AdminSettings = () => {
   const { adminProfiles, adminProfilesLoading, onlineUserIds, createStaffAccount, updateProfile, removeProfile, activity, currentUser, can } = useAdmin();
   const manageUsers = can('users:manage');
+  /* Who gets the whole page rather than just the PIN card.
+   *
+   * Gated on content:write, which Superadmin and Administrator hold and the
+   * two operational roles do not — NOT on users:manage, which only Superadmin
+   * has and would have stripped the audit trail from Administrators who
+   * already had it. */
+  const fullSettings = can('content:write');
   const [userError, setUserError] = useState('');
   const [showAddInfo, setShowAddInfo] = useState(false);
 
@@ -243,6 +250,11 @@ export const AdminSettings = () => {
         </section>
         )}
 
+        {/* Everything below is staff administration, not self-service. A
+            Sales Staff or Inventory Manager reaches this page for one reason —
+            to change their own PIN — and the directory, the audit trail and
+            another person's account details are not theirs to read. */}
+        {fullSettings && (
         <div className="settings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start' }}>
 
           {/* Your account — the actual signed-in person, not a general explainer */}
@@ -304,6 +316,7 @@ export const AdminSettings = () => {
             </div>
           </section>
         </div>
+        )}
       </div>
 
       {draft && (
