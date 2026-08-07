@@ -51,8 +51,10 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'costs', label: 'Costs', permission: 'costs:view' },
   { id: 'payments', label: 'Payments', permission: 'costs:view' },
-  { id: 'documents', label: 'Documents', stub: true },
-  { id: 'activity', label: 'Activity', stub: true },
+  { id: 'documents', label: 'Documents', stub: true,
+    note: 'Will hold this car\'s logbook, import entry and inspection report. Needs file storage, which is not built yet.' },
+  { id: 'activity', label: 'Activity', stub: true,
+    note: 'Will show what changed on this car and who changed it. The activity log today is portal-wide, not per vehicle.' },
 ];
 
 const humanise = (key) =>
@@ -169,12 +171,12 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
                 disabled={t.stub}
-                title={t.stub ? 'Not built yet' : undefined}
+                title={t.stub ? t.note : undefined}
                 style={{
                   border: 'none', background: 'transparent', cursor: t.stub ? 'default' : 'pointer',
                   padding: '13px 14px', fontSize: 'var(--text-sm)',
                   fontWeight: active ? 700 : 500,
-                  color: t.stub ? '#a3adb8' : active ? 'var(--primary-ink)' : 'var(--text-muted)',
+                  color: t.stub ? 'var(--text-dim)' : active ? 'var(--primary-ink)' : 'var(--text-muted)',
                   borderBottom: `2px solid ${active ? 'var(--primary-ink)' : 'transparent'}`,
                   marginBottom: '-1px',
                 }}

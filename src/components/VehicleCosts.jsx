@@ -170,10 +170,14 @@ export const VehicleCosts = ({ vehicle }) => {
         )}
 
         {draft.expenses.map((e, i) => (
-          <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'flex-start' }}>
+          /* Wraps, and the description keeps a floor. At `flex: 1` its basis
+             is 0, so in this column the fixed 140px amount box squeezed it to
+             a stub you could not read what you had typed in — the one field
+             that explains the money. */
+          <div key={i} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '8px', alignItems: 'flex-start' }}>
             <input
               list="expense-presets"
-              style={{ ...field, flex: 1, fontFamily: 'inherit' }}
+              style={{ ...field, flex: '1 1 180px', minWidth: '150px', fontFamily: 'inherit' }}
               placeholder="Description"
               value={e.label}
               disabled={!mayEdit}
