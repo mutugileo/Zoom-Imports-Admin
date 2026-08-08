@@ -25,6 +25,11 @@ const BY_CODE = {
      than what the database objected to — the person is not doing anything
      wrong, they have simply hit the hourly cap. */
   53400: () => 'You have submitted several listings already. Try again in an hour, or send them to us on WhatsApp.',
+  /* Raised by the order stock guard. The exception message already names the
+     part and the number left, so it is passed through rather than replaced —
+     "only 3 of Front Brake Pad Set remain" is the one thing the shopper needs
+     to act on, and a generic sentence would throw it away. */
+  53401: (error) => error?.message || 'One of these items is no longer available in that quantity.',
   // Foreign key violation.
   23503: () => 'That is still linked to another record, so it cannot be removed yet.',
   // Not-null violation.
@@ -87,7 +92,8 @@ export const friendlyError = (error, fallback = 'That did not save. Try again.')
     if (hit) return hit[1];
   }
 
-  if (BY_CODE[code]) return BY_CODE[code]();
+  // Passed the error so a handler can use what the database actually said.
+  if (BY_CODE[code]) return BY_CODE[code](error);
 
   const byMessage = BY_MESSAGE.find(([pattern]) => pattern.test(raw));
   if (byMessage) return byMessage[1];
