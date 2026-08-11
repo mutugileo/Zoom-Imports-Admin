@@ -61,6 +61,14 @@ export const VehicleCosts = ({ vehicle }) => {
     setDraft((d) => ({ ...d, [key]: value === '' ? 0 : Number(value) }));
   };
 
+  /* Every other field on this ledger is money, so `set` coerces with Number().
+     The supplier fields are names and reference codes — routing them through
+     the same setter would store NaN for "Tokyo Auto Auction". */
+  const setText = (key, value) => {
+    setSaved(false);
+    setDraft((d) => ({ ...d, [key]: value }));
+  };
+
   const setExpense = (i, patch) => {
     setSaved(false);
     setDraft((d) => ({
@@ -109,6 +117,30 @@ export const VehicleCosts = ({ vehicle }) => {
       {/* A — purchase and import */}
       <section style={panel}>
         <div style={sectionTitle}>Purchase and import</div>
+
+        {/* Who the car was bought from. Kept on this ledger rather than on the
+            vehicle record because the storefront reads every vehicle column —
+            the exporter a yard sources through is not customer-facing. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '12px' }}>
+          <div>
+            <label style={label} htmlFor="c-supplier">Bought from</label>
+            <input
+              id="c-supplier" type="text" style={field} disabled={!mayEdit}
+              value={draft.supplier || ''} onChange={(e) => setText('supplier', e.target.value)}
+            />
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+              The exporter or auction house in Japan. Internal only — never shown on the website.
+            </p>
+          </div>
+          <div>
+            <label style={label} htmlFor="c-supplier-inv">Supplier invoice no.</label>
+            <input
+              id="c-supplier-inv" type="text" style={field} disabled={!mayEdit}
+              value={draft.supplierInvoice || ''} onChange={(e) => setText('supplierInvoice', e.target.value)}
+            />
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {PURCHASE_FIELDS.map((f) => (
             <div key={f.key}>

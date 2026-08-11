@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/AdminContext';
 import { KeywaveLogo } from './KeywaveLogo';
 import { KeywaveStamp } from './KeywaveStamp';
@@ -18,6 +19,40 @@ import { X, Printer } from 'lucide-react';
  */
 export const invoiceNumberFor = (buyer) =>
   buyer?.invoiceNo || `ZM4-${String(buyer?.id ?? 0).padStart(4, '0')}`;
+
+/**
+ * An invoice for a car nobody has bought yet.
+ *
+ * Walk-ins ask for an invoice for a car they are still thinking about, so the
+ * document has to exist before a buyer record does. Built from the LIVE vehicle
+ * rather than a copy, which is the opposite of the sold case and is correct
+ * here: a quote reflects the car as it is priced today, and reprinting it after
+ * a price change should show the new price, not honour a stale one.
+ *
+ * Numbered in its own `-Q-` series off the vehicle id. Without this every quote
+ * would print `ZM4-0000` — one number shared by every walk-in, and one that
+ * could later collide with a real sale invoice. The series says which document
+ * someone is holding.
+ */
+export const quotationFor = (vehicle) => ({
+  id: null,
+  invoiceNo: `ZM4-Q-${String(vehicle?.id ?? 0).padStart(4, '0')}`,
+  name: '',
+  phone: '',
+  email: '',
+  vehicleId: vehicle?.id ?? null,
+  vehicleName: vehicle?.name ?? '',
+  vehicleYear: vehicle?.year ?? null,
+  vehicleColor: vehicle?.color ?? '',
+  vehicleChassis: vehicle?.chassis ?? '',
+  vehicleEngine: vehicle?.engine ?? '',
+  /* The asking price. Nothing is paid against a quote, so the balance due is
+     the whole figure — which is what `balanceForBuyer` derives from no
+     payments, without needing a special case here. */
+  salePrice: vehicle?.price ?? null,
+  saleDate: null,
+  isQuotation: true,
+});
 
 /** `sale_date` is stored as plain text, so a malformed one must not throw. */
 const readableDate = (value) => {
@@ -52,18 +87,27 @@ const readableDate = (value) => {
  * KRA would assert something no data here supports.
  */
 export const Invoice = ({ buyer, onClose }) => {
-  const { siteContent, billing, formatKES, paymentsForBuyer, balanceForBuyer } = useApp();
+  const { siteContent, billing, formatKES, paymentsForBuyer, balanceForBuyer, bankAccounts } = useApp();
 
   /* Balance Due is what is STILL owed, not the agreed price.
    *
    * This previously printed sale_price unconditionally, so a customer who had
    * already paid a deposit was handed a document demanding the whole amount
    * again. Payments are listed beneath the total so the arithmetic is on the
-   * page rather than asserted. */
-  const received = paymentsForBuyer ? paymentsForBuyer(buyer.id) : [];
+   * page rather than asserted.
+   *
+   * A quotation has no buyer row, so there is nothing to look payments up
+   * against. Guarded on the id rather than on `isQuotation` so any other
+   * unsaved buyer passed in behaves the same way. */
+  const received = paymentsForBuyer && buyer.id != null ? paymentsForBuyer(buyer.id) : [];
   const money = balanceForBuyer ? balanceForBuyer(buyer) : { paid: 0, balance: null };
   const paidTotal = money.paid || 0;
   const outstanding = money.balance;
+  /* Held here rather than pushed onto the buyer object: a quotation is not a
+     saved record, and the name is only needed for as long as the sheet is on
+     screen. Recording it would create a buyer for someone who has not bought. */
+  const [billToName, setBillToName] = React.useState('');
+
   const contact = siteContent?.contact ?? {};
   const company = billing ?? {};
 
@@ -72,6 +116,16 @@ export const Invoice = ({ buyer, onClose }) => {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  /* Browsers name a Save-as-PDF file after document.title, so the default was
+     the portal's own title on every invoice — "Zoom Imports — Admin Portal.pdf",
+     overwriting the last one saved. Restored on close so the tab reads normally
+     again. */
+  useEffect(() => {
+    const previous = document.title;
+    document.title = `Invoice ${invoiceNumberFor(buyer)}`;
+    return () => { document.title = previous; };
+  }, [buyer]);
 
   /**
    * The payment block.
@@ -89,18 +143,40 @@ export const Invoice = ({ buyer, onClose }) => {
         accountNo: buyer.bankAccountNo,
         accountName: buyer.bankAccountName,
       }
-    : {
-        name: company.bankName,
-        branch: company.bankBranch,
-        accountNo: company.bankAccountNo,
-        accountName: company.bankAccountName,
-      };
+    : (() => {
+        /* No copy on the record — a quotation, or a sale saved before accounts
+           became selectable. Prefer the DEFAULT account from the managed list:
+           that is the one staff nominated as "where money should come in", and
+           it is what they expect a walk-in quote to show. `company_billing`
+           holds a single legacy account that predates that list, so it is the
+           last resort rather than the first — reading it first meant quotes
+           printed an account nobody had chosen. */
+        const fallback = (bankAccounts || []).find((a) => a.isDefault) ?? null;
+        return fallback
+          ? {
+              name: fallback.bankName,
+              branch: fallback.branch,
+              accountNo: fallback.accountNo,
+              accountName: fallback.accountName,
+            }
+          : {
+              name: company.bankName,
+              branch: company.bankBranch,
+              accountNo: company.bankAccountNo,
+              accountName: company.bankAccountName,
+            };
+      })();
 
   const number = invoiceNumberFor(buyer);
-  /* Dated by the sale, not by the clock — an invoice reprinted in six months
-     has to be the same document. Falls back to when the record was created,
-     and then to nothing at all rather than to a date nobody agreed to. */
-  const issued = readableDate(buyer.saleDate) ?? readableDate(buyer.at);
+  /* A SALE is dated by the sale, not by the clock — an invoice reprinted in six
+     months has to be the same document. Falls back to when the record was
+     created, and never to today: a date nobody agreed to is worse than none.
+     A QUOTATION is the opposite. Nothing has been sold, so there is no sale
+     date to hold to, but a quote with no date is one a customer can wave back
+     at you months later at the old price. It is dated the day it is printed. */
+  const issued = readableDate(buyer.saleDate)
+    ?? readableDate(buyer.at)
+    ?? (buyer.isQuotation ? readableDate(new Date()) : null);
 
   // Format vehicle description line matching the Keywave structure:
   // e.g., Mazda CX-5/2020/Red/Chassis:KF2P-406537/Engine:SH-31020950
@@ -121,7 +197,7 @@ export const Invoice = ({ buyer, onClose }) => {
   const priced = buyer.salePrice != null;
   const numericAmount = priced ? buyer.salePrice.toLocaleString('en-US') : '—';
 
-  return (
+  return createPortal(
     <div className="modal-overlay invoice-overlay" onClick={onClose}>
       <div
         role="dialog"
@@ -147,14 +223,19 @@ export const Invoice = ({ buyer, onClose }) => {
             justifyContent: 'space-between',
             gap: '12px',
             padding: '14px 24px',
-            borderBottom: '1px solid var(--border-medium)',
+            /* Fixed colours, not theme variables. This bar sits on the white
+               invoice sheet, so it must stay legible regardless of whether the
+               portal is in light or dark mode — `var(--text-dark)` here flipped
+               to a pale colour under the dark theme and the invoice number
+               vanished against the white. */
+            borderBottom: '1px solid #d8dee4',
             position: 'sticky',
             top: 0,
             background: '#fff',
             zIndex: 2,
           }}
         >
-          <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--text-dark)' }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1f2328' }}>
             Invoice {number}
           </span>
           <span style={{ display: 'flex', gap: '10px' }}>
@@ -221,9 +302,32 @@ export const Invoice = ({ buyer, onClose }) => {
             <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a' }}>
               BILL TO
             </div>
-            <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1f2328', marginTop: '6px' }}>
-              {buyer.name}
-            </div>
+            {/* A quotation is raised before there is a buyer record, so the name
+                is typed here and nowhere else. The input carries the same type
+                as the printed name, so what is on screen is what comes out of
+                the printer — and `print:none` on the border means it prints as
+                plain text rather than as a form field. */}
+            {buyer.name ? (
+              <div style={{ fontSize: '1.35rem', fontWeight: 700, color: '#1f2328', marginTop: '6px' }}>
+                {buyer.name}
+              </div>
+            ) : (
+              <input
+                className="invoice-billto-input"
+                type="text"
+                value={billToName}
+                onChange={(e) => setBillToName(e.target.value)}
+                placeholder="Enter customer name here"
+                aria-label="Customer name for this quotation"
+                style={{
+                  fontSize: '1.35rem', fontWeight: 700, color: '#1f2328',
+                  marginTop: '6px', width: '100%', maxWidth: '420px',
+                  padding: '2px 0', background: 'transparent',
+                  border: 'none', borderBottom: '1px solid #b9c0c8', outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+            )}
             {(buyer.phone || buyer.email || buyer.address) && (
               <div style={{ fontSize: '0.88rem', color: '#57606a', marginTop: '4px', lineHeight: 1.5 }}>
                 {buyer.phone && <div>{buyer.phone}</div>}
@@ -370,29 +474,72 @@ export const Invoice = ({ buyer, onClose }) => {
 
         </div>
 
-        {/* CSS for print mode */}
         <style>{`
+          /* On screen the hint has to read as a hint — same size as the name it
+             will be replaced by, but clearly lighter and not bold, so nobody
+             mistakes it for a name already entered. It is hidden for print
+             below, so an unfilled quote prints blank rather than printing the
+             instruction. */
+          .invoice-billto-input::placeholder {
+            color: #9aa4ae;
+            font-weight: 400;
+            font-size: 1rem;
+          }
+          .invoice-billto-input:focus { border-bottom-color: #1f2328; }
+
           @media print {
             @page { margin: 12mm; size: portrait; }
-            body * { visibility: hidden !important; }
-            .invoice-sheet, .invoice-sheet * { visibility: visible !important; }
-            .invoice-sheet {
-              position: absolute !important;
-              left: 0; top: 0; width: 100%;
-              padding: 0 !important;
-              box-shadow: none !important;
-            }
-            .invoice-controls { display: none !important; }
+
+            /* The old rule hid the app with visibility:hidden, which leaves
+               every element still occupying its box. The admin page behind is a
+               long scrolling table, so the printer faithfully produced three
+               blank pages of hidden layout before the invoice. display:none
+               on the app root removes the boxes entirely; the invoice is
+               portalled to body, so it survives its own root being hidden. */
+            #root { display: none !important; }
+
             .invoice-overlay {
               position: static !important;
-              background: #fff !important;
+              display: block !important;
+              padding: 0 !important;
+              background: none !important;
+              backdrop-filter: none !important;
+              inset: auto !important;
+            }
+            .invoice-overlay > [role="dialog"] {
+              max-width: none !important;
+              max-height: none !important;
+              width: 100% !important;
+              overflow: visible !important;
+              box-shadow: none !important;
+              border-radius: 0 !important;
+            }
+            .invoice-sheet {
               padding: 0 !important;
               overflow: visible !important;
+            }
+
+            /* Screen-only chrome. */
+            .invoice-controls { display: none !important; }
+
+            /* Prints as the name, not as an input box. */
+            .invoice-billto-input {
+              border: none !important;
+              padding: 0 !important;
+            }
+            .invoice-billto-input::placeholder { color: transparent !important; }
+
+            /* Nothing should break the sheet across a page. */
+            .invoice-sheet, .invoice-sheet section, .invoice-sheet table {
+              break-inside: avoid;
+              page-break-inside: avoid;
             }
           }
         `}</style>
       </div>
     </div>
+  ,
+    document.body
   );
 };
 

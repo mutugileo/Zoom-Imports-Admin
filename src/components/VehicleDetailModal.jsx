@@ -5,7 +5,8 @@ import { VehicleDocuments } from './VehicleDocuments';
 import React, { useEffect, useCallback, useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { formatKES } from '@shared/lib/format';
-import { X, Edit2, Trash2, Star, ExternalLink } from 'lucide-react';
+import { X, Edit2, Trash2, Star, ExternalLink, ReceiptText } from 'lucide-react';
+import { Invoice, quotationFor } from './Invoice';
 
 /**
  * Read-only view of everything held against a vehicle.
@@ -69,7 +70,13 @@ const present = (key, value) => {
 };
 
 export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggleFeatured }) => {
-  const { can } = useApp();
+  const { can, buyerForVehicle: findBuyer } = useApp();
+  const [showInvoice, setShowInvoice] = useState(false);
+
+  /* Matched on the id the buyer record kept when it copied the vehicle's
+     details — not on name or chassis, which are snapshots and are allowed to
+     drift from the live car. */
+  const buyerForVehicle = findBuyer(vehicle.id);
   const [tab, setTab] = useState('overview');
   const close = useCallback(() => onClose(), [onClose]);
 
@@ -279,6 +286,20 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
               <Star size={15} fill={vehicle.featured ? 'var(--primary-ink)' : 'none'} />
               {vehicle.featured ? 'Remove from featured' : 'Feature on site'}
             </button>
+
+            {/* Never disabled. A walk-in can ask for an invoice on a car they
+                are still deciding about, so with no buyer this prints a
+                quotation at the asking price instead of refusing. */}
+            <button
+              type="button"
+              className="btn-secondary"
+              title={buyerForVehicle
+                ? `Invoice for ${buyerForVehicle.name}`
+                : 'Quotation for a walk-in — asking price, no buyer recorded'}
+              onClick={() => setShowInvoice(true)}
+            >
+              <ReceiptText size={15} /> Generate invoice
+            </button>
             <button
               onClick={() => onDelete(vehicle)}
               className="btn-secondary"
@@ -289,6 +310,13 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
           </div>
         </div>
       </div>
+
+      {showInvoice && (
+        <Invoice
+          buyer={buyerForVehicle ?? quotationFor(vehicle)}
+          onClose={() => setShowInvoice(false)}
+        />
+      )}
     </div>
   );
 };

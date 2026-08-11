@@ -39,6 +39,9 @@ export const vehicleFromRow = (r) => ({
   odometerVerified: !!r.odometer_verified,
   dutyPaid: !!r.duty_paid,
   port: r.port,
+  /* When the car is expected to land. Customer-facing on purpose: someone
+     deciding on a unit still at sea needs a date to plan around. */
+  eta: r.eta || '',
 });
 
 export const vehicleToRow = (v) => ({
@@ -75,6 +78,7 @@ export const vehicleToRow = (v) => ({
   odometer_verified: !!v.odometerVerified,
   duty_paid: !!v.dutyPaid,
   port: v.port,
+  eta: v.eta || null,
 });
 
 export const partFromRow = (r) => ({
@@ -204,6 +208,12 @@ export const activityFromRow = (r) => ({
 });
 
 export const costsFromRow = (r) => ({
+  /* Who the car was bought from, and against which invoice. Lives on the cost
+     ledger rather than the vehicle because the storefront selects * from
+     vehicles — a column there is public by construction, and the exporter a
+     yard buys through is not something to hand a competitor. */
+  supplier: r.supplier || '',
+  supplierInvoice: r.supplier_invoice || '',
   cnf: r.cnf,
   duty: r.duty,
   portCharges: r.port_charges,
@@ -218,6 +228,8 @@ export const costsFromRow = (r) => ({
 
 export const costsToRow = (vehicleId, c) => ({
   vehicle_id: vehicleId,
+  supplier: c.supplier || null,
+  supplier_invoice: c.supplierInvoice || null,
   cnf: c.cnf || 0,
   duty: c.duty || 0,
   port_charges: c.portCharges || 0,

@@ -6,12 +6,13 @@ import { MAZDA_MODEL_GROUPS, modelOf } from '@shared/data/mazdaModels';
 import { totalCost, profit, profitMargin, formatMargin, hasLedger, rollUp } from '@shared/lib/costing';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, Plus, Edit2, Trash2, Star, X, Eye, Car } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Star, X, Eye, Car, ReceiptText } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { VehicleDetailModal } from '../components/VehicleDetailModal';
 import { RecordSaleModal } from '../components/RecordSaleModal';
 import { ImagePicker } from '../components/ImagePicker';
+import { Invoice, quotationFor } from '../components/Invoice';
 
 export const AdminVehicles = () => {
   const {
@@ -25,6 +26,7 @@ export const AdminVehicles = () => {
     toggleFeaturedVehicle,
     saleFor,
     setVehicleApproval,
+    buyerForVehicle,
     formatKES
   } = useApp();
 
@@ -60,6 +62,7 @@ export const AdminVehicles = () => {
   const [detailVehicle, setDetailVehicle] = useState(null);
   const [saleVehicle, setSaleVehicle] = useState(null);
   const [saveError, setSaveError] = useState('');
+  const [invoiceVehicle, setInvoiceVehicle] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -86,6 +89,7 @@ export const AdminVehicles = () => {
     inspection: 'JEVIC verified',
     port: 'Mombasa',
     slug: '',
+    eta: '',
     odometerVerified: true,
     dutyPaid: true,
     featured: false,
@@ -139,6 +143,7 @@ export const AdminVehicles = () => {
       inspection: 'JEVIC verified',
       port: 'Mombasa',
       slug: '',
+      eta: '',
       odometerVerified: true,
       dutyPaid: true,
       featured: false,
@@ -397,6 +402,20 @@ export const AdminVehicles = () => {
                           >
                             <Star size={16} fill={v.featured ? 'currentColor' : 'none'} aria-hidden="true" />
                           </button>
+                          {/* Mirrors the desktop table's action order. This card
+                              layout is a separate render, so anything added to
+                              the table has to be added here too or it silently
+                              goes missing on narrow screens. */}
+                          <button
+                            type="button"
+                            className="vehicle-mobile-action"
+                            onClick={() => setInvoiceVehicle(v)}
+                            title={buyerForVehicle(v.id)
+                              ? `Invoice for ${buyerForVehicle(v.id).name}`
+                              : 'Quotation for a walk-in — asking price, no buyer recorded'}
+                          >
+                            <ReceiptText size={15} aria-hidden="true" /> Invoice
+                          </button>
                           <button type="button" className="vehicle-mobile-action" onClick={() => setDetailVehicle(v)}>
                             <Eye size={15} aria-hidden="true" /> View
                           </button>
@@ -642,6 +661,19 @@ export const AdminVehicles = () => {
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: '12px' }}>
+                      {/* On every row. A walk-in can ask for an invoice on a
+                          car nobody has bought, so this is never disabled — with
+                          a buyer it prints their sale, without one it prints a
+                          quotation for the asking price. */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setInvoiceVehicle(v); }}
+                        title={buyerForVehicle(v.id)
+                          ? `Invoice for ${buyerForVehicle(v.id).name}`
+                          : 'Quotation for a walk-in — asking price, no buyer recorded'}
+                        style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        <ReceiptText size={15} /> Invoice
+                      </button>
                       <button onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }} style={{ border: 'none', background: 'transparent', color: 'var(--text-body)', cursor: 'pointer', fontWeight: 600 }}>
                         <Eye size={15} /> View
                       </button>
@@ -673,6 +705,17 @@ export const AdminVehicles = () => {
 
         <RecordSaleModal vehicle={saleVehicle} onClose={() => setSaleVehicle(null)} />
 
+      )}
+
+      {/* Guarded on the buyer as well as the vehicle: the row button only shows
+          when one exists, but the list refreshes underneath an open modal and a
+          buyer deleted in another tab would otherwise render an invoice with no
+          one to bill. */}
+      {invoiceVehicle && (
+        <Invoice
+          buyer={buyerForVehicle(invoiceVehicle.id) ?? quotationFor(invoiceVehicle)}
+          onClose={() => setInvoiceVehicle(null)}
+        />
       )}
 
 
@@ -911,6 +954,13 @@ export const AdminVehicles = () => {
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Port of entry</label>
                     <input type="text" value={formData.port || ''} placeholder="Mombasa" onChange={(e) => setFormData({ ...formData, port: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Expected arrival</label>
+                    <input type="date" value={formData.eta || ''} onChange={(e) => setFormData({ ...formData, eta: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.45 }}>
+                      Shown to customers as a month, not a date, so a few days&rsquo; slip is not a broken promise. Leave blank for cars already in the yard.
+                    </p>
                   </div>
                   <div style={{ gridColumn: '1 / -1' }}>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>URL slug</label>

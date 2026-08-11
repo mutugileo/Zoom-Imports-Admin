@@ -4,8 +4,8 @@ import { AdminLayout } from './AdminLayout';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { RecordBuyerModal } from '../components/RecordBuyerModal';
-import { Invoice, invoiceNumberFor } from '../components/Invoice';
-import { Search, UserPlus, ArrowLeft, ReceiptText, Pencil, Trash2, Plus } from 'lucide-react';
+import { invoiceNumberFor } from '../components/Invoice';
+import { Search, UserPlus, ArrowLeft, Pencil, Trash2, Plus } from 'lucide-react';
 
 /**
  * Who bought what, and the paperwork that goes with it.
@@ -24,7 +24,6 @@ export const AdminBuyers = () => {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [recording, setRecording] = useState(null);   // { vehicle?, buyer? } | null
-  const [invoiceFor, setInvoiceFor] = useState(null);
   const [error, setError] = useState('');
 
   /* Read from the list rather than held in state, so an edit made in the modal
@@ -73,9 +72,6 @@ export const AdminBuyers = () => {
               </p>
             </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button type="button" className="btn-primary" onClick={() => setInvoiceFor(selected)}>
-                <ReceiptText size={15} aria-hidden="true" /> Generate invoice
-              </button>
               {can('orders:write') && (
                 <button type="button" className="btn-secondary" onClick={() => setRecording({ buyer: selected })}>
                   <Pencil size={15} aria-hidden="true" /> Edit
@@ -162,7 +158,6 @@ export const AdminBuyers = () => {
         </div>
 
         {recording && <RecordBuyerModal {...recording} onClose={() => setRecording(null)} />}
-        {invoiceFor && <Invoice buyer={invoiceFor} onClose={() => setInvoiceFor(null)} />}
       </AdminLayout>
     );
   }
@@ -208,7 +203,6 @@ export const AdminBuyers = () => {
                 <th>Sale price</th>
                 <th>Date</th>
                 <th>Invoice</th>
-                <th />
               </tr>
             </thead>
             <tbody>
@@ -218,10 +212,10 @@ export const AdminBuyers = () => {
                   already on screen with a spinner — the table flashed empty
                   while the footer underneath still counted the rows it had. */}
               {buyersLoading && buyers.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading buyers…</td></tr>
+                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading buyers…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
+                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
                     {buyers.length === 0
                       ? 'No buyers recorded yet. Mark a car as sold on the Vehicles screen, then record who bought it — that is what an invoice is made from.'
                       : 'No buyers match this search.'}
@@ -250,15 +244,6 @@ export const AdminBuyers = () => {
                   <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                     {invoiceNumberFor(b)}
                   </td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setInvoiceFor(b); }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--primary-ink)', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                    >
-                      <ReceiptText size={13} aria-hidden="true" /> Invoice
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -268,7 +253,6 @@ export const AdminBuyers = () => {
       </div>
 
       {recording && <RecordBuyerModal {...recording} onClose={() => setRecording(null)} />}
-      {invoiceFor && <Invoice buyer={invoiceFor} onClose={() => setInvoiceFor(null)} />}
     </AdminLayout>
   );
 };
