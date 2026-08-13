@@ -21,10 +21,13 @@
 const BY_CODE = {
   // Unique violation — resolved further by constraint name below.
   23505: () => 'Something with these details already exists.',
-  /* Raised by the public-submission throttle. Says what to do next rather
-     than what the database objected to — the person is not doing anything
-     wrong, they have simply hit the hourly cap. */
-  53400: () => 'You have submitted several listings already. Try again in an hour, or send them to us on WhatsApp.',
+  /* Raised by the public-submission throttle, which now covers listings,
+     reviews, enquiries and orders — so the wording can no longer say
+     "listings". Says what to do next rather than what the database objected
+     to: the person is not doing anything wrong, they have simply hit the
+     hourly cap, and the caps are set high enough that anyone seeing this
+     either is a script or should be talking to a human anyway. */
+  53400: () => 'You have sent us a few of these already. Try again in an hour, or reach us on WhatsApp and we will help right away.',
   /* Raised by the order stock guard. The exception message already names the
      part and the number left, so it is passed through rather than replaced —
      "only 3 of Front Brake Pad Set remain" is the one thing the shopper needs
