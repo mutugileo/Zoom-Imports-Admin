@@ -269,180 +269,25 @@ export const AdminVehicles = () => {
           </div>
         </div>
 
-        {/* Phones get a card list with the same controls as the table. Keeping
-            this as a separate presentation means the desktop inventory can
-            stay dense without forcing a 720px table through a 390px screen. */}
-        <div className="vehicle-mobile-list" aria-label="Vehicle inventory">
-          {vehiclesLoading ? (
-            <div className="vehicle-mobile-empty">Loading vehicles…</div>
-          ) : buckets.length === 0 && (
-            <div className="vehicle-mobile-empty">
-              {vehicles.length === 0
-                      ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
-                      : 'No vehicles match this search.'}
-            </div>
-          )}
+        {/* One inventory list at every width.
 
-          {buckets.map(({ group, vehicles: rows }) => {
-            if (rows.length === 0) return null;
-            const roll = mayCosts ? rollUp(rows, vehicleCosts) : null;
+            This screen used to render the stock twice: a `<table>` for the desk
+            and a parallel `.vehicle-mobile-list` of cards for phones. The two
+            trees drifted, and the drift was invisible until someone opened the
+            admin on a handset — the Invoice action was added to the table and
+            was simply not there on mobile, and the mobile card had never
+            carried On lot, approval state or the take-off-site control at all.
+            The old markup even said so in a comment: "anything added to the
+            table has to be added here too."
 
-            return (
-              <section className="vehicle-mobile-group" key={group.id || 'ungrouped'}>
-                <div className="vehicle-mobile-group-head">
-                  <div className="vehicle-mobile-group-copy">
-                    <strong>{group.name}</strong>
-                    <span>
-                      {group.id || 'Ungrouped'}
-                      {group.type ? ` · ${group.type}` : ''}
-                    </span>
-                  </div>
-                  <span className="vehicle-mobile-group-count">
-                    {rows.length} unit{rows.length === 1 ? '' : 's'}
-                  </span>
-                  {roll && roll.costedUnits > 0 && (
-                    <div className="vehicle-mobile-rollup">
-                      <span>Cost {formatKES(roll.totalCost)}</span>
-                      <span className={roll.projectedProfit < 0 ? 'is-negative' : ''}>
-                        Profit {formatKES(roll.projectedProfit)} · {formatMargin(roll.margin)}
-                      </span>
-                      {roll.costedUnits < rows.length && (
-                        <span className="is-warning">{rows.length - roll.costedUnits} not costed</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="vehicle-mobile-cards">
-                  {rows.map((v) => {
-                    const ledger = hasLedger(vehicleCosts[v.id]);
-                    const sale = v.status === 'Sold' ? saleFor(v.id) : null;
-
-                    return (
-                      <article className="vehicle-mobile-card" key={v.id}>
-                        <button
-                          type="button"
-                          className="vehicle-mobile-open"
-                          onClick={() => setDetailVehicle(v)}
-                          aria-label={`View ${v.name} details`}
-                        >
-                          {v.img ? (
-                            <img className="vehicle-mobile-photo" src={v.img} alt="" loading="lazy" />
-                          ) : (
-                            <span className="vehicle-mobile-photo vehicle-photo-none" aria-hidden="true">
-                              <Car size={17} strokeWidth={1.8} />
-                            </span>
-                          )}
-                          <span className="vehicle-mobile-title">
-                            <span className="vehicle-mobile-stock">{v.stockId || 'Stock ID unassigned'}</span>
-                            <strong>{v.name} <span>{v.year}</span></strong>
-                            <small>
-                              {v.mileage.toLocaleString()} km · {v.trans}
-                              {v.regNumber ? ` · ${v.regNumber}` : ''}
-                            </small>
-                          </span>
-                          <Eye size={18} aria-hidden="true" />
-                        </button>
-
-                        <div className="vehicle-mobile-meta">
-                          <span>
-                            <small>Stage</small>
-                            <strong>{v.stage || '—'}</strong>
-                          </span>
-                          <span>
-                            <small>Price</small>
-                            <strong>{formatKES(v.price)}</strong>
-                          </span>
-                          <span>
-                            <small>Status</small>
-                            <span className={`badge badge-${v.status.toLowerCase()}`}>{v.status}</span>
-                          </span>
-                        </div>
-
-                        {mayCosts && (
-                          <div className="vehicle-mobile-finance">
-                            <span>
-                              <small>Total cost</small>
-                              <strong>{ledger ? formatKES(totalCost(vehicleCosts[v.id])) : 'Not costed'}</strong>
-                            </span>
-                            <span>
-                              <small>Profit</small>
-                              {ledger ? (
-                                <strong className={profit(vehicleCosts[v.id], profitBasis(v)) < 0 ? 'is-negative' : ''}>
-                                  {formatKES(profit(vehicleCosts[v.id], profitBasis(v)))} {formatMargin(profitMargin(vehicleCosts[v.id], profitBasis(v)))}
-                                </strong>
-                              ) : <strong>—</strong>}
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="vehicle-mobile-actions">
-                          {v.status === 'Sold' ? (
-                            sale ? (
-                              <span className="vehicle-mobile-sale">
-                                Sold {formatKES(sale.price)}{!sale.costed ? ' · no cost' : ''}
-                              </span>
-                            ) : mayWrite ? (
-                              <button type="button" className="vehicle-mobile-action sale" onClick={() => setSaleVehicle(v)}>
-                                Add sale details
-                              </button>
-                            ) : null
-                          ) : mayWrite ? (
-                            <button type="button" className="vehicle-mobile-action sale" onClick={() => setSaleVehicle(v)}>
-                              Mark sold
-                            </button>
-                          ) : null}
-
-                          <button
-                            type="button"
-                            className={`vehicle-mobile-action icon${v.featured ? ' is-featured' : ''}`}
-                            onClick={() => toggleFeaturedVehicle(v.id)}
-                            disabled={!mayWrite}
-                            aria-label={`${v.featured ? 'Unfeature' : 'Feature'} ${v.name}`}
-                          >
-                            <Star size={16} fill={v.featured ? 'currentColor' : 'none'} aria-hidden="true" />
-                          </button>
-                          {/* Mirrors the desktop table's action order. This card
-                              layout is a separate render, so anything added to
-                              the table has to be added here too or it silently
-                              goes missing on narrow screens. */}
-                          <button
-                            type="button"
-                            className="vehicle-mobile-action"
-                            onClick={() => setInvoiceVehicle(v)}
-                            title={buyerForVehicle(v.id)
-                              ? `Invoice for ${buyerForVehicle(v.id).name}`
-                              : 'Quotation for a walk-in — asking price, no buyer recorded'}
-                          >
-                            <ReceiptText size={15} aria-hidden="true" /> Invoice
-                          </button>
-                          <button type="button" className="vehicle-mobile-action" onClick={() => setDetailVehicle(v)}>
-                            <Eye size={15} aria-hidden="true" /> View
-                          </button>
-                          {mayWrite && (
-                            <button type="button" className="vehicle-mobile-action edit" onClick={() => handleOpenEditModal(v)}>
-                              <Edit2 size={15} aria-hidden="true" /> Edit
-                            </button>
-                          )}
-                          {mayDelete && (
-                            <button type="button" className="vehicle-mobile-action delete" onClick={() => deleteVehicle(v.id)}>
-                              <Trash2 size={15} aria-hidden="true" /> Delete
-                            </button>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-          <Pagination {...page} onChange={page.setPage} noun="vehicles" />
-        </div>
-
-        {/* Desktop table */}
-        <div className="admin-table-card vehicle-desktop-list" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-          <table className="admin-table">
+            So there is one table now, and the breakpoint restyles it into cards
+            (see `.admin-table` in index.css). Every cell carries `data-label`,
+            which is the card's field name below 900px and unused above it. The
+            cells and their controls are styled by class rather than inline,
+            because an inline style outranks a media query and would pin the
+            desk layout onto the phone. */}
+        <div className="admin-table-card vehicle-table-card">
+          <table className="admin-table vehicle-table">
             <thead>
               <tr>
                 <th>Photo</th>
@@ -460,10 +305,10 @@ export const AdminVehicles = () => {
             </thead>
             <tbody>
               {vehiclesLoading ? (
-                <tr><td colSpan={mayCosts ? 11 : 9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading vehicles…</td></tr>
+                <tr className="table-notice"><td className="cell-notice" colSpan={mayCosts ? 11 : 9}>Loading vehicles…</td></tr>
               ) : buckets.length === 0 ? (
-                <tr>
-                  <td colSpan={mayCosts ? 11 : 9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                <tr className="table-notice">
+                  <td className="cell-notice" colSpan={mayCosts ? 11 : 9}>
                     {vehicles.length === 0
                       ? 'No vehicles yet. Use “Add Vehicle” to list your first car — it reaches the website once its status is Available.'
                       : 'No vehicles match this search.'}
@@ -483,32 +328,26 @@ export const AdminVehicles = () => {
                       because "what did this shipment make" is the question a
                       group exists to answer. */}
                   {!onlyLooseStock && (
-                  <tr>
-                    <td colSpan={mayCosts ? 11 : 9} style={{ background: 'var(--bg-cream)', padding: '10px 14px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '14px', flexWrap: 'wrap' }}>
-                        <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
-                          <strong style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{group.name}</strong>
-                          {group.id && (
-                            <span style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
-                              {group.id}
-                            </span>
-                          )}
-                          {group.type && (
-                            <span className="badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>{group.type}</span>
-                          )}
+                  <tr className="table-group">
+                    <td className="cell-group" colSpan={mayCosts ? 11 : 9}>
+                      <div className="group-band">
+                        <span className="group-id">
+                          <strong>{group.name}</strong>
+                          {group.id && <span className="group-code">{group.id}</span>}
+                          {group.type && <span className="badge badge-tint">{group.type}</span>}
                         </span>
-                        <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', fontFamily: 'IBM Plex Mono, monospace' }}>
+                        <span className="group-roll">
                           {rows.length} unit{rows.length === 1 ? '' : 's'}
                           {roll && roll.costedUnits > 0 && (
                             <>
                               {' · cost '}{formatKES(roll.totalCost)}
                               {' · profit '}
-                              <span style={{ color: roll.projectedProfit < 0 ? '#a13f3f' : 'var(--primary-ink)', fontWeight: 600 }}>
+                              <span className={`money${roll.projectedProfit < 0 ? ' is-negative' : ''}`}>
                                 {formatKES(roll.projectedProfit)}
                               </span>
                               {' · '}{formatMargin(roll.margin)}
                               {roll.costedUnits < rows.length && (
-                                <span style={{ color: 'var(--accent-text)' }}>{` · ${rows.length - roll.costedUnits} not costed`}</span>
+                                <span className="is-warning">{` · ${rows.length - roll.costedUnits} not costed`}</span>
                               )}
                             </>
                           )}
@@ -518,92 +357,81 @@ export const AdminVehicles = () => {
                   </tr>
                   )}
                   {rows.map(v => (
-                <tr
-                  key={v.id}
-                  onClick={() => setDetailVehicle(v)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td>
+                <tr key={v.id} className="vehicle-row" onClick={() => setDetailVehicle(v)}>
+                  <td className="cell-photo" data-label="Photo">
                     {v.img ? (
-                      <img src={v.img} alt={v.name} style={{ width: '52px', height: '38px', objectFit: 'cover', borderRadius: '6px' }} />
+                      <img className="veh-thumb" src={v.img} alt={v.name} loading="lazy" />
                     ) : (
-                      <span
-                        aria-hidden="true"
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '52px', height: '38px', borderRadius: '6px', background: 'var(--bg-app)', color: '#8a97a5' }}
-                      >
+                      <span className="veh-thumb veh-thumb-none" aria-hidden="true">
                         <Car size={16} strokeWidth={1.8} />
                       </span>
                     )}
                   </td>
-                  <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-xs)', color: 'var(--text-dark)', whiteSpace: 'nowrap' }}>
-                    {v.stockId || <span style={{ color: 'var(--accent-text)' }}>unassigned</span>}
+                  <td className="cell-stock" data-label="Stock ID">
+                    {v.stockId || <span className="is-warning">unassigned</span>}
                   </td>
-                  <td>
-                    <div style={{ fontWeight: 600, color: 'var(--text-dark)' }}>{v.name} <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>{v.year}</span></div>
-                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+                  <td className="cell-vehicle" data-label="Vehicle">
+                    <div className="veh-name">{v.name} <span>{v.year}</span></div>
+                    <div className="veh-sub">
                       {v.mileage.toLocaleString()} km · {v.trans}
                       {v.regNumber ? ` · ${v.regNumber}` : ''}
                     </div>
                   </td>
-                  <td>
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{v.stage || '—'}</span>
+                  <td className="cell-stage" data-label="Stage">
+                    <span className="veh-stage">{v.stage || '—'}</span>
                   </td>
                   {/* Holding time. A sold unit stops ageing at its sale date;
                       an unknown arrival prints as unknown, not as zero. */}
-                  <td>
+                  <td className="cell-lot" data-label="On lot">
                     {(() => {
                       const sale = v.status === 'Sold' ? saleFor(v.id) : null;
                       const days = daysOnLot(v, sale);
-                      if (days == null) {
-                        return <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dim)' }}>—</span>;
-                      }
+                      if (days == null) return <span className="lot-days is-unknown">—</span>;
                       const band = ageingBand(days);
-                      const tone = band.id === 'stale' ? '#e5484d'
-                        : band.id === 'ageing' ? 'var(--accent-text)'
-                        : 'var(--text-muted)';
                       return (
                         <span
+                          className={`lot-days is-${band.id}`}
                           title={`${band.label}${sale ? ' · to date of sale' : ''}`}
-                          style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)', color: tone, fontWeight: band.id === 'stale' ? 700 : 500, whiteSpace: 'nowrap' }}
                         >
                           {days}d{sale ? ' *' : ''}
                         </span>
                       );
                     })()}
                   </td>
-                  <td style={{ fontWeight: 600, color: 'var(--primary-ink)' }}>{formatKES(v.price)}</td>
+                  <td className="cell-price" data-label="Price">{formatKES(v.price)}</td>
                   {mayCosts && (
-                    <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-sm)', color: 'var(--text-body)' }}>
+                    <td className="cell-cost" data-label="Total cost">
                       {hasLedger(vehicleCosts[v.id]) ? formatKES(totalCost(vehicleCosts[v.id])) : '—'}
                     </td>
                   )}
                   {mayCosts && (
-                    <td style={{ fontFamily: 'IBM Plex Mono, monospace', fontSize: 'var(--text-sm)' }}>
+                    <td className="cell-profit" data-label="Profit">
                       {hasLedger(vehicleCosts[v.id]) ? (
-                        <span style={{ color: profit(vehicleCosts[v.id], profitBasis(v)) < 0 ? '#a13f3f' : 'var(--primary-ink)', fontWeight: 600 }}>
+                        <span className={`money${profit(vehicleCosts[v.id], profitBasis(v)) < 0 ? ' is-negative' : ''}`}>
                           {formatKES(profit(vehicleCosts[v.id], profitBasis(v)))}
-                          <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+                          <span className="money-margin">
                             {' '}{formatMargin(profitMargin(vehicleCosts[v.id], profitBasis(v)))}
                           </span>
                         </span>
                       ) : '—'}
                     </td>
                   )}
-                  <td>
+                  <td className="cell-status" data-label="Status">
                     <span className={`badge badge-${v.status.toLowerCase()}`}>
                       {v.status}
                     </span>
                     {/* Approval gates the listing, not the car. A vehicle can be
                         Available and still not be on the website. */}
                     {v.approvalStatus !== 'Approved' && (
-                      <div style={{ marginTop: '5px' }}>
-                        <span className="badge" style={{ background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>
+                      <div className="status-note">
+                        <span className="badge badge-tint">
                           {v.approvalStatus === 'Rejected' ? 'Rejected' : 'Not on site'}
                         </span>
                         {mayWrite && (
                           <button
+                            type="button"
+                            className="cell-link is-primary"
                             onClick={(e) => { e.stopPropagation(); setVehicleApproval(v.id, 'Approved'); }}
-                            style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--primary-ink)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                           >
                             Approve for website
                           </button>
@@ -612,8 +440,9 @@ export const AdminVehicles = () => {
                     )}
                     {v.approvalStatus === 'Approved' && mayWrite && (
                       <button
+                        type="button"
+                        className="cell-link is-muted"
                         onClick={(e) => { e.stopPropagation(); setVehicleApproval(v.id, 'Pending'); }}
-                        style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', color: 'var(--text-muted)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         Take off site
                       </button>
@@ -626,15 +455,16 @@ export const AdminVehicles = () => {
                       (() => {
                         const sale = saleFor(v.id);
                         return sale ? (
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--text-dim)', marginTop: '4px', whiteSpace: 'nowrap' }}>
+                          <div className="sale-note">
                             {formatKES(sale.price)}
-                            {!sale.costed && <span style={{ color: 'var(--accent-text)' }}> · no cost</span>}
+                            {!sale.costed && <span className="is-warning"> · no cost</span>}
                           </div>
                         ) : (
                           <button
+                            type="button"
+                            className="cell-link is-warning"
                             onClick={(e) => { e.stopPropagation(); setSaleVehicle(v); }}
                             disabled={!mayWrite}
-                            style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--accent-text)', cursor: mayWrite ? 'pointer' : 'default', whiteSpace: 'nowrap' }}
                           >
                             Add sale details
                           </button>
@@ -642,49 +472,64 @@ export const AdminVehicles = () => {
                       })()
                     ) : mayWrite && (
                       <button
+                        type="button"
+                        className="cell-link is-primary"
                         onClick={(e) => { e.stopPropagation(); setSaleVehicle(v); }}
-                        style={{ display: 'block', marginTop: '4px', border: 'none', background: 'transparent', padding: 0, fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--primary-ink)', cursor: 'pointer', whiteSpace: 'nowrap' }}
                       >
                         Mark sold
                       </button>
                     )}
                   </td>
-                  <td>
+                  <td className="cell-featured" data-label="Featured">
                     <button
+                      type="button"
+                      className={`row-action is-icon${v.featured ? ' is-featured' : ''}`}
                       onClick={(e) => { e.stopPropagation(); toggleFeaturedVehicle(v.id); }}
                       disabled={!mayWrite}
                       aria-label={`${v.featured ? 'Unfeature' : 'Feature'} ${v.name}`}
-                      style={{ border: 'none', background: 'transparent', cursor: mayWrite ? 'pointer' : 'default' }}
                     >
-                      <Star size={16} fill={v.featured ? 'var(--primary-ink)' : 'none'} color={v.featured ? 'var(--primary-ink)' : 'var(--text-muted)'} />
+                      <Star size={16} fill={v.featured ? 'currentColor' : 'none'} aria-hidden="true" />
                     </button>
                   </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: '12px' }}>
+                  <td className="cell-actions" data-label="Actions">
+                    <div className="row-actions">
                       {/* On every row. A walk-in can ask for an invoice on a
                           car nobody has bought, so this is never disabled — with
                           a buyer it prints their sale, without one it prints a
                           quotation for the asking price. */}
                       <button
+                        type="button"
+                        className="row-action is-primary"
                         onClick={(e) => { e.stopPropagation(); setInvoiceVehicle(v); }}
                         title={buyerForVehicle(v.id)
                           ? `Invoice for ${buyerForVehicle(v.id).name}`
                           : 'Quotation for a walk-in — asking price, no buyer recorded'}
-                        style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}
                       >
-                        <ReceiptText size={15} /> Invoice
+                        <ReceiptText size={15} aria-hidden="true" /> Invoice
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }} style={{ border: 'none', background: 'transparent', color: 'var(--text-body)', cursor: 'pointer', fontWeight: 600 }}>
-                        <Eye size={15} /> View
+                      <button
+                        type="button"
+                        className="row-action"
+                        onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }}
+                      >
+                        <Eye size={15} aria-hidden="true" /> View
                       </button>
                       {mayWrite && (
-                        <button onClick={(e) => { e.stopPropagation(); handleOpenEditModal(v); }} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', cursor: 'pointer', fontWeight: 600 }}>
-                          <Edit2 size={15} /> Edit
+                        <button
+                          type="button"
+                          className="row-action is-primary"
+                          onClick={(e) => { e.stopPropagation(); handleOpenEditModal(v); }}
+                        >
+                          <Edit2 size={15} aria-hidden="true" /> Edit
                         </button>
                       )}
                       {mayDelete && (
-                        <button onClick={(e) => { e.stopPropagation(); deleteVehicle(v.id); }} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer', fontWeight: 600 }}>
-                          <Trash2 size={15} /> Delete
+                        <button
+                          type="button"
+                          className="row-action is-danger"
+                          onClick={(e) => { e.stopPropagation(); deleteVehicle(v.id); }}
+                        >
+                          <Trash2 size={15} aria-hidden="true" /> Delete
                         </button>
                       )}
                     </div>
