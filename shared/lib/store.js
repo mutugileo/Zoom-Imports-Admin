@@ -20,6 +20,9 @@ export const KEYS = {
   enquiries: NS + 'enquiries',
   cart: NS + 'cart',
   siteContact: NS + 'site_contact',
+  /* Same idea for the About page's editable copy: last known overrides, so an
+     edited page does not flash its built-in wording before the row lands. */
+  siteCopy: NS + 'site_copy',
   banners: NS + 'banners',
   reviews: NS + 'reviews',
   siteContent: NS + 'site_content',

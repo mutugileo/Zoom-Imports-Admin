@@ -147,17 +147,23 @@ export const AdminProvider = ({ children }) => {
   const [contact, setContact] = useState(null);
   const [banners, setBanners] = useState([]);
   const [faqs, setFaqs] = useState([]);
+  /* About-page wording from `site_copy`. Only the keys someone has actually
+     edited exist as rows — the website carries the original wording for the
+     rest — so this map is usually short and often empty. */
+  const [pageCopy, setPageCopy] = useState({});
   const siteContent = useMemo(() => ({ contact, banners, faqs }), [contact, banners, faqs]);
 
   const refreshSiteContent = useCallback(async () => {
-    const [contactRes, bannersRes, faqsRes] = await Promise.all([
+    const [contactRes, bannersRes, faqsRes, copyRes] = await Promise.all([
       supabase.from('site_contact').select('*').eq('id', 1).maybeSingle(),
       supabase.from('site_banners').select('*').order('created_at'),
       supabase.from('site_faqs').select('*').order('created_at'),
+      supabase.from('site_copy').select('key, value'),
     ]);
     if (!contactRes.error) setContact(contactRes.data);
     if (!bannersRes.error) setBanners(bannersRes.data ?? []);
     if (!faqsRes.error) setFaqs(faqsRes.data ?? []);
+    if (!copyRes.error) setPageCopy(Object.fromEntries((copyRes.data ?? []).map((r) => [r.key, r.value ?? ''])));
   }, []);
 
   useEffect(() => { refreshSiteContent(); }, [refreshSiteContent]);
@@ -1058,6 +1064,39 @@ export const AdminProvider = ({ children }) => {
     return { ok: true };
   }, [refreshSiteContent, logActivity]);
 
+  /**
+   * Saves the About page's wording.
+   *
+   * A row exists only for a line somebody has actually rewritten. Upserting
+   * every field on every save would fill the table with blanks that mean
+   * exactly what no row means, and then "what has been customised?" could no
+   * longer be answered by looking at it. So: non-empty values are written,
+   * cleared ones have their row deleted, and the website falls back to the
+   * wording it ships with either way.
+   */
+  const savePageCopy = useCallback(async (entries) => {
+    const written = [];
+    const cleared = [];
+    for (const [key, raw] of Object.entries(entries)) {
+      const value = String(raw ?? '').trim();
+      if (value) written.push({ key, value, updated_at: new Date().toISOString() });
+      else cleared.push(key);
+    }
+
+    if (written.length) {
+      const { error } = await supabase.from('site_copy').upsert(written, { onConflict: 'key' });
+      if (error) return { ok: false, reason: friendlyError(error, 'Could not save the About page copy. Try again.') };
+    }
+    if (cleared.length) {
+      const { error } = await supabase.from('site_copy').delete().in('key', cleared);
+      if (error) return { ok: false, reason: friendlyError(error, 'Could not restore the original wording. Try again.') };
+    }
+
+    await refreshSiteContent();
+    logActivity('About page copy updated');
+    return { ok: true };
+  }, [refreshSiteContent, logActivity]);
+
   const addBanner = useCallback(async (banner) => {
     const { error } = await supabase.from('site_banners').insert(banner);
     if (error) return { ok: false, reason: friendlyError(error, 'Could not add this banner. Try again.') };
@@ -1290,6 +1329,7 @@ export const AdminProvider = ({ children }) => {
       updateOrderStatus, updateOrderPayment, updateEnquiryStatus,
 
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
+      pageCopy, savePageCopy,
       adminProfiles, adminProfilesLoading, onlineUserIds, createStaffAccount, updateProfile, removeProfile,
       authUser, authLoading,
       currentUser, signIn, signOut,
@@ -1319,6 +1359,7 @@ export const AdminProvider = ({ children }) => {
       saveVehicle, deleteVehicle, toggleFeaturedVehicle, savePart, deletePart,
       addCompatibilityRule, removeCompatibilityRule, updateOrderStatus, updateEnquiryStatus,
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
+      pageCopy, savePageCopy,
       adminProfiles, adminProfilesLoading, onlineUserIds, createStaffAccount, updateProfile, removeProfile, activity,
       authUser, authLoading,
       currentUser, signIn, signOut,

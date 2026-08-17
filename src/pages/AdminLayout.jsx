@@ -21,7 +21,7 @@ import {
   X,
   Sun,
   Moon
-, Layers, Star, ReceiptText } from 'lucide-react';
+, Layers, Star, ReceiptText, Ship, UserRound } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -57,21 +57,42 @@ export const AdminLayout = ({ children }) => {
     };
   }, [mobileOpen]);
 
-  const navItems = [
-    { id: 'admin-dashboard', label: 'Dashboard', icon: Gauge },
-    { id: 'admin-vehicles', label: 'Vehicles', icon: CarFront },
-    { id: 'admin-groups', label: 'Shipments', icon: Layers },
-    { id: 'admin-parts', label: 'Spare Parts', icon: Boxes },
-    { id: 'admin-compatibility', label: 'Compatibility', icon: GitCompareArrows },
-    { id: 'admin-orders', label: 'Orders', icon: ClipboardList },
-    { id: 'admin-buyers', label: 'Buyers', icon: ReceiptText },
-    { id: 'admin-enquiries', label: 'Enquiries', icon: MessagesSquare },
-    { id: 'admin-reviews', label: 'Reviews', icon: Star },
-    { id: 'admin-content', label: 'Site Content', icon: FileStack },
-    { id: 'admin-settings', label: 'Settings', icon: Settings2 }
-  ].filter((item) => canView(item.id));
+  /* Grouped by what someone came here to do, not by table name.
+     Dashboard sits above the groups rather than inside one: it is the landing
+     view and belongs to no single area.
+
+     Each group is filtered by role and then dropped entirely when it has no
+     surviving items — a heading over an empty space reads as a broken menu,
+     and ROLE_VIEWS genuinely empties some of these (Sales Staff sees no
+     Compatibility, Shipments, Reviews or Site Content). */
+  const navGroups = [
+    { title: null, items: [
+      { id: 'admin-dashboard', label: 'Dashboard', icon: Gauge },
+    ] },
+    { title: 'Inventory', items: [
+      { id: 'admin-vehicles', label: 'Vehicles', icon: CarFront },
+      { id: 'admin-parts', label: 'Spare Parts', icon: Boxes },
+      { id: 'admin-compatibility', label: 'Compatibility', icon: GitCompareArrows },
+    ] },
+    { title: 'Sales & fulfilment', items: [
+      { id: 'admin-orders', label: 'Orders', icon: ClipboardList },
+      { id: 'admin-groups', label: 'Shipments', icon: Ship },
+    ] },
+    { title: 'Customers', items: [
+      { id: 'admin-buyers', label: 'Buyers', icon: UserRound },
+      { id: 'admin-enquiries', label: 'Enquiries', icon: MessagesSquare },
+      { id: 'admin-reviews', label: 'Reviews', icon: Star },
+    ] },
+    { title: 'Administration', items: [
+      { id: 'admin-content', label: 'Site Content', icon: FileStack },
+      { id: 'admin-settings', label: 'Settings', icon: Settings2 },
+    ] },
+  ]
+    .map((group) => ({ ...group, items: group.items.filter((item) => canView(item.id)) }))
+    .filter((group) => group.items.length > 0);
   // Filtered, not disabled: a greyed-out row invites people to ask why they
   // cannot click it. The router checks again, since the sidebar is only a menu.
+
   const railCollapsed = collapsed && !mobileOpen;
 
   return (
@@ -198,26 +219,60 @@ export const AdminLayout = ({ children }) => {
             )}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: railCollapsed ? '16px 10px 0' : '16px 14px 0' }}>
-            {navItems.map(item => {
-              const Icon = item.icon;
-              const isActive = currentView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => { navigateTo(item.id); setMobileOpen(false); }}
-                  aria-current={isActive ? 'page' : undefined}
-                  className="nav-item"
-                  data-active={isActive ? 'true' : undefined}
-                  data-collapsed={railCollapsed ? 'true' : undefined}
-                  title={railCollapsed ? item.label : undefined}
-                >
-                  <AdminIcon icon={Icon} variant="nav" size={18} />
-                  {!railCollapsed && item.label}
-                </button>
-              );
-            })}
+          {/* flex:1 + minHeight:0 + overflow-y:auto, together.
+              Without them this column kept its natural height, ran past its
+              parent and painted Site Content and Settings *underneath* the user
+              block at the foot of the rail — present in the DOM, inside the
+              viewport, and impossible to click. Hidden beats scrolled only in
+              the sense that nobody complains about what they cannot see.
+              minHeight:0 is the one that is easy to omit: a flex child will not
+              shrink below its content without it, so overflow never engages. */}
+          <div
+            style={{
+              display: 'flex', flexDirection: 'column', gap: '2px',
+              padding: railCollapsed ? '12px 10px 0' : '12px 14px 0',
+              flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
+            }}
+          >
+            {navGroups.map((group) => (
+              <div key={group.title ?? 'primary'} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {/* Collapsed, the rail is icons only — a heading would have no
+                    room and the group is already read as a gap. A hairline
+                    keeps the grouping legible without text. */}
+                {group.title && (railCollapsed ? (
+                  <div aria-hidden="true" style={{ height: '1px', background: 'var(--band-line)', margin: '10px 6px 6px' }} />
+                ) : (
+                  <div
+                    style={{
+                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.09em',
+                      textTransform: 'uppercase', color: 'var(--text-muted)',
+                      padding: '7px 12px 3px',
+                    }}
+                  >
+                    {group.title}
+                  </div>
+                ))}
+                {group.items.map(item => {
+                  const Icon = item.icon;
+                  const isActive = currentView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => { navigateTo(item.id); setMobileOpen(false); }}
+                      aria-current={isActive ? 'page' : undefined}
+                      className="nav-item"
+                      data-active={isActive ? 'true' : undefined}
+                      data-collapsed={railCollapsed ? 'true' : undefined}
+                      title={railCollapsed ? item.label : undefined}
+                    >
+                      <AdminIcon icon={Icon} variant="nav" size={18} />
+                      {!railCollapsed && item.label}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
 

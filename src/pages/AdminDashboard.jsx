@@ -3,6 +3,7 @@ import { useApp } from '../context/AdminContext';
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { AdminLayout } from './AdminLayout';
 import { Sparkline } from '../components/Sparkline';
+import { TrendChart } from '../components/TrendChart';
 import { Thumb } from '../components/Thumb';
 import { usePagedList } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
@@ -18,6 +19,14 @@ import {
   firstNameOf,
 } from '../lib/dashboardData';
 import {
+  GRANULARITIES,
+  STREAMS,
+  bucketSeries,
+  describe,
+  orderRecords,
+  vehicleSaleRecords,
+} from '../lib/chartSeries';
+import {
   CarFront,
   CheckCircle2,
   Bookmark,
@@ -31,6 +40,7 @@ import {
   CalendarDays,
   CircleDollarSign,
   ChevronRight,
+  LineChart,
   X,
 } from 'lucide-react';
 
@@ -154,6 +164,15 @@ export const AdminDashboard = () => {
   const [activeSummary, setActiveSummary] = useState(null);
   const closeSummary = useCallback(() => setActiveSummary(null), []);
 
+  /* The trend card keeps its own window.
+     Its granularity control already decides how far back the line looks, and a
+     second date control governing the same picture — the range picker in the
+     head, which drives the money band, the summaries and the activity feed —
+     could only contradict it. The card states its own window instead. */
+  const [chartGrain, setChartGrain] = useState('daily');
+  const [chartMetric, setChartMetric] = useState('count');
+  const [chartStream, setChartStream] = useState('vehicles');
+
   /* Stock levels: what is in the yard and on the shelf right now. These are not
      date-stamped anywhere, so the range control deliberately does not touch
      them — filtering a stock count by a date window would be meaningless. */
@@ -195,6 +214,34 @@ export const AdminDashboard = () => {
     const spares = partSalesSummary(orders, orderCosts, { from });
     return { cars, spares, ...combinedSummary(cars, spares) };
   }, [vehicles, vehicleSales, orders, orderCosts, range]);
+
+  /* Revenue is money, so it sits behind the same permission as the Realised
+     band. A role without costs:view is not offered the toggle and cannot land
+     on the metric by leaving it selected and being demoted mid-session. */
+  const canSeeRevenue = can('costs:view');
+  const chartMetricId = chartMetric === 'revenue' && !canSeeRevenue ? 'count' : chartMetric;
+
+  /* Both streams come straight off the records already in context — the same
+     `vehicleSales` the Realised band totals and the same `orders` the Orders
+     screen lists. Nothing here is seeded or sampled: an empty yard draws an
+     empty chart, which is the point. */
+  const trendRecords = useMemo(
+    () => (chartStream === 'vehicles'
+      ? vehicleSaleRecords(vehicles, vehicleSales)
+      : orderRecords(orders)),
+    [chartStream, vehicles, vehicleSales, orders]
+  );
+
+  const trend = useMemo(
+    () => bucketSeries(trendRecords, { granularity: chartGrain, metric: chartMetricId }),
+    [trendRecords, chartGrain, chartMetricId]
+  );
+
+  const trendCopy = describe(chartStream, chartMetricId);
+
+  const formatTrendValue = chartMetricId === 'revenue'
+    ? (v) => formatKES(v)
+    : (v) => `${v}`;
 
   const featured = vehicles.filter((v) => v.featured).slice(0, 3);
   const topParts = [...parts].sort((a, b) => (b.stock ?? 0) - (a.stock ?? 0)).slice(0, 3);
@@ -312,6 +359,119 @@ export const AdminDashboard = () => {
             sub="Catalogue health, stock alerts and new orders"
             onClick={() => setActiveSummary('parts')}
           />
+        </div>
+
+        {/* ---------- Trend ---------- */}
+        <div className="card panel trend-card">
+          <div className="panel-head trend-head">
+            <span className="panel-title">
+              <AdminIcon icon={LineChart} variant="section" size={17} />
+              {trendCopy.axis}
+              <span className="trend-window">{trend.granularity.window}</span>
+            </span>
+
+            <div className="trend-controls">
+              {/* Vehicles and spare parts are separate lines, never one total.
+                  A car and a box of brake pads are three orders of magnitude
+                  apart in KES: added together, the parts line would sit flat on
+                  the axis and read as no trade at all. */}
+              <div className="trend-toggle" role="group" aria-label="What the line shows">
+                {Object.values(STREAMS).map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    aria-pressed={chartStream === s.id}
+                    data-active={chartStream === s.id ? 'true' : undefined}
+                    onClick={() => setChartStream(s.id)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              {canSeeRevenue && (
+                <div className="trend-toggle" role="group" aria-label="What the line counts">
+                  {[['count', trendCopy.countLabel], ['revenue', 'Revenue']].map(([id, text]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={chartMetricId === id}
+                      data-active={chartMetricId === id ? 'true' : undefined}
+                      onClick={() => setChartMetric(id)}
+                    >
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="card range-picker">
+                <label htmlFor="trend-grain" className="sr-only">Chart granularity</label>
+                <select id="trend-grain" value={chartGrain} onChange={(e) => setChartGrain(e.target.value)}>
+                  {GRANULARITIES.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="trend-legend">
+            <span className="trend-key">
+              <i className="trend-swatch is-current" aria-hidden="true" /> {trend.granularity.window}
+            </span>
+            <span className="trend-key">
+              <i className="trend-swatch is-previous" aria-hidden="true" /> {trend.granularity.compare}
+            </span>
+            {trend.delta !== null && (
+              <span
+                className="trend-delta"
+                style={{ color: trend.delta < 0 ? TONE.red.fg : TONE.green.fg }}
+              >
+                {trend.delta >= 0 ? '+' : ''}{trend.delta.toFixed(1)}% on the {trend.granularity.compare}
+              </span>
+            )}
+          </div>
+
+          {trend.hasData ? (
+            <TrendChart
+              current={trend.current}
+              previous={trend.previous}
+              formatValue={formatTrendValue}
+              currentLabel={trend.granularity.window}
+              previousLabel={trend.granularity.compare}
+              integerAxis={chartMetricId === 'count'}
+              summary={
+                `${trendCopy.axis} by ${trend.granularity.label.toLowerCase()} bucket. `
+                + `${formatTrendValue(trend.totalCurrent)} across the ${trend.granularity.window}, `
+                + `against ${formatTrendValue(trend.totalPrevious)} in the ${trend.granularity.compare}.`
+              }
+            />
+          ) : (
+            <p className="panel-empty">{trendCopy.empty}</p>
+          )}
+
+          {/* Why the line starts where it does, and what is not on it. Without
+              these an empty stretch reads as a collapse in trade rather than as
+              a yard that had not opened its books yet. */}
+          {(trend.startsMidWindow || trend.undated > 0 || trend.unusable > 0) && (
+            <p className="trend-foot">
+              {trend.startsMidWindow && trend.firstRecord && (
+                <span>
+                  Records begin {trend.firstRecord.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} —
+                  anything before that is empty because there was nothing on file.
+                </span>
+              )}
+              {trend.undated > 0 && (
+                <span>
+                  {trend.undated} of the {trendCopy.stream.noun} {trend.undated === 1 ? 'has' : 'have'} no readable date and {trend.undated === 1 ? 'is' : 'are'} not plotted.
+                </span>
+              )}
+              {trend.unusable > 0 && (
+                <span>
+                  {trend.unusable} of the {trendCopy.stream.noun} {trend.unusable === 1 ? 'has' : 'have'} no readable amount and {trend.unusable === 1 ? 'is' : 'are'} left out of the revenue line.
+                </span>
+              )}
+            </p>
+          )}
         </div>
 
         {/* ---------- Activity + highlights ---------- */}

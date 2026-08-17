@@ -52,7 +52,7 @@ export const LISTING_TYPES = {
     label: 'Owned by Us',
     tone: 'owned',
     dealerOwned: true,
-    blurb: 'Held on our Mombasa Road lot. Inspection, duty and paperwork verified by us.',
+    blurb: 'Held on our K-Mall, Thindigua lot. Inspection, duty and paperwork verified by us.',
   },
   'verified-dealer': {
     label: 'Verified Dealer',

@@ -5,6 +5,7 @@ import { useReveal, revealStyle } from '../lib/useReveal';
 import { Plus, Trash2, X, Upload } from 'lucide-react';
 import { supabase } from '@shared/lib/supabaseClient';
 import { friendlyError } from '@shared/lib/friendlyError';
+import { ABOUT_COPY_FIELDS } from '@shared/data/aboutCopy';
 
 const card = {
   background: 'var(--bg-card)',
@@ -35,9 +36,69 @@ const input = {
   border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none', background: 'var(--bg-card)',
 };
 
+const grid = {
+  display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: '20px', alignItems: 'start', marginTop: '22px',
+};
+
+const col = { display: 'flex', flexDirection: 'column', gap: '20px' };
+
+/* One rail item, three tabs.
+   Everything on this screen edits the customer site, so splitting it across
+   three sidebar entries would have made the rail longer to say the same thing.
+   The tabs group by what someone arrived to change — the wording of a page,
+   the homepage, or the details sitting under both. */
+const TABS = [
+  { id: 'pages', label: 'Pages' },
+  { id: 'homepage', label: 'Homepage' },
+  { id: 'contact', label: 'Contact & switches' },
+];
+
+/* The About page, in the order someone reads it.
+   Ten boxes stacked in one column ran well past a screen, so the form is cut
+   into the page's own sections and shows one at a time. */
+const COPY_STEPS = [
+  { id: 'intro', title: 'Introduction', hint: 'The top of the page — the heading and the line under it.', keys: ['about_heading', 'about_lead'] },
+  { id: 'body', title: 'About the yard', hint: 'The two paragraphs beneath the opening line.', keys: ['about_body_1', 'about_body_2'] },
+  { id: 'signoff', title: 'Sign-off & address', hint: 'The closing line, and the office address beneath it.', keys: ['about_signoff', 'about_office'] },
+  /* Worded to match commitment_heading's own hint exactly, so the step says it
+     and the field below drops it rather than printing the same sentence twice. */
+  { id: 'commitment', title: 'Commitment card', hint: 'The dark card on the right of the About page.', keys: ['commitment_heading', 'commitment_body_1', 'commitment_body_2', 'commitment_signoff'] },
+];
+
+const FIELD_BY_KEY = Object.fromEntries(ABOUT_COPY_FIELDS.map((f) => [f.key, f]));
+
+/* Built from the field list, not asserted over it.
+   A key added to ABOUT_COPY_FIELDS and forgotten in COPY_STEPS above would
+   otherwise drop out of this form while the website carried on printing it —
+   an uneditable line nobody could find. Anything unaccounted for lands in a
+   final step instead of disappearing. */
+const COPY_SECTIONS = (() => {
+  const named = new Set(COPY_STEPS.flatMap((s) => s.keys));
+  const sections = COPY_STEPS
+    .map((s) => ({ ...s, fields: s.keys.map((k) => FIELD_BY_KEY[k]).filter(Boolean) }))
+    .filter((s) => s.fields.length > 0);
+  const leftover = ABOUT_COPY_FIELDS.filter((f) => !named.has(f.key));
+  if (leftover.length > 0) {
+    sections.push({ id: 'more', title: 'More wording', hint: '', fields: leftover });
+  }
+  return sections;
+})();
+
+/* The reveal lives in the card rather than in the page.
+   Each hook observes from the moment its card mounts, and a card on a tab
+   nobody has opened yet has not mounted — held in the page, the observer would
+   have found no node on load, given up, and every tab after the first would
+   have snapped in without the fade. */
+const RevealCard = ({ index = 0, children }) => {
+  const [ref, shown] = useReveal();
+  return <section ref={ref} style={{ ...card, ...revealStyle(shown, index) }}>{children}</section>;
+};
+
 export const AdminSiteContent = () => {
   const {
     siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
+    pageCopy, savePageCopy,
     billing, saveBilling,
     bankAccounts, saveBankAccount, deleteBankAccount,
     settings, setSetting,
@@ -68,15 +129,29 @@ export const AdminSiteContent = () => {
   const [billingError, setBillingError] = useState('');
   const [billingBusy, setBillingBusy] = useState(false);
 
-  const [bannersRef, bannersShown] = useReveal();
-  const [contactRef, contactShown] = useReveal();
-  const [billingRef, billingShown] = useReveal();
-  const [featuredRef, featuredShown] = useReveal();
-  const [faqRef, faqShown] = useReveal();
+  /* About page wording.
+     The form is seeded from the rows that exist, so a field nobody has edited
+     starts empty — and the placeholder shows the wording the website will use
+     while it stays that way. Typing replaces it; clearing it goes back. */
+  const [copyForm, setCopyForm] = useState({});
+  const [copySaved, setCopySaved] = useState(false);
+  const [copyError, setCopyError] = useState('');
+  const [copyBusy, setCopyBusy] = useState(false);
+
+  /* Which tab is open is the only thing that unmounts a card, and every draft
+     above is held here rather than inside one — so a half-typed contact number
+     survives a look at the banners and is still there on the way back. */
+  const [tab, setTab] = useState(TABS[0].id);
+
+  /* Which section of the About form is showing. It only decides what is on
+     screen: `copyForm` holds all ten boxes whichever step you are on, and Save
+     writes every one of them. */
+  const [copyStep, setCopyStep] = useState(0);
 
   // Keep the form in step if the stored contact changes underneath it.
   useEffect(() => { if (siteContent.contact) setContact(siteContent.contact); }, [siteContent.contact]);
   useEffect(() => { if (billing) setBillingForm(billing); }, [billing]);
+  useEffect(() => { setCopyForm(pageCopy ?? {}); }, [pageCopy]);
 
   const contactDirty = JSON.stringify(contact) !== JSON.stringify(siteContent.contact ?? EMPTY_CONTACT);
   const billingDirty = JSON.stringify(billingForm) !== JSON.stringify(billing ?? EMPTY_BILLING);
@@ -91,6 +166,26 @@ export const AdminSiteContent = () => {
     if (!result.ok) { setContactError(result.reason); return; }
     setContactSaved(true);
     setTimeout(() => setContactSaved(false), 2600);
+  };
+
+  const fieldDirty = (f) =>
+    String(copyForm[f.key] ?? '').trim() !== String(pageCopy?.[f.key] ?? '').trim();
+
+  const copyDirty = ABOUT_COPY_FIELDS.some(fieldDirty);
+
+  const copySection = COPY_SECTIONS[Math.min(copyStep, COPY_SECTIONS.length - 1)];
+
+  const handleSaveCopy = async (e) => {
+    e.preventDefault();
+    setCopyError('');
+    setCopyBusy(true);
+    const result = await savePageCopy(
+      Object.fromEntries(ABOUT_COPY_FIELDS.map((f) => [f.key, copyForm[f.key] ?? '']))
+    );
+    setCopyBusy(false);
+    if (!result.ok) { setCopyError(result.reason); return; }
+    setCopySaved(true);
+    setTimeout(() => setCopySaved(false), 2600);
   };
 
   const handleSaveBilling = async (e) => {
@@ -111,61 +206,240 @@ export const AdminSiteContent = () => {
           <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>Site Content</h1>
         </div>
 
-        {settings.length > 0 && (
-          <section style={{ ...card, marginBottom: '20px' }}>
-            <div style={cardHead}><h2 style={title}>Website switches</h2></div>
-            <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {settings.map((sw) => (
-                <div key={sw.key} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)' }}>{sw.label}</div>
-                    {sw.description && (
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.55, maxWidth: '62ch' }}>
-                        {sw.description}
+        {/* The tabs.
+            Three short screens instead of one column of six cards: the wording
+            of a page, the homepage, and the details sitting under both. The
+            drafts above live on the page rather than in a card, so switching
+            tabs mid-edit does not throw away what has been typed. */}
+        <div
+          role="tablist"
+          aria-label="Site content sections"
+          style={{ display: 'flex', gap: '2px', borderBottom: '1px solid var(--band-line)', overflowX: 'auto', marginTop: '18px' }}
+        >
+          {TABS.map((t) => {
+            const active = tab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                id={`sc-tab-${t.id}`}
+                aria-selected={active}
+                /* Only the open tab names a panel: the other two panels are not
+                   in the document, and an aria-controls pointing at an id that
+                   does not exist is a dangling reference to a screen reader. */
+                aria-controls={active ? `sc-panel-${t.id}` : undefined}
+                onClick={() => setTab(t.id)}
+                style={{
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  padding: '13px 14px', fontSize: 'var(--text-sm)', whiteSpace: 'nowrap',
+                  fontWeight: active ? 700 : 500,
+                  color: active ? 'var(--primary-ink)' : 'var(--text-muted)',
+                  borderBottom: `2px solid ${active ? 'var(--primary-ink)' : 'transparent'}`,
+                  marginBottom: '-1px',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Two columns that pack independently, rather than cards dropped into
+            a two-column grid.
+
+            A grid aligns its rows: whichever card in a row is tallest sets the
+            height of both, so the shorter one leaves a hole underneath it
+            before the next row starts. Where a tab stacks two cards in one
+            column they go in a flex column of their own, so the second starts
+            where the first ended. Below 1180px the grid collapses to one
+            column and the stacks fall in on each other. */}
+
+        {/* Pages runs full width rather than in two columns.
+            The About form lays its boxes out side by side now, and a paragraph
+            box in a half-width column is barely wider than the sentence it
+            holds. The FAQ list below reads no worse for the extra width. */}
+        {tab === 'pages' && (
+          <div
+            role="tabpanel"
+            id="sc-panel-pages"
+            aria-labelledby="sc-tab-pages"
+            style={{ ...col, marginTop: '22px' }}
+          >
+
+          {/* About page wording.
+              Every box is optional. Left empty, the website prints the wording
+              it ships with — which is what the placeholder shows — so this
+              screen can never leave the page blank, and clearing a box is how
+              you put the original line back. */}
+          <RevealCard index={0}>
+            <div style={cardHead}>
+              <h2 style={title}>About Page Copy</h2>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Live on /about</span>
+            </div>
+            <form className="admin-form" onSubmit={handleSaveCopy} style={{ padding: '20px' }}>
+              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
+                Leave a box empty to keep the wording shown in grey. Clearing a
+                box you have edited puts that original line back. Saving stores
+                every step, not only the one on screen.
+              </p>
+
+              {/* Steps are buttons, not a one-way wizard.
+                  Nothing here is required and nothing validates, so making
+                  someone click Next three times to reach the line they came to
+                  fix would be ceremony. The dot marks a step holding edits that
+                  have not been saved yet. */}
+              <ol className="copy-steps">
+                {COPY_SECTIONS.map((s, i) => {
+                  const active = s.id === copySection.id;
+                  const touched = s.fields.some(fieldDirty);
+                  return (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => setCopyStep(i)}
+                        data-active={active ? 'true' : undefined}
+                        aria-current={active ? 'step' : undefined}
+                      >
+                        <span className="copy-step-no">{i + 1}</span>
+                        <span>{s.title}</span>
+                        {touched && (
+                          <span className="copy-step-dot" role="img" aria-label="has unsaved changes" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+
+              {copySection.hint && <p className="copy-step-hint">{copySection.hint}</p>}
+
+              <div className="copy-fields">
+                {copySection.fields.map((f) => (
+                  <div key={f.key}>
+                    <label style={label} htmlFor={`copy-${f.key}`}>{f.label}</label>
+                    <textarea
+                      id={`copy-${f.key}`}
+                      rows={f.rows ?? 3}
+                      value={copyForm[f.key] ?? ''}
+                      placeholder={f.fallback}
+                      onChange={(e) => setCopyForm({ ...copyForm, [f.key]: e.target.value })}
+                      style={{ ...input, resize: 'vertical', lineHeight: 1.5, fontFamily: 'inherit' }}
+                    />
+                    {/* A field whose hint is the step's own hint says it twice
+                        — the commitment heading and its section both explain
+                        that it is the dark card on the right. */}
+                    {f.hint && f.hint !== copySection.hint && (
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px', lineHeight: 1.5 }}>
+                        {f.hint}
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+
+              <div className="copy-actions">
+                <div className="copy-nav">
                   <button
-                    role="switch"
-                    aria-checked={sw.enabled}
-                    aria-label={sw.label}
-                    onClick={() => setSetting(sw.key, !sw.enabled)}
-                    style={{
-                      width: '42px', height: '23px', borderRadius: '999px', border: 'none',
-                      cursor: 'pointer', padding: '2px', flexShrink: 0,
-                      background: sw.enabled ? 'var(--primary-ink)' : 'var(--field-border)',
-                      display: 'flex', justifyContent: sw.enabled ? 'flex-end' : 'flex-start',
-                      transition: 'background 0.2s ease',
-                    }}
+                    type="button"
+                    className="copy-nav-btn"
+                    onClick={() => setCopyStep((s) => Math.max(0, s - 1))}
+                    disabled={copyStep === 0}
                   >
-                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                    Back
+                  </button>
+                  <span className="copy-nav-count">
+                    Step {COPY_SECTIONS.indexOf(copySection) + 1} of {COPY_SECTIONS.length}
+                  </span>
+                  <button
+                    type="button"
+                    className="copy-nav-btn"
+                    onClick={() => setCopyStep((s) => Math.min(COPY_SECTIONS.length - 1, s + 1))}
+                    disabled={copyStep >= COPY_SECTIONS.length - 1}
+                  >
+                    Next
                   </button>
                 </div>
-              ))}
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {copySaved && (
+                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)', fontWeight: 600 }}>Saved</span>
+                  )}
+                  {copyError && (
+                    <span role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{copyError}</span>
+                  )}
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={!copyDirty || copyBusy}
+                    style={{ opacity: copyDirty ? 1 : 0.5, cursor: copyDirty ? 'pointer' : 'not-allowed' }}
+                  >
+                    {copyBusy ? 'Saving…' : 'Save all steps'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </RevealCard>
+
+          {/* FAQs and legal */}
+          <RevealCard index={1}>
+            <div style={cardHead}>
+              <h2 style={title}>FAQs &amp; Legal Pages</h2>
+              <button
+                onClick={() => setFaqDraft({ question: '', answer: '', type: 'FAQ' })}
+                style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <Plus size={14} /> Add FAQ
+              </button>
             </div>
-          </section>
+
+            <div style={{ padding: '6px 20px 14px' }}>
+              {siteContent.faqs.length === 0 ? (
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '18px 0' }}>
+                  Nothing published yet. Add the questions customers ask most.
+                </p>
+              ) : (
+                siteContent.faqs.map((f) => (
+                  <div
+                    key={f.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
+                    }}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{f.question}</div>
+                      {f.type === 'Legal' && (
+                        <span className="badge badge-new" style={{ marginTop: '5px' }}>Legal</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
+                      <button onClick={() => setFaqDraft(f)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                        Edit
+                      </button>
+                      <button onClick={() => removeFaq(f.id)} aria-label={`Delete ${f.question}`} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </RevealCard>
+          </div>
         )}
 
-        {/*
-          Two columns that pack independently, rather than five cards dropped
-          into a two-column grid.
-
-          A grid aligns its rows: whichever card in a row is tallest sets the
-          height of both, so the shorter one leaves a hole underneath it before
-          the next row starts. With an empty Banners card beside the Contact
-          form that hole was most of a screen. Each column is its own flex
-          stack here, so a card starts where the one above it ended.
-
-          The cards sit in the same columns they always did — only the gaps are
-          gone. Below 1180px the grid collapses to one column and the two
-          stacks fall in on each other.
-        */}
-        <div className="content-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '20px', alignItems: 'start', marginTop: '22px' }}>
-
-          <div className="content-col" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {tab === 'homepage' && (
+          <div
+            role="tabpanel"
+            id="sc-panel-homepage"
+            aria-labelledby="sc-tab-homepage"
+            className="content-grid"
+            style={grid}
+          >
 
           {/* Homepage banners */}
-          <section ref={bannersRef} style={{ ...card, ...revealStyle(bannersShown) }}>
+          <RevealCard index={0}>
             <div style={cardHead}>
               <h2 style={title}>Homepage Banners</h2>
               <button
@@ -215,14 +489,142 @@ export const AdminSiteContent = () => {
                 </div>
               )}
             </div>
-          </section>
+          </RevealCard>
+
+          {/* Featured vehicles — this one genuinely drives the site */}
+          <RevealCard index={1}>
+            <div style={cardHead}>
+              <h2 style={title}>Featured Vehicles</h2>
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{featuredCount} featured</span>
+            </div>
+
+            <div style={{ padding: '6px 20px 14px', maxHeight: '440px', overflowY: 'auto' }}>
+              {vehicles.map((v) => (
+                <div
+                  key={v.id}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    gap: '12px', padding: '11px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
+                  }}
+                >
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)', fontWeight: v.featured ? 600 : 400 }}>
+                    {v.name}
+                  </span>
+
+                  <button
+                    role="switch"
+                    aria-checked={!!v.featured}
+                    aria-label={`Feature ${v.name} on the homepage`}
+                    onClick={() => toggleFeaturedVehicle(v.id)}
+                    style={{
+                      width: '42px', height: '23px', borderRadius: '999px', border: 'none',
+                      cursor: 'pointer', padding: '2px', flexShrink: 0,
+                      background: v.featured ? 'var(--primary-ink)' : 'var(--field-border)',
+                      display: 'flex', justifyContent: v.featured ? 'flex-end' : 'flex-start',
+                      transition: 'background 0.2s ease',
+                    }}
+                  >
+                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </RevealCard>
+          </div>
+        )}
+
+        {tab === 'contact' && (
+          <div
+            role="tabpanel"
+            id="sc-panel-contact"
+            aria-labelledby="sc-tab-contact"
+            className="content-grid"
+            style={grid}
+          >
+
+          <div className="content-col" style={col}>
+
+          {/* Contact information */}
+          <RevealCard index={0}>
+            <div style={cardHead}><h2 style={title}>Contact Information</h2></div>
+            <form className="admin-form" onSubmit={handleSaveContact} style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '16px' }}>
+                {[
+                  ['phone', 'Phone'],
+                  ['whatsapp', 'WhatsApp Number'],
+                  ['email', 'Email'],
+                  ['location', 'Location'],
+                ].map(([key, text]) => (
+                  <div key={key}>
+                    <label style={label} htmlFor={`c-${key}`}>{text}</label>
+                    <input
+                      id={`c-${key}`}
+                      type={key === 'email' ? 'email' : 'text'}
+                      value={contact[key] ?? ''}
+                      onChange={(e) => setContact({ ...contact, [key]: e.target.value })}
+                      style={input}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button type="submit" className="btn-primary" disabled={!contactDirty || contactBusy} style={{ opacity: contactDirty ? 1 : 0.5, cursor: contactDirty ? 'pointer' : 'not-allowed' }}>
+                  {contactBusy ? 'Saving…' : 'Save Changes'}
+                </button>
+                {contactSaved && (
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)', fontWeight: 600 }}>Saved</span>
+                )}
+                {contactError && (
+                  <span role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{contactError}</span>
+                )}
+              </div>
+            </form>
+          </RevealCard>
+
+          {settings.length > 0 && (
+          <RevealCard index={1}>
+            <div style={cardHead}><h2 style={title}>Website switches</h2></div>
+            <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {settings.map((sw) => (
+                <div key={sw.key} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '18px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-dark)' }}>{sw.label}</div>
+                    {sw.description && (
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.55, maxWidth: '62ch' }}>
+                        {sw.description}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={sw.enabled}
+                    aria-label={sw.label}
+                    onClick={() => setSetting(sw.key, !sw.enabled)}
+                    style={{
+                      width: '42px', height: '23px', borderRadius: '999px', border: 'none',
+                      cursor: 'pointer', padding: '2px', flexShrink: 0,
+                      background: sw.enabled ? 'var(--primary-ink)' : 'var(--field-border)',
+                      display: 'flex', justifyContent: sw.enabled ? 'flex-end' : 'flex-start',
+                      transition: 'background 0.2s ease',
+                    }}
+                  >
+                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </RevealCard>
+          )}
+
+          </div>
 
           {/* Company and bank details — printed on invoices, not on the site.
-              Kept on its own record rather than beside the contact fields
-              above: those are granted to `anon` so the storefront can paint its
+              Kept on its own record rather than on the contact one beside it:
+              those fields are granted to `anon` so the storefront can paint its
               header, and a bank account number does not belong in anything the
               publishable key can read. */}
-          <section ref={billingRef} style={{ ...card, ...revealStyle(billingShown, 1) }}>
+          <RevealCard index={1}>
             <div style={cardHead}>
               <h2 style={title}>Invoice &amp; Bank Details</h2>
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Staff only</span>
@@ -322,138 +724,9 @@ export const AdminSiteContent = () => {
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* FAQs and legal */}
-          <section ref={faqRef} style={{ ...card, ...revealStyle(faqShown, 3) }}>
-            <div style={cardHead}>
-              <h2 style={title}>FAQs &amp; Legal Pages</h2>
-              <button
-                onClick={() => setFaqDraft({ question: '', answer: '', type: 'FAQ' })}
-                style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <Plus size={14} /> Add FAQ
-              </button>
-            </div>
-
-            <div style={{ padding: '6px 20px 14px' }}>
-              {siteContent.faqs.length === 0 ? (
-                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', padding: '18px 0' }}>
-                  Nothing published yet. Add the questions customers ask most.
-                </p>
-              ) : (
-                siteContent.faqs.map((f) => (
-                  <div
-                    key={f.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      gap: '12px', padding: '12px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
-                    }}
-                  >
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)' }}>{f.question}</div>
-                      {f.type === 'Legal' && (
-                        <span className="badge badge-new" style={{ marginTop: '5px' }}>Legal</span>
-                      )}
-                    </div>
-                    <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
-                      <button onClick={() => setFaqDraft(f)} style={{ border: 'none', background: 'transparent', color: 'var(--primary-ink)', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-                        Edit
-                      </button>
-                      <button onClick={() => removeFaq(f.id)} aria-label={`Delete ${f.question}`} style={{ border: 'none', background: 'transparent', color: '#a13f3f', cursor: 'pointer' }}>
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-
+          </RevealCard>
           </div>
-
-          <div className="content-col" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Contact information */}
-          <section ref={contactRef} style={{ ...card, ...revealStyle(contactShown, 1) }}>
-            <div style={cardHead}><h2 style={title}>Contact Information</h2></div>
-            <form className="admin-form" onSubmit={handleSaveContact} style={{ padding: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px', marginBottom: '16px' }}>
-                {[
-                  ['phone', 'Phone'],
-                  ['whatsapp', 'WhatsApp Number'],
-                  ['email', 'Email'],
-                  ['location', 'Location'],
-                ].map(([key, text]) => (
-                  <div key={key}>
-                    <label style={label} htmlFor={`c-${key}`}>{text}</label>
-                    <input
-                      id={`c-${key}`}
-                      type={key === 'email' ? 'email' : 'text'}
-                      value={contact[key] ?? ''}
-                      onChange={(e) => setContact({ ...contact, [key]: e.target.value })}
-                      style={input}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button type="submit" className="btn-primary" disabled={!contactDirty || contactBusy} style={{ opacity: contactDirty ? 1 : 0.5, cursor: contactDirty ? 'pointer' : 'not-allowed' }}>
-                  {contactBusy ? 'Saving…' : 'Save Changes'}
-                </button>
-                {contactSaved && (
-                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--primary-ink)', fontWeight: 600 }}>Saved</span>
-                )}
-                {contactError && (
-                  <span role="alert" style={{ fontSize: 'var(--text-sm)', color: '#a13f3f' }}>{contactError}</span>
-                )}
-              </div>
-            </form>
-          </section>
-
-          {/* Featured vehicles — this one genuinely drives the site */}
-          <section ref={featuredRef} style={{ ...card, ...revealStyle(featuredShown, 2) }}>
-            <div style={cardHead}>
-              <h2 style={title}>Featured Vehicles</h2>
-              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{featuredCount} featured</span>
-            </div>
-
-            <div style={{ padding: '6px 20px 14px', maxHeight: '440px', overflowY: 'auto' }}>
-              {vehicles.map((v) => (
-                <div
-                  key={v.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    gap: '12px', padding: '11px 0', borderBottom: '1px solid rgba(27,36,48,.07)',
-                  }}
-                >
-                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-dark)', fontWeight: v.featured ? 600 : 400 }}>
-                    {v.name}
-                  </span>
-
-                  <button
-                    role="switch"
-                    aria-checked={!!v.featured}
-                    aria-label={`Feature ${v.name} on the homepage`}
-                    onClick={() => toggleFeaturedVehicle(v.id)}
-                    style={{
-                      width: '42px', height: '23px', borderRadius: '999px', border: 'none',
-                      cursor: 'pointer', padding: '2px', flexShrink: 0,
-                      background: v.featured ? 'var(--primary-ink)' : 'var(--field-border)',
-                      display: 'flex', justifyContent: v.featured ? 'flex-end' : 'flex-start',
-                      transition: 'background 0.2s ease',
-                    }}
-                  >
-                    <span style={{ width: '19px', height: '19px', borderRadius: '999px', background: 'var(--bg-card)', display: 'block', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          </div>
-        </div>
+        )}
       </div>
 
       {bannerOpen && (

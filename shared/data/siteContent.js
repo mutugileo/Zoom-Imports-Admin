@@ -4,7 +4,7 @@ export const DEFAULT_CONTACT = {
   phone: '+254 700 000 000',
   whatsapp: '+254 700 000 000',
   email: 'hello@zoomimports.co.ke',
-  location: 'Mombasa Road, Nairobi',
+  location: 'Office SF07, K-Mall, Thindigua, Kiambu Road',
 };
 
 export const DEFAULT_BANNERS = [];
@@ -21,7 +21,7 @@ export const DEFAULT_FAQS = [
     id: 2,
     question: 'Do you offer part installation?',
     answer:
-      'Yes. Our Mombasa Road depot fits most parts while you wait, and we can recommend a trusted garage if the job is bigger.',
+      'Yes. Our counter at K-Mall, Thindigua fits most parts while you wait, and we can recommend a trusted garage if the job is bigger.',
     type: 'FAQ',
   },
   {
