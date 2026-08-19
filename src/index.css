@@ -1304,6 +1304,285 @@ h1, h2, h3, h4, .font-serif {
   line-height: 1.5;
 }
 
+/* ── Mobile App overview ──────────────────────────────────────────────────
+   One number, one button, and a quiet second tier.
+
+   Two earlier passes put every figure on the page at roughly equal weight —
+   eight tiles, then twelve stat lines with a caption under each. Both answered
+   "what is in the database" when the only question worth asking on a landing
+   screen is "what do I do next". Everything except that answer has been
+   demoted or deleted. */
+/* Scoped to the whole tab panel, not just the overview, so the list tabs share
+   the same hairline as the figures above them. */
+.ma-scope {
+  --ma-rule: color-mix(in srgb, var(--text-muted) 16%, transparent);
+}
+
+/* ── The one thing that matters ── */
+.ma-hero {
+  display: flex;
+  align-items: center;
+  gap: clamp(18px, 3vw, 34px);
+  flex-wrap: wrap;
+  padding-bottom: 26px;
+}
+
+.ma-hero-figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(52px, 7vw, 76px);
+  font-weight: 600;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  color: var(--text-dark);
+}
+/* Nothing waiting is good news, not a headline. */
+.ma-hero[data-clear] .ma-hero-figure { color: var(--text-dim); font-weight: 400; }
+
+.ma-hero-copy { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.ma-hero-title {
+  font-size: var(--text-lg);
+  color: var(--text-body);
+  line-height: 1.3;
+  max-width: 26ch;
+}
+
+/* The CTA. One per screen, and it names the action and the count rather than
+   saying "View" — a button that says what it will do needs no label above it. */
+.ma-cta {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 20px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.14s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.2s ease;
+}
+.ma-cta:hover { background: var(--primary-hover); }
+.ma-cta:active { transform: translateY(1px); }
+.ma-cta:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(27, 85, 102, 0.3); }
+.ma-cta svg { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+.ma-cta:hover svg { transform: translateX(3px); }
+
+/* ── Second tier: the rest of the queue, as quiet links ── */
+.ma-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 18px 0;
+  border-top: 1px solid var(--ma-rule);
+}
+.ma-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--ma-rule);
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-body);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.12s ease;
+}
+.ma-chip:hover { background: var(--bg-app); border-color: var(--border-medium); }
+.ma-chip:active { transform: translateY(1px); }
+.ma-chip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(27, 85, 102, 0.22); }
+.ma-chip b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.ma-chip[data-idle] { opacity: 0.55; }
+.ma-chip[data-idle] b { color: var(--text-dim); font-weight: 400; }
+
+/* ── The work itself: four panels of rows, hairlines only ── */
+.ma-panels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 26px 44px;
+  padding-top: 22px;
+  border-top: 1px solid var(--ma-rule);
+}
+.ma-panel { min-width: 0; }
+.ma-panel-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--primary-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ma-panel-link:hover { text-decoration: underline; }
+.ma-panel-empty {
+  margin: 14px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.ma-rows { display: flex; flex-direction: column; }
+.ma-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 0;
+  min-width: 0;
+}
+.ma-row + .ma-row { border-top: 1px solid var(--ma-rule); }
+/* The date column is monospaced and fixed-width so the titles beside it start
+   on the same edge down the whole list. */
+.ma-row-lead {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+  min-width: 6ch;
+  flex-shrink: 0;
+}
+.ma-row-copy { flex: 1; min-width: 0; }
+.ma-row-title {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-dark);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ma-row-sub { display: block; font-size: var(--text-xs); color: var(--text-dim); margin-top: 1px; }
+.ma-row-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* The panel pager: the table footer without the filled bar. Four of those on
+   one screen would have put back the boxes this layout exists to remove, so
+   only the controls carry over. */
+.ma-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 11px 0 0;
+  border-top: 1px solid var(--ma-rule);
+}
+.ma-foot .table-foot-count { font-size: var(--text-xs); color: var(--text-dim); }
+/* Smaller than a table's — these sit in a half-width column. */
+.ma-foot .pager-btn { min-width: 27px; height: 27px; padding: 0 6px; font-size: var(--text-xs); }
+
+@media (max-width: 900px) {
+  .ma-panels { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+}
+
+/* ── Third tier: context. No captions beyond a single word. ── */
+.ma-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 30px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ma-rule);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+.ma-strip span { display: inline-flex; align-items: baseline; gap: 7px; }
+.ma-strip b {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text-body);
+}
+
+/* ── Shared by the list tabs ──
+   Same language as the overview: a label, a rule, one action, and the data
+   sitting directly on the page rather than inside a bordered box. */
+.ma-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+.ma-section-label {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.ma-section-rule { flex: 1; height: 1px; background: var(--ma-rule); }
+.ma-section-note { font-size: var(--text-xs); color: var(--text-dim); white-space: nowrap; }
+
+/* The header action is the same button as the hero CTA, one size down. */
+.ma-cta--sm { padding: 8px 15px; font-size: var(--text-xs); }
+
+/* The tables lose their card, so they need their own breathing room and a
+   horizontal escape on narrow screens rather than pushing the page sideways. */
+.ma-list { overflow-x: auto; }
+.ma-list .admin-table { width: 100%; min-width: 620px; }
+.ma-list .admin-table th:first-child,
+.ma-list .admin-table td:first-child { padding-left: 0; }
+.ma-list .admin-table th:last-child,
+.ma-list .admin-table td:last-child { padding-right: 0; }
+
+.ma-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 30px 0 8px;
+  max-width: 52ch;
+}
+.ma-empty p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@keyframes ma-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.ma-rise {
+  animation: ma-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes ma-shimmer { to { background-position: 200% 0; } }
+.ma-skeleton {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-app) 0%,
+    color-mix(in srgb, var(--text-muted) 12%, var(--bg-app)) 50%,
+    var(--bg-app) 100%
+  );
+  background-size: 200% 100%;
+  animation: ma-shimmer 1.4s linear infinite;
+}
+
+@media (max-width: 620px) {
+  .ma-hero { gap: 14px; }
+  .ma-strip { gap: 8px 20px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ma-rise, .ma-skeleton { animation: none; }
+  .ma-cta, .ma-cta svg, .ma-chip { transition: none; }
+}
+
 /* ── About Page Copy: stepper ─────────────────────────────────────────────
    Ten textareas in one column ran past a screen and a half. The form shows one
    section at a time, its boxes side by side. */

@@ -65,9 +65,15 @@ export const ROLES = {
     blurb: 'Everything except adding or removing staff.',
     permissions: ['catalogue:write', 'catalogue:delete', 'orders:write', 'enquiries:write', 'content:write', 'costs:view', 'costs:write'],
   },
+  /* No costs:view either. This role exists to get stock onto the site — post a
+     vehicle, post a part, set fitment. What the yard paid for a unit is a
+     buying position, and someone whose job is listing cars has no decision that
+     depends on it. Matched by RLS: the cost and sales tables name only
+     Superadmin and Administrator, so the figures are not merely hidden from
+     this role's screens, they are unreachable from its session. */
   'Inventory Manager': {
-    blurb: 'Vehicles, parts, fitment and the cost ledger. No orders or staff.',
-    permissions: ['catalogue:write', 'catalogue:delete', 'costs:view', 'costs:write'],
+    blurb: 'Vehicles, parts and fitment. No cost figures, orders or staff.',
+    permissions: ['catalogue:write', 'catalogue:delete'],
   },
   /* No costs:view. Sales quote the selling price; a rep who can see the floor
      will eventually discount to it. */
@@ -88,9 +94,14 @@ export const ADMIN_ROLES = Object.keys(ROLES);
  * says "no buyers yet" to someone who is not allowed to see any is a worse
  * answer than not offering the screen at all.
  */
+/* `admin-mobile` is Superadmin and Administrator only, on the same reasoning as
+   `admin-buyers`: the app's garage tables carry customers' plates, chassis
+   numbers, insurance and NTSA expiry dates and fuel spend. The RLS policies
+   behind them admit any staff role, so this list is the narrower of the two —
+   worth remembering if a role ever needs adding here. */
 export const ROLE_VIEWS = {
-  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
-  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-content', 'admin-settings'],
+  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings'],
+  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings'],
   /* Settings is granted to every role, but only for the PIN card — see
      AdminSettings, where everything else is behind `users:manage`. Without it
      nobody below Administrator could change their own credential; they had to

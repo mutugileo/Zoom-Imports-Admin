@@ -11,7 +11,6 @@ import {
   GitCompareArrows,
   ClipboardList,
   MessagesSquare,
-  ArrowLeft,
   FileStack,
   Settings2,
   LogOut,
@@ -21,7 +20,7 @@ import {
   X,
   Sun,
   Moon
-, Layers, Star, ReceiptText, Ship, UserRound } from 'lucide-react';
+, Layers, Star, ReceiptText, Ship, UserRound, Smartphone } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -84,6 +83,7 @@ export const AdminLayout = ({ children }) => {
       { id: 'admin-reviews', label: 'Reviews', icon: Star },
     ] },
     { title: 'Administration', items: [
+      { id: 'admin-mobile', label: 'Mobile App', icon: Smartphone },
       { id: 'admin-content', label: 'Site Content', icon: FileStack },
       { id: 'admin-settings', label: 'Settings', icon: Settings2 },
     ] },
@@ -187,7 +187,18 @@ export const AdminLayout = ({ children }) => {
             : <ChevronLeft size={16} strokeWidth={2.75} />}
         </button>
 
-        <div>
+        {/* Brand block + nav, as a flex column that can shrink.
+            This was a bare <div>. The rail is height:100vh with
+            justify-content:space-between, so this wrapper got a fixed slice of
+            the viewport while its content kept its natural height — the nav ran
+            straight past the bottom edge and painted Site Content and Settings
+            *underneath* the user block. They were in the DOM, inside the
+            viewport, and unclickable.
+
+            minHeight:0 is the load-bearing part: a flex child will not shrink
+            below its content without it, so the nav's own overflow never
+            engages and nothing scrolls. */}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 auto' }}>
           <div
             style={{
               padding: railCollapsed ? '0 0 22px' : '0 24px 22px',
@@ -314,19 +325,6 @@ export const AdminLayout = ({ children }) => {
                   </span>
                 )}
               </div>
-              <button
-                onClick={signOut}
-                title={railCollapsed ? 'Sign out' : undefined}
-                style={{
-                  marginTop: '10px', width: '100%', padding: '8px 10px',
-                  fontSize: 'var(--text-sm)', fontWeight: 700, cursor: 'pointer',
-                  color: 'var(--on-sidebar)', background: 'var(--sidebar-hover)',
-                  border: '1px solid var(--sidebar-line)', borderRadius: 'var(--radius-pill)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: railCollapsed ? 0 : '7px',
-                }}
-              >
-                <LogOut size={14} /> {!railCollapsed && 'Sign out'}
-              </button>
             </div>
           )}
           <button
@@ -354,23 +352,30 @@ export const AdminLayout = ({ children }) => {
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             {!railCollapsed && (theme === 'dark' ? 'Light Theme' : 'Dark Theme')}
           </button>
-          <a
-            href={import.meta.env?.VITE_WEBSITE_URL || 'http://localhost:3000'}
-            title={railCollapsed ? 'Exit to Customer Site' : undefined}
+          {/* One way out, not two.
+              The rail used to carry a Sign out button inside the user block and
+              an "Exit to Customer Site" link beneath it — the link only opened
+              the storefront, which is a bookmark, not a piece of chrome worth
+              permanent rail space. Both are now this single button, which buys
+              back the height a growing menu needs. */}
+          <button
+            type="button"
+            onClick={signOut}
+            title={railCollapsed ? 'Log out' : undefined}
             style={{
-              padding: railCollapsed ? '11px 0' : '11px 14px',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--on-sidebar)',
-              fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
+              width: '100%',
+              marginBottom: '6px',
+              padding: railCollapsed ? '9px 0' : '9px 14px',
+              fontSize: 'var(--text-sm)', fontWeight: 700, cursor: 'pointer',
+              color: 'var(--on-sidebar)', background: 'var(--sidebar-hover)',
+              border: '1px solid var(--sidebar-line)', borderRadius: 'var(--radius-pill)',
+              display: 'flex', alignItems: 'center',
               justifyContent: railCollapsed ? 'center' : 'flex-start',
               gap: railCollapsed ? 0 : '8px',
             }}
           >
-            <ArrowLeft size={16} /> {!railCollapsed && 'Exit to Customer Site'}
-          </a>
+            <LogOut size={16} /> {!railCollapsed && 'Log out'}
+          </button>
         </div>
 
       </div>
