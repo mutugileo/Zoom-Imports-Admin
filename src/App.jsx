@@ -11,6 +11,7 @@ import { AdminOrders } from './pages/AdminOrders';
 import { AdminBuyers } from './pages/AdminBuyers';
 import { AdminEnquiries } from './pages/AdminEnquiries';
 import { AdminSiteContent } from './pages/AdminSiteContent';
+import { AdminMobileApp } from './pages/AdminMobileApp';
 import { AdminSettings } from './pages/AdminSettings';
 import { AdminLogin } from './pages/AdminLogin';
 import { NoAccess } from './pages/NoAccess';
@@ -26,6 +27,7 @@ const VIEWS = {
   'admin-buyers': AdminBuyers,
   'admin-enquiries': AdminEnquiries,
   'admin-content': AdminSiteContent,
+  'admin-mobile': AdminMobileApp,
   'admin-settings': AdminSettings,
 };
 

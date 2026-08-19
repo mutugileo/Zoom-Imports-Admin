@@ -12,7 +12,7 @@ import { pagesToShow } from '@shared/lib/paging';
  * The range is a live region: changing page swaps the rows above without moving
  * focus, so nothing else would tell a screen-reader user the table had changed.
  */
-export const Pagination = ({ page, pageCount, from, to, total, onChange, noun = 'items' }) => {
+export const Pagination = ({ page, pageCount, from, to, total, onChange, noun = 'items', className = 'table-foot' }) => {
   if (total === 0) return null;
 
   const go = (next) => {
@@ -20,8 +20,12 @@ export const Pagination = ({ page, pageCount, from, to, total, onChange, noun = 
     if (clamped !== page) onChange(clamped);
   };
 
+  /* `className` is the only thing that varies between a table's filled footer
+     bar and the borderless one the Mobile App panels use. The markup, the
+     clamping and the live region are identical either way — a second pager
+     component would have drifted from this one within a release. */
   return (
-    <div className="table-foot">
+    <div className={className}>
       <span className="table-foot-count" role="status" aria-live="polite">
         {pageCount > 1 ? `Showing ${from}–${to} of ${total} ${noun}` : `${total} ${noun}`}
       </span>
