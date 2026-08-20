@@ -19,8 +19,9 @@ import {
   Menu,
   X,
   Sun,
-  Moon
-, Layers, Star, ReceiptText, Ship, UserRound, Smartphone } from 'lucide-react';
+  Moon,
+  History,
+  Layers, Star, ReceiptText, Ship, UserRound, Smartphone } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -70,6 +71,7 @@ export const AdminLayout = ({ children }) => {
     ] },
     { title: 'Inventory', items: [
       { id: 'admin-vehicles', label: 'Vehicles', icon: CarFront },
+      { id: 'admin-history', label: 'History & Archive', icon: History },
       { id: 'admin-parts', label: 'Spare Parts', icon: Boxes },
       { id: 'admin-compatibility', label: 'Compatibility', icon: GitCompareArrows },
     ] },

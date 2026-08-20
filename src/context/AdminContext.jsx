@@ -451,6 +451,26 @@ export const AdminProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicles, refreshVehicles, logActivity]);
 
+  const archiveVehicle = useCallback(async (id) => {
+    const target = vehicles.find((v) => v.id === id);
+    if (!target) return { ok: false, reason: 'Not found' };
+    const { error } = await supabase.from('vehicles').update({ status: 'Archived', featured: false }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not move vehicle to recycle bin. Try again.') };
+    await refreshVehicles();
+    logActivity(`${target.name} moved to Recycle Bin`);
+    return { ok: true };
+  }, [vehicles, refreshVehicles, logActivity]);
+
+  const restoreVehicle = useCallback(async (id, nextStatus = 'Available') => {
+    const target = vehicles.find((v) => v.id === id);
+    if (!target) return { ok: false, reason: 'Not found' };
+    const { error } = await supabase.from('vehicles').update({ status: nextStatus }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not restore this vehicle. Try again.') };
+    await refreshVehicles();
+    logActivity(`${target.name} restored to active inventory`);
+    return { ok: true };
+  }, [vehicles, refreshVehicles, logActivity]);
+
   const toggleFeaturedVehicle = useCallback(async (id) => {
     const target = vehicles.find((v) => v.id === id);
     if (!target) return { ok: false, reason: 'Not found' };
@@ -1320,7 +1340,7 @@ export const AdminProvider = ({ children }) => {
       currentView, navigateTo,
       vehicles, vehiclesLoading, parts, partsLoading, compatibility, compatibilityLoading,
       orders, ordersLoading, enquiries, enquiriesLoading,
-      saveVehicle, deleteVehicle, toggleFeaturedVehicle,
+      saveVehicle, deleteVehicle, archiveVehicle, restoreVehicle, toggleFeaturedVehicle,
       savePart, deletePart,
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor,
@@ -1356,7 +1376,7 @@ export const AdminProvider = ({ children }) => {
       currentView, navigateTo,
       vehicles, vehiclesLoading, parts, partsLoading, compatibility, compatibilityLoading,
       orders, ordersLoading, enquiries, enquiriesLoading,
-      saveVehicle, deleteVehicle, toggleFeaturedVehicle, savePart, deletePart,
+      saveVehicle, deleteVehicle, archiveVehicle, restoreVehicle, toggleFeaturedVehicle, savePart, deletePart,
       addCompatibilityRule, removeCompatibilityRule, updateOrderStatus, updateEnquiryStatus,
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,
       pageCopy, savePageCopy,

@@ -112,13 +112,31 @@ const inWindow = (dateString, from, to) => {
  * `uncosted` says how many were left out, so the two numbers are never confused
  * for a matched pair.
  */
-export const vehicleSalesSummary = (vehicles = [], sales = {}, { from = null, to = null } = {}) => {
+export const vehicleSalesSummary = (vehicles = [], sales = {}, { from = null, to = null } = {}, vehicleCosts = {}) => {
   const rows = [];
   for (const v of vehicles) {
     const sale = sales[v.id];
-    if (!sale) continue;
-    if (!inWindow(sale.date, from, to)) continue;
-    rows.push({ vehicle: v, sale, profit: vehicleSaleProfit(sale) });
+    if (!sale && v.status !== 'Sold') continue;
+
+    const salePrice = num(sale?.price ?? v.price);
+    const saleDate = sale?.date || v.createdAt || null;
+    if (!inWindow(saleDate, from, to)) continue;
+
+    const costs = vehicleCosts[v.id];
+    const costValue = sale?.costed && sale.cost !== null ? num(sale.cost) : (hasLedger(costs) ? totalCost(costs) : null);
+    const isCosted = costValue !== null;
+
+    rows.push({
+      vehicle: v,
+      sale: {
+        price: salePrice,
+        date: saleDate,
+        buyer: sale?.buyer || '',
+        cost: costValue,
+        costed: isCosted,
+      },
+      profit: isCosted ? salePrice - costValue : null,
+    });
   }
 
   const costed = rows.filter((r) => r.sale.costed);
@@ -142,17 +160,28 @@ export const vehicleSalesSummary = (vehicles = [], sales = {}, { from = null, to
 };
 
 /** Parts sales over a window, from completed orders and their cost snapshots. */
-export const partSalesSummary = (orders = [], orderCosts = {}, { from = null, to = null } = {}) => {
+export const partSalesSummary = (orders = [], orderCosts = {}, { from = null, to = null } = {}, partCosts = {}) => {
   const rows = [];
   for (const o of orders) {
     if (!isRealisedOrder(o)) continue;
     if (!inWindow(o.date, from, to)) continue;
     const entry = orderCosts[o.ref];
-    const complete = Boolean(entry?.complete);
+    let complete = Boolean(entry?.complete);
+    let totalCostVal = complete ? orderCostTotal(entry) : null;
+
+    // Fallback: If snapshot is missing, compute from partCosts
+    if (totalCostVal === null && (o.items || []).length > 0 && Object.keys(partCosts).length > 0) {
+      const fallbackEntry = makeOrderCost(o, partCosts);
+      if (fallbackEntry.complete) {
+        complete = true;
+        totalCostVal = orderCostTotal(fallbackEntry);
+      }
+    }
+
     rows.push({
       order: o,
-      cost: complete ? orderCostTotal(entry) : null,
-      profit: complete ? num(o.total) - orderCostTotal(entry) : null,
+      cost: totalCostVal,
+      profit: totalCostVal !== null ? num(o.total) - totalCostVal : null,
     });
   }
 

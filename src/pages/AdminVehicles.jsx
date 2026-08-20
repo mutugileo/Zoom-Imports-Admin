@@ -6,7 +6,7 @@ import { MAZDA_MODEL_GROUPS, modelOf } from '@shared/data/mazdaModels';
 import { totalCost, profit, profitMargin, formatMargin, hasLedger, rollUp } from '@shared/lib/costing';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, Plus, Edit2, Trash2, Star, X, Eye, Car, ReceiptText } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, Star, X, Eye, Car, ReceiptText, Tag } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { VehicleDetailModal } from '../components/VehicleDetailModal';
@@ -23,6 +23,7 @@ export const AdminVehicles = () => {
     vehicleCosts,
     saveVehicle,
     deleteVehicle,
+    archiveVehicle,
     toggleFeaturedVehicle,
     saleFor,
     setVehicleApproval,
@@ -99,6 +100,7 @@ export const AdminVehicles = () => {
   });
 
   const filteredVehicles = vehicles.filter(v => {
+    if (v.status === 'Archived') return false;
     if (filterStatus === 'Awaiting approval') {
       if (v.approvalStatus === 'Approved') return false;
     } else if (filterStatus !== 'All' && v.status !== filterStatus) return false;
@@ -177,7 +179,11 @@ export const AdminVehicles = () => {
   }, [isModalOpen, closeModal]);
 
   const handleDeleteFromDetail = async (vehicle) => {
-    await deleteVehicle(vehicle.id);
+    const confirmed = window.confirm(
+      `Move "${vehicle.name} (${vehicle.year})" to Recycle Bin / Archive?\n\nIt will be removed from active inventory and can be viewed or restored from History & Archive anytime.`
+    );
+    if (!confirmed) return;
+    await archiveVehicle(vehicle.id);
     setDetailVehicle(null);
   };
 
@@ -510,6 +516,14 @@ export const AdminVehicles = () => {
                       <button
                         type="button"
                         className="row-action"
+                        onClick={(e) => { e.stopPropagation(); setSaleVehicle(v); }}
+                        title={v.status === 'Sold' ? 'Edit achieved sale price' : 'Mark as sold and enter negotiated price'}
+                      >
+                        <Tag size={15} aria-hidden="true" /> {v.status === 'Sold' ? 'Sale Info' : 'Mark Sold'}
+                      </button>
+                      <button
+                        type="button"
+                        className="row-action"
                         onClick={(e) => { e.stopPropagation(); setDetailVehicle(v); }}
                       >
                         <Eye size={15} aria-hidden="true" /> View
@@ -527,9 +541,15 @@ export const AdminVehicles = () => {
                         <button
                           type="button"
                           className="row-action is-danger"
-                          onClick={(e) => { e.stopPropagation(); deleteVehicle(v.id); }}
+                          title="Move to Recycle Bin / Archive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Move "${v.name} (${v.year})" to Recycle Bin / Archive?\n\nIt will be safely moved to History & Archive, where you can restore it anytime.`)) {
+                              archiveVehicle(v.id);
+                            }
+                          }}
                         >
-                          <Trash2 size={15} aria-hidden="true" /> Delete
+                          <Trash2 size={15} aria-hidden="true" /> Archive
                         </button>
                       )}
                     </div>
@@ -571,6 +591,7 @@ export const AdminVehicles = () => {
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteFromDetail}
           onToggleFeatured={toggleFeaturedVehicle}
+          onRecordSale={(v) => { setDetailVehicle(null); setSaleVehicle(v); }}
         />
       )}
 

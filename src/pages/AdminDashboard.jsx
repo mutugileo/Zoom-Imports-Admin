@@ -157,7 +157,7 @@ const SummaryModal = ({ id, title, total, totalLabel, icon: Icon, tone, details,
 export const AdminDashboard = () => {
   const {
     vehicles, parts, orders, enquiries, formatKES, navigateTo, currentUser, canView,
-    vehicleSales, orderCosts, can,
+    vehicleSales, vehicleCosts, orderCosts, partCosts, can,
   } = useApp();
 
   const [range, setRange] = useState('30d');
@@ -210,10 +210,10 @@ export const AdminDashboard = () => {
      reported, never assumed to be zero" rule in shared/lib/sales.js. */
   const money = useMemo(() => {
     const from = rangeStart(range);
-    const cars = vehicleSalesSummary(vehicles, vehicleSales, { from });
-    const spares = partSalesSummary(orders, orderCosts, { from });
+    const cars = vehicleSalesSummary(vehicles, vehicleSales, { from }, vehicleCosts);
+    const spares = partSalesSummary(orders, orderCosts, { from }, partCosts);
     return { cars, spares, ...combinedSummary(cars, spares) };
-  }, [vehicles, vehicleSales, orders, orderCosts, range]);
+  }, [vehicles, vehicleSales, vehicleCosts, orders, orderCosts, partCosts, range]);
 
   /* Revenue is money, so it sits behind the same permission as the Realised
      band. A role without costs:view is not offered the toggle and cannot land

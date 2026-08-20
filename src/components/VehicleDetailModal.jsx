@@ -5,7 +5,7 @@ import { VehicleDocuments } from './VehicleDocuments';
 import React, { useEffect, useCallback, useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { formatKES } from '@shared/lib/format';
-import { X, Edit2, Trash2, Star, ExternalLink, ReceiptText } from 'lucide-react';
+import { X, Edit2, Trash2, Star, ExternalLink, ReceiptText, Tag } from 'lucide-react';
 import { Invoice, quotationFor } from './Invoice';
 
 /**
@@ -69,7 +69,7 @@ const present = (key, value) => {
   return String(value);
 };
 
-export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggleFeatured }) => {
+export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggleFeatured, onRecordSale }) => {
   const { can, buyerForVehicle: findBuyer } = useApp();
   const [showInvoice, setShowInvoice] = useState(false);
 
@@ -281,6 +281,14 @@ export const VehicleDetailModal = ({ vehicle, onClose, onEdit, onDelete, onToggl
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', borderTop: '1px solid var(--band-line)', paddingTop: '18px' }}>
             <button onClick={() => onEdit(vehicle)} className="btn-primary">
               <Edit2 size={15} /> Edit listing
+            </button>
+            <button
+              type="button"
+              onClick={() => onRecordSale?.(vehicle)}
+              className="btn-secondary"
+              style={{ fontWeight: 600 }}
+            >
+              <Tag size={15} /> {vehicle.status === 'Sold' ? 'Edit sale price' : 'Mark as sold'}
             </button>
             <button onClick={() => onToggleFeatured(vehicle.id)} className="btn-secondary">
               <Star size={15} fill={vehicle.featured ? 'var(--primary-ink)' : 'none'} />
