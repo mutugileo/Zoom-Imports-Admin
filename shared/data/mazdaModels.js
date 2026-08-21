@@ -1,22 +1,8 @@
 /**
  * The Mazda range, grouped the way a buyer thinks about it.
  *
- * Zoom Imports is a single-marque dealership: Mazda is the *make*, and
- * everything below is a *model*. The storefront used to call this list "makes",
- * which put "All makes" above a list containing only Mazda models — so the one
- * filter meant to narrow a search was mislabelled at the top.
- *
- * Three fields per entry, and they are not interchangeable:
- *
- *   id     what the catalogue actually stores, and what a filter compares.
- *          Existing records say "Mazda Demio", never "Mazda Demio / Mazda2",
- *          so the id has to stay the short name or every stored vehicle stops
- *          matching its own model.
- *   label  what a customer reads. Japanese-market and export names for the
- *          same car differ, and a buyer who knows it as a Mazda3 will not find
- *          "Axela" on their own.
- *   match  every name the same car is sold under. `modelOf` resolves any of
- *          them back to the one id.
+ * Each model is treated as a distinct vehicle option (e.g. Mazda 3, Mazda Axela,
+ * Mazda 6, and Mazda Atenza are treated independently).
  */
 const M = (id, label, ...alts) => ({ id, label, match: [id, ...alts] });
 
@@ -24,11 +10,13 @@ export const MAZDA_MODEL_GROUPS = [
   {
     group: 'Hatchbacks & Sedans',
     models: [
-      M('Carol', 'Carol'),
-      M('Demio', 'Demio / Mazda2', 'Mazda2'),
-      M('Axela', 'Axela / Mazda3', 'Mazda3'),
-      M('Atenza', 'Atenza / Mazda6', 'Mazda6'),
+      M('Mazda3', 'Mazda 3', 'Mazda 3', 'Mazda3', 'BP Fastback', 'BP Sedan', '3 Fastback', '3 Sedan'),
+      M('Axela', 'Mazda Axela', 'Axela', 'Axela Sport', 'Axela Hybrid', 'Mazda Axela', 'Axela Sedan'),
+      M('Mazda6', 'Mazda 6', 'Mazda 6', 'Mazda6', 'GL Wagon', 'GL Sedan', '6 Wagon', '6 Sedan'),
+      M('Atenza', 'Mazda Atenza', 'Atenza', 'Atenza Wagon', 'Atenza Sedan', 'Mazda Atenza'),
+      M('Demio', 'Demio / Mazda2', 'Demio', 'Mazda2', 'Mazda 2', 'Mazda Demio'),
       M('Verisa', 'Verisa'),
+      M('Carol', 'Carol'),
       M('Familia', 'Familia'),
       M('Flair', 'Flair'),
       M('Flair Crossover', 'Flair Crossover'),
@@ -63,7 +51,7 @@ export const MAZDA_MODEL_GROUPS = [
   {
     group: 'Sports Cars',
     models: [
-      M('Roadster', 'MX-5 / Roadster', 'MX-5'),
+      M('Roadster', 'MX-5 / Roadster', 'MX-5', 'Miata', 'Roadster'),
       M('RX-8', 'RX-8'),
     ],
   },
@@ -79,15 +67,19 @@ export const MAZDA_MODEL_GROUPS = [
 /** Flat list, group order preserved. */
 export const MAZDA_MODELS = MAZDA_MODEL_GROUPS.flatMap((g) => g.models);
 
-/** id → label, for printing a stored value back to a customer. */
-export const labelForModel = (id) =>
-  MAZDA_MODELS.find((m) => m.id === id)?.label ?? id;
+/** id → label, for printing a stored value back to a customer. Case-insensitive. */
+export const labelForModel = (id) => {
+  if (!id) return '';
+  const match = MAZDA_MODELS.find(
+    (m) => m.id.toLowerCase() === String(id).toLowerCase()
+  );
+  return match?.label ?? id;
+};
 
 /**
  * Longest match first, so a name is resolved to the most specific model it
  * could be. This is what keeps "CX-30" out of the CX-3 results and "Flair
- * Crossover" out of the Flair results — a plain `startsWith` puts both in the
- * wrong bucket, and the shorter model silently swallows the longer one.
+ * Crossover" out of the Flair results.
  */
 const CANDIDATES = MAZDA_MODELS
   .flatMap((m) => m.match.map((name) => ({ id: m.id, name })))
@@ -95,8 +87,7 @@ const CANDIDATES = MAZDA_MODELS
 
 /**
  * Which model a vehicle is, from its stored name. Returns null for anything
- * outside the range rather than guessing — an unrecognised car should fall out
- * of a model filter, not land in an arbitrary bucket.
+ * outside the range rather than guessing.
  */
 export const modelOf = (vehicleName) => {
   const name = String(vehicleName || '').trim().replace(/^mazda\s+/i, '');
@@ -107,25 +98,23 @@ export const modelOf = (vehicleName) => {
     if (!lower.startsWith(c)) continue;
     // Must end there or break on a separator: "CX-5" is not a "CX-50".
     const next = lower.charAt(c.length);
-    if (next === '' || next === ' ') return id;
+    if (next === '' || next === ' ' || next === '/') return id;
   }
   return null;
 };
 
-/** Does this vehicle belong to `modelId`? `'All'` matches everything. */
-export const isModel = (vehicleName, modelId) =>
-  modelId === 'All' || modelOf(vehicleName) === modelId;
+/** Does this vehicle belong to `modelId`? Strict distinct vehicle matching ('All' matches everything). */
+export const isModel = (vehicleName, modelId) => {
+  if (!modelId || modelId === 'All') return true;
+  const target = String(modelId).trim().toLowerCase();
+  const found = modelOf(vehicleName);
+  if (!found) return false;
+
+  return found.toLowerCase() === target;
+};
 
 /**
  * Every model named in a free-text fitment string.
- *
- * Compatibility rules are written by hand at the counter, so the model column
- * holds things like "Axela / Axela Sport", "Demio / Verisa" or "All Models
- * (Demio, Axela, CX-5)" rather than one tidy id. This pulls the ids back out.
- *
- * `all` is its own answer rather than a list, because "All Models" has to keep
- * meaning all models as the range grows — resolving it to today's ids would
- * quietly stop covering anything added later.
  */
 export const modelsInText = (text) => {
   const raw = String(text || '').trim();
