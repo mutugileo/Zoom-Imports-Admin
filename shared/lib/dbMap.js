@@ -284,6 +284,7 @@ export const reviewFromRow = (r) => ({
   quote: r.quote,
   rating: r.rating,
   status: r.status,
+  img: r.img || r.image || '',
   at: r.created_at,
 });
 

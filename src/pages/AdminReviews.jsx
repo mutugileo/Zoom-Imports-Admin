@@ -113,9 +113,20 @@ export const AdminReviews = () => {
                   </div>
                 </div>
 
-                <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.65, color: 'var(--text-body)', maxWidth: '78ch' }}>
-                  {r.quote}
-                </p>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', margin: '10px 0' }}>
+                  {r.img ? (
+                    <a href={r.img} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0 }}>
+                      <img
+                        src={r.img}
+                        alt={`${r.name}'s review attachment`}
+                        style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--band-line)' }}
+                      />
+                    </a>
+                  ) : null}
+                  <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.65, color: 'var(--text-body)', maxWidth: '78ch', margin: 0 }}>
+                    {r.quote}
+                  </p>
+                </div>
 
                 {mayModerate && (
                   <div style={{ display: 'flex', gap: '10px', marginTop: '14px', flexWrap: 'wrap' }}>
