@@ -135,16 +135,20 @@ export const IntakeSheet = ({ intake, onClose }) => {
           <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0 28px',
                         alignItems: 'center', paddingBottom: '14px', borderBottom: '1.5px solid #9aa4ae' }}>
             <div style={{ paddingRight: '28px', borderRight: '1px solid #d8dee4', display: 'flex',
-                          alignItems: 'center', justifyContent: 'center', minWidth: '132px' }}>
+                          alignItems: 'center', justifyContent: 'center', minWidth: '140px' }}>
               {/* The real mark if it has been added, the line drawing if not.
                   onError rather than a build-time import: the file is dropped
                   into public/media by whoever has it, and a missing logo must
                   degrade to something printable instead of a broken-image
                   glyph on a document handed to a customer. */}
               <img
-                src="/media/zoom-imports-logo.png"
+                src="/media/logo.jpg"
                 alt="Zoom Imports"
-                style={{ maxWidth: '124px', maxHeight: '76px', objectFit: 'contain' }}
+                /* Rounded, and cover rather than contain: the artwork is a square
+                   tile whose red honeycomb runs to the edges, so a circle crops
+                   the ground away from the badge instead of leaving a red
+                   square sitting on a white sheet. */
+                style={{ width: '104px', height: '104px', objectFit: 'cover', borderRadius: '50%' }}
                 onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block'; }}
               />
               <span style={{ display: 'none' }}><CarMark height={30} color="#1f2328" /></span>
@@ -245,26 +249,36 @@ export const IntakeSheet = ({ intake, onClose }) => {
             ))}
           </section>
 
-          <section style={{ marginTop: '4px' }}>
+          {/* The same Item / Status table as the checklist, with Comments as
+              the item — that is how the reference sets it, and it keeps the
+              remark inside the record rather than floating below it as a
+              separate note. Full width because the text is a sentence, not a
+              status word. */}
+          <section style={{ marginTop: '2px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.09em',
-                               textTransform: 'uppercase', color: '#57606a', padding: '5px 7px',
-                               background: '#f2f4f7', border: '1px solid #d8dee4' }}>
-                    Comments
-                  </th>
+                  <th style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.06em',
+                               textTransform: 'uppercase', color: '#8a929c', padding: '4px 7px',
+                               border: '1px solid #d8dee4', width: '19%' }}>Item</th>
+                  <th style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.06em',
+                               textTransform: 'uppercase', color: '#8a929c', padding: '4px 7px',
+                               border: '1px solid #d8dee4' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ border: '1px solid #e4e8ed', padding: '8px 7px', verticalAlign: 'top' }}>
-                    {/* Ruled and given height even when empty: a blank box is a
-                        box someone chose not to write in, which is different
-                        from a section that was never on the form. */}
-                    <div style={{ fontSize: '0.8rem', color: '#33373d', lineHeight: 1.6, whiteSpace: 'pre-wrap', minHeight: '3.2em' }}>
-                      {intake.comments || ''}
-                    </div>
+                  <td style={{ fontSize: '0.74rem', color: '#444c56', padding: '6px 7px',
+                               border: '1px solid #e4e8ed', verticalAlign: 'top' }}>
+                    Comments
+                  </td>
+                  {/* Given height even when empty: a blank box is a box someone
+                      chose not to write in, which is not the same as a section
+                      that was never on the form. */}
+                  <td style={{ fontSize: '0.78rem', color: '#1f2328', padding: '6px 7px',
+                               border: '1px solid #e4e8ed', lineHeight: 1.55,
+                               whiteSpace: 'pre-wrap', minHeight: '2.6em' }}>
+                    <div style={{ minHeight: '2.6em' }}>{intake.comments || ''}</div>
                   </td>
                 </tr>
               </tbody>
