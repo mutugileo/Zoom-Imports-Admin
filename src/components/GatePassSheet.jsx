@@ -123,6 +123,17 @@ export const GatePassSheet = ({ pass, onClose }) => {
             <DetailTable fields={GATE_VEHICLE_FIELDS} record={pass} formatKES={formatKES} />
           </section>
 
+          {/* Only once the car is back. On an open pass the return line would
+              assert a movement that has not finished. */}
+          {pass.returnedAt && (
+            <p style={{ ...centred, fontSize: '0.78rem', color: '#57606a', margin: '0 0 14px' }}>
+              Returned {isoDate(pass.returnedAt)}
+              {pass.mileageIn != null && pass.mileageOut != null
+                ? ` · ${(Number(pass.mileageIn) - Number(pass.mileageOut)).toLocaleString()} km covered`
+                : ''}
+            </p>
+          )}
+
           <h3 style={{ ...centred, fontSize: '0.92rem', fontWeight: 700, color: '#1f2328', margin: '0 0 12px' }}>
             Checked Out with the following
           </h3>

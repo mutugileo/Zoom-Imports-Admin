@@ -50,6 +50,24 @@ export const AdminGatePasses = () => {
 
   const stateOf = (g) => (g.returnedAt ? 'Returned' : g.issuedAt ? 'Out' : 'Draft');
 
+  /* Distance covered is the figure anyone actually wants — "out at 93,000,
+     back at 93,412" is two numbers to subtract in your head. Null unless both
+     ends are recorded, because a half-known trip has no distance. */
+  const distanceOf = (g) =>
+    g.mileageOut == null || g.mileageIn == null ? null : Number(g.mileageIn) - Number(g.mileageOut);
+
+  /* How long the vehicle was off the premises, or has been so far. */
+  const durationOf = (g) => {
+    if (!g.issuedAt) return null;
+    const end = g.returnedAt ? new Date(g.returnedAt) : new Date();
+    const mins = Math.max(0, Math.round((end - new Date(g.issuedAt)) / 60000));
+    if (mins < 60) return `${mins} min`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr ${mins % 60} min`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ${hrs % 24} hr`;
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return gatePasses.filter((g) => {
@@ -298,6 +316,16 @@ export const AdminGatePasses = () => {
               {GATE_VEHICLE_FIELDS.map((f) => <Line key={f.key} l={f.label} v={fmt(selected[f.key], f.type, formatKES)} />)}
             </div>
             <div style={{ ...card, padding: '16px 18px' }}>
+              <div style={sectionTitle}>Movement</div>
+              <Line l="Released" v={selected.issuedAt ? new Date(selected.issuedAt).toLocaleString('en-KE') : null} />
+              <Line l="Returned" v={selected.returnedAt ? new Date(selected.returnedAt).toLocaleString('en-KE') : null} />
+              <Line l={selected.returnedAt ? 'Time out' : 'Out for'} v={durationOf(selected)} />
+              <Line l="Mileage out" v={selected.mileageOut == null ? null : `${Number(selected.mileageOut).toLocaleString()} km`} />
+              <Line l="Mileage in" v={selected.mileageIn == null ? null : `${Number(selected.mileageIn).toLocaleString()} km`} />
+              <Line l="Distance covered" v={distanceOf(selected) == null ? null : `${distanceOf(selected).toLocaleString()} km`} />
+            </div>
+
+            <div style={{ ...card, padding: '16px 18px' }}>
               <div style={sectionTitle}>Checked out with</div>
               {GATE_ITEMS.map((i) => {
                 const v = selected.items?.[i.label] ?? '';
@@ -387,12 +415,12 @@ export const AdminGatePasses = () => {
 
         <div style={{ ...card, overflow: 'hidden' }}>
           <table className="admin-table">
-            <thead><tr><th>Pass</th><th>Vehicle</th><th>Taken by</th><th>Destination</th><th>Out</th><th>Status</th></tr></thead>
+            <thead><tr><th>Pass</th><th>Vehicle</th><th>Taken by</th><th>Destination</th><th>Out</th><th>Back</th><th>Status</th></tr></thead>
             <tbody>
               {gatePassesLoading && gatePasses.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading gate passes…</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading gate passes…</td></tr>
               ) : page.visible.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '28px 24px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
+                <tr><td colSpan={7} style={{ padding: '28px 24px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
                   {gatePasses.length === 0
                     ? 'No gate passes yet. Use “Release a vehicle” when a car leaves the premises.'
                     : filter === 'Out' ? 'No vehicles are currently out.' : 'Nothing matches that.'}
@@ -410,6 +438,19 @@ export const AdminGatePasses = () => {
                     <td style={{ color: 'var(--text-muted)' }}>{g.destination || '—'}</td>
                     <td style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
                       {g.issuedAt ? new Date(g.issuedAt).toLocaleDateString('en-KE') : '—'}
+                    </td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+                      {g.returnedAt
+                        ? <>{new Date(g.returnedAt).toLocaleDateString('en-KE')}
+                            {distanceOf(g) != null && (
+                              <div style={{ fontSize: 'var(--text-xs)' }}>{distanceOf(g).toLocaleString()} km</div>
+                            )}</>
+                        /* An open pass says how long it has been out rather than
+                           an em dash — that is the number someone chasing a car
+                           is looking for. */
+                        : st === 'Out'
+                          ? <span style={{ color: 'var(--accent-text)' }}>out {durationOf(g)}</span>
+                          : '—'}
                     </td>
                     <td><span className="badge" style={tone}>{st}</span></td>
                   </tr>
