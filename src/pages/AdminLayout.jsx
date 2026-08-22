@@ -49,9 +49,23 @@ import {
   Layers, Star, ReceiptText, Ship, UserRound, Smartphone, ClipboardCheck, DoorOpen, HelpCircle } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
+const FOOT_OPEN_KEY = 'admin-rail-foot-open';
 
 export const AdminLayout = ({ children }) => {
   const { currentView, navigateTo, currentUser, canView, signOut, idleWarning, staySignedIn, theme, toggleTheme } = useApp();
+
+  /* Theme and Help fold away under the user block. They are settings, looked
+     at rarely, and on a fifteen-item rail they were costing the nav two rows
+     it needed. Remembered per terminal, since whoever works this counter will
+     want the same answer tomorrow. */
+  const [footOpen, setFootOpen] = useState(() => {
+    try { return localStorage.getItem(FOOT_OPEN_KEY) !== 'false'; } catch { return true; }
+  });
+  const toggleFoot = () => setFootOpen((v) => {
+    const next = !v;
+    try { localStorage.setItem(FOOT_OPEN_KEY, String(next)); } catch { /* private mode */ }
+    return next;
+  });
 
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_COLLAPSED_KEY) === '1'; } catch { return false; }
@@ -333,7 +347,20 @@ export const AdminLayout = ({ children }) => {
                 borderTop: '1px solid var(--sidebar-line)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: railCollapsed ? 0 : '10px', justifyContent: railCollapsed ? 'center' : 'flex-start' }}>
+              <button
+                type="button"
+                onClick={railCollapsed ? undefined : toggleFoot}
+                aria-expanded={railCollapsed ? undefined : footOpen}
+                title={railCollapsed ? currentUser.name : (footOpen ? 'Hide options' : 'Show options')}
+                style={{
+                  width: '100%', background: 'transparent', border: 'none', padding: 0,
+                  cursor: railCollapsed ? 'default' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center',
+                  gap: railCollapsed ? 0 : '10px',
+                  justifyContent: railCollapsed ? 'center' : 'flex-start',
+                  textAlign: 'left',
+                }}
+              >
                 {/* Initials rather than a photo: nobody uploads one to a counter
                     terminal, and an empty avatar frame reads as a failed image. */}
                 <span
@@ -358,9 +385,36 @@ export const AdminLayout = ({ children }) => {
                     </span>
                   </span>
                 )}
-              </div>
+                {!railCollapsed && (
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      marginLeft: 'auto', flexShrink: 0, width: '16px', textAlign: 'center',
+                      fontFamily: 'var(--font-mono)', fontSize: 'var(--text-md)', fontWeight: 700,
+                      lineHeight: 1, color: 'color-mix(in srgb, var(--on-sidebar) 62%, transparent)',
+                    }}
+                  >
+                    {footOpen ? '\u2212' : '+'}
+                  </span>
+                )}
+              </button>
             </div>
           )}
+          {/* Theme and Help fold; Log out never does.
+              Sign-out on a shared counter terminal must not be one click
+              further away than it already is — someone who cannot see it walks
+              off leaving the session open, which is exactly the failure the
+              idle timeout exists to catch. Collapsed the rail is icon-width,
+              where there is no room to fold anything, so the group always
+              shows. */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateRows: (footOpen || railCollapsed) ? '1fr' : '0fr',
+              transition: 'grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
+            <div style={{ overflow: 'hidden', visibility: (footOpen || railCollapsed) ? 'visible' : 'hidden' }}>
           <button
             type="button"
             onClick={toggleTheme}
@@ -414,6 +468,9 @@ export const AdminLayout = ({ children }) => {
             <HelpCircle size={16} />
             {!railCollapsed && 'How to use this'}
           </button>
+
+            </div>
+          </div>
 
           {/* One way out, not two.
               The rail used to carry a Sign out button inside the user block and
