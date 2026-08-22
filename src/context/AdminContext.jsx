@@ -26,6 +26,7 @@ import {
   orderCostFromRow, orderCostToRow,
   buyerFromRow, buyerToRow,
   consignmentFromRow, consignmentToRow,
+  gatePassFromRow, gatePassToRow,
   billingFromRow, billingToRow,
   bankAccountFromRow, bankAccountToRow,
   buyerPaymentFromRow, buyerPaymentToRow,
@@ -115,6 +116,8 @@ export const AdminProvider = ({ children }) => {
   const [buyersLoading, setBuyersLoading] = useState(true);
   const [consignments, setConsignments] = useState([]);
   const [consignmentsLoading, setConsignmentsLoading] = useState(true);
+  const [gatePasses, setGatePasses] = useState([]);
+  const [gatePassesLoading, setGatePassesLoading] = useState(true);
   /* Company name, P.O. box and bank details for the invoice. Staff-only, and
      kept off `site_contact` because that table is readable by `anon`. */
   const [billing, setBilling] = useState(null);
@@ -821,6 +824,60 @@ export const AdminProvider = ({ children }) => {
    * invoice is made out to. Staff-only under RLS, so it is fetched with the
    * session and cleared on sign-out like every other internal table.
    */
+  const refreshGatePasses = useCallback(async () => {
+    if (!authUser) { setGatePasses([]); setGatePassesLoading(false); return; }
+    setGatePassesLoading(true);
+    const { data, error } = await supabase
+      .from('gate_passes')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setGatePassesLoading(false);
+    if (!error) setGatePasses((data ?? []).map(gatePassFromRow));
+  }, [authUser]);
+
+  const saveGatePass = useCallback(async (data) => {
+    const row = gatePassToRow(data);
+    const { data: saved, error } = data.id
+      ? await supabase.from('gate_passes').update(row).eq('id', data.id).select('id').single()
+      : await supabase.from('gate_passes').insert(row).select('id').single();
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save this gate pass. Try again.') };
+    await refreshGatePasses();
+    logActivity(data.id
+      ? `Gate pass updated for ${data.makeModel || 'a vehicle'}`
+      : `${data.makeModel || 'Vehicle'} released to ${data.takerName}`);
+    return { ok: true, id: saved?.id ?? data.id };
+  }, [refreshGatePasses, logActivity]);
+
+  /* Issuing freezes everything the driver signed for. A database trigger, not
+     a hidden button, is what holds that — see guard_gate_pass_immutable. */
+  const issueGatePass = useCallback(async (id) => {
+    const { error } = await supabase
+      .from('gate_passes').update({ issued_at: new Date().toISOString() }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not issue this gate pass.') };
+    await refreshGatePasses();
+    logActivity(`Gate pass #${id} issued`);
+    return { ok: true };
+  }, [refreshGatePasses, logActivity]);
+
+  /* The only write an issued pass still accepts, and the one that closes it. */
+  const recordGateReturn = useCallback(async (id, mileageIn) => {
+    const { error } = await supabase.from('gate_passes').update({
+      mileage_in: mileageIn === '' || mileageIn == null ? null : Number(mileageIn),
+      returned_at: new Date().toISOString(),
+    }).eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not record the return.') };
+    await refreshGatePasses();
+    logActivity(`Gate pass #${id} closed on return`);
+    return { ok: true };
+  }, [refreshGatePasses, logActivity]);
+
+  const deleteGatePass = useCallback(async (id) => {
+    const { error } = await supabase.from('gate_passes').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not remove this gate pass.') };
+    await refreshGatePasses();
+    return { ok: true };
+  }, [refreshGatePasses]);
+
   const refreshConsignments = useCallback(async () => {
     if (!authUser) { setConsignments([]); setConsignmentsLoading(false); return; }
     setConsignmentsLoading(true);
@@ -882,6 +939,7 @@ export const AdminProvider = ({ children }) => {
 
   useEffect(() => { refreshBuyers(); }, [refreshBuyers]);
   useEffect(() => { refreshConsignments(); }, [refreshConsignments]);
+  useEffect(() => { refreshGatePasses(); }, [refreshGatePasses]);
 
   /**
    * `vehicleId` is a trace back to the car, never a live lookup.
@@ -1414,6 +1472,7 @@ export const AdminProvider = ({ children }) => {
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
+      gatePasses, gatePassesLoading, saveGatePass, issueGatePass, recordGateReturn, deleteGatePass,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
@@ -1445,6 +1504,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
+      gatePasses, gatePassesLoading, saveGatePass, issueGatePass, recordGateReturn, deleteGatePass,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,

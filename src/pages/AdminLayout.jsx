@@ -21,7 +21,7 @@ import {
   Sun,
   Moon,
   History,
-  Layers, Star, ReceiptText, Ship, UserRound, Smartphone, ClipboardCheck } from 'lucide-react';
+  Layers, Star, ReceiptText, Ship, UserRound, Smartphone, ClipboardCheck, DoorOpen } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -79,6 +79,7 @@ export const AdminLayout = ({ children }) => {
     { title: 'Sales & fulfilment', items: [
       { id: 'admin-orders', label: 'Orders', icon: ClipboardList },
       { id: 'admin-groups', label: 'Shipments', icon: Ship },
+      { id: 'admin-gate-passes', label: 'Gate Passes', icon: DoorOpen },
     ] },
     { title: 'Customers', items: [
       { id: 'admin-buyers', label: 'Buyers', icon: UserRound },

@@ -531,3 +531,48 @@ export const consignmentToRow = (c) => ({
   owner_signed: c.ownerSigned || null,
   received_by: c.receivedBy || null,
 });
+
+/** Gate passes. Vehicle details are a copy, as on buyers and consignments. */
+export const gatePassFromRow = (r) => ({
+  id: r.id,
+  vehicleId: r.vehicle_id,
+  consignmentId: r.consignment_id,
+  takerName: r.taker_name,
+  takerPhone: r.taker_phone || '',
+  takerIdNo: r.taker_id_no || '',
+  destination: r.destination || '',
+  purpose: r.purpose || '',
+  makeModel: r.make_model || '',
+  regNo: r.reg_no || '',
+  chassis: r.chassis || '',
+  colour: r.colour || '',
+  engineNo: r.engine_no || '',
+  mileageOut: r.mileage_out,
+  mileageIn: r.mileage_in,
+  items: r.items || {},
+  comments: r.comments || '',
+  confirmedBy: r.confirmed_by || '',
+  issuedAt: r.issued_at,
+  returnedAt: r.returned_at,
+  at: r.created_at,
+});
+
+export const gatePassToRow = (g) => ({
+  vehicle_id: g.vehicleId ?? null,
+  consignment_id: g.consignmentId ?? null,
+  taker_name: g.takerName,
+  taker_phone: g.takerPhone || null,
+  taker_id_no: g.takerIdNo || null,
+  destination: g.destination || null,
+  purpose: g.purpose || null,
+  make_model: g.makeModel || null,
+  reg_no: g.regNo || null,
+  chassis: g.chassis || null,
+  colour: g.colour || null,
+  engine_no: g.engineNo || null,
+  mileage_out: g.mileageOut === '' || g.mileageOut == null ? null : Number(g.mileageOut),
+  mileage_in: g.mileageIn === '' || g.mileageIn == null ? null : Number(g.mileageIn),
+  items: g.items || {},
+  comments: g.comments || null,
+  confirmed_by: g.confirmedBy || null,
+});

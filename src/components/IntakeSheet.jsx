@@ -10,7 +10,7 @@ import { CarMark } from './CarMark';
 export const intakeNumberFor = (c) => `ZI-IN-${String(c?.id ?? 0).padStart(4, '0')}`;
 
 /** The form dates as 2026-02-16, so the sheet does too. */
-const isoDate = (value) => {
+export const isoDate = (value) => {
   if (!value) return null;
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return String(value);
@@ -32,7 +32,7 @@ const readableDate = (value) => {
  * names, which is why signing is irreversible in Postgres rather than
  * decorated here.
  */
-const ZoomStamp = ({ poBox }) => (
+export const ZoomStamp = ({ poBox }) => (
   /* An oval company stamp, set like the one the reference form carries: the
      name arced over the top, the postal address along the bottom, a star at
      each side, and the middle left open so it can be signed or over-stamped by
@@ -93,7 +93,7 @@ export const fmt = (v, type, formatKES) => {
  * on screen and prints as a light grey band with a dark edge on a mono laser,
  * so the emphasis survives a black-and-white copy.
  */
-const notice = {
+export const notice = {
   background: '#fdf4f1',
   borderLeft: '3px solid #c8102e',
   padding: '9px 12px',
