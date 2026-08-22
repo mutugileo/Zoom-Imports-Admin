@@ -84,6 +84,22 @@ export const fmt = (v, type, formatKES) => {
   return String(v);
 };
 
+/**
+ * The binding sentences.
+ *
+ * Set apart because they are the clauses the owner is agreeing to, not
+ * description — the received-in-condition statement, the authority to sell,
+ * and who pays running costs. A warm tint with a red rule reads as "read this"
+ * on screen and prints as a light grey band with a dark edge on a mono laser,
+ * so the emphasis survives a black-and-white copy.
+ */
+const notice = {
+  background: '#fdf4f1',
+  borderLeft: '3px solid #c8102e',
+  padding: '9px 12px',
+  borderRadius: '2px',
+};
+
 const Row = ({ label, value }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', padding: '5px 0', borderBottom: '1px solid #eceff3' }}>
     <span style={{ fontSize: '0.78rem', color: '#57606a' }}>{label}</span>
@@ -209,7 +225,7 @@ export const IntakeSheet = ({ intake, onClose }) => {
             Vehicle Inventory
           </div>
 
-          <p style={{ fontSize: '0.85rem', color: '#33373d', lineHeight: 1.6, marginBottom: '18px' }}>
+          <p style={{ ...notice, fontSize: '0.85rem', color: '#33373d', lineHeight: 1.6, marginBottom: '18px' }}>
             The vehicle described below has been received in our showroom in the condition recorded.
           </p>
 
@@ -316,12 +332,14 @@ export const IntakeSheet = ({ intake, onClose }) => {
           {/* The form's own wording, not a paraphrase. "m Behalf" in the
               source is a typo for "my"; everything else is verbatim, because
               this is the sentence the owner is signing under. */}
-          <p style={{ fontSize: '0.8rem', color: '#33373d', lineHeight: 1.6, marginTop: '14px' }}>
-            I do authorize the above mentioned Co. to sell the mentioned Car on my Behalf
-          </p>
-          <p style={{ fontSize: '0.76rem', color: '#57606a', lineHeight: 1.6, marginTop: '6px' }}>
-            NB: Miscellaneous expenses will be catered for by the owner of the vehicle e.g. Fuel for road test
-          </p>
+          <div style={{ ...notice, marginTop: '14px' }}>
+            <p style={{ fontSize: '0.8rem', color: '#33373d', lineHeight: 1.6 }}>
+              I do authorize the above mentioned Co. to sell the mentioned Car on my Behalf
+            </p>
+            <p style={{ fontSize: '0.76rem', color: '#57606a', lineHeight: 1.6, marginTop: '6px' }}>
+              NB: Miscellaneous expenses will be catered for by the owner of the vehicle e.g. Fuel for road test
+            </p>
+          </div>
 
           <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '26px', alignItems: 'flex-end', marginTop: '26px' }}>
             <div>
@@ -336,10 +354,21 @@ export const IntakeSheet = ({ intake, onClose }) => {
               </div>
               <div style={{ fontSize: '0.72rem', color: '#57606a', marginTop: '4px' }}>Received By</div>
             </div>
-            {/* Only on a signed sheet. Stamping a draft would assert a
-                completed handover that has not happened. */}
-            <div style={{ opacity: intake.signedAt ? 1 : 0 }} aria-hidden={!intake.signedAt}>
-              <ZoomStamp poBox={company.poBox} />
+            {/* A draft says so where the stamp would go, rather than leaving
+                a blank. An empty corner reads as a stamp that failed to render;
+                a labelled gap reads as a document that is not finished yet —
+                and stamping an unsigned intake would assert a handover that has
+                not happened. */}
+            <div style={{ minWidth: '150px', display: 'flex', justifyContent: 'center' }}>
+              {intake.signedAt ? (
+                <ZoomStamp poBox={company.poBox} />
+              ) : (
+                <div style={{ border: '1.5px dashed #b9c0c8', borderRadius: '6px', padding: '18px 14px',
+                              textAlign: 'center', color: '#8a929c', fontSize: '0.68rem', fontWeight: 700,
+                              letterSpacing: '0.09em', textTransform: 'uppercase', lineHeight: 1.5 }}>
+                  Draft<br />not yet signed
+                </div>
+              )}
             </div>
           </section>
         </div>
