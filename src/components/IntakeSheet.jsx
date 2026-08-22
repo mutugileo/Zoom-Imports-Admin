@@ -32,18 +32,46 @@ const readableDate = (value) => {
  * names, which is why signing is irreversible in Postgres rather than
  * decorated here.
  */
-const ZoomStamp = () => (
-  <svg width="104" height="104" viewBox="0 0 120 120" aria-label="Zoom Imports" role="img">
-    <circle cx="60" cy="60" r="55" fill="none" stroke="#c8102e" strokeWidth="2" />
-    <circle cx="60" cy="60" r="47" fill="none" stroke="#c8102e" strokeWidth="0.8" />
-    <path id="zi-arc" d="M60,18 a42,42 0 1,1 -0.1,0" fill="none" />
-    <text fill="#c8102e" fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" letterSpacing="2.4">
-      <textPath href="#zi-arc" startOffset="4%">ZOOM IMPORTS · NAIROBI · RECEIVED</textPath>
+const ZoomStamp = ({ poBox }) => (
+  /* An oval company stamp, set like the one the reference form carries: the
+     name arced over the top, the postal address along the bottom, a star at
+     each side, and the middle left open so it can be signed or over-stamped by
+     hand.
+
+     Stamp-ink blue rather than brand red — it reads as an applied stamp, and it
+     is the same ink as the mark already on the invoice, so two documents from
+     the same yard do not disagree about what a stamp looks like. */
+  <svg width="150" height="98" viewBox="0 0 200 130" aria-label="Zoom Imports" role="img">
+    <defs>
+      {/* Sweep 1 arcs over the top; sweep 0 runs under the bottom, which keeps
+          the lower text upright and reading left to right. */}
+      <path id="zi-top" d="M 22,68 A 78,44 0 0,1 178,68" fill="none" />
+      <path id="zi-bottom" d="M 30,70 A 70,38 0 0,0 170,70" fill="none" />
+    </defs>
+
+    <ellipse cx="100" cy="65" rx="96" ry="60" fill="none" stroke="#1f3a93" strokeWidth="2.4" />
+    <ellipse cx="100" cy="65" rx="88" ry="52" fill="none" stroke="#1f3a93" strokeWidth="1" />
+
+    <text fill="#1f3a93" fontSize="14" fontWeight="700" letterSpacing="1.6"
+          fontFamily="Georgia, 'Times New Roman', serif">
+      <textPath href="#zi-top" startOffset="50%" textAnchor="middle">ZOOM IMPORTS</textPath>
     </text>
-    <text x="60" y="56" textAnchor="middle" fill="#c8102e" fontSize="15" fontWeight="700"
-          fontFamily="ui-monospace, Menlo, monospace">ZOOM</text>
-    <text x="60" y="72" textAnchor="middle" fill="#c8102e" fontSize="10" letterSpacing="1.6"
-          fontFamily="ui-monospace, Menlo, monospace">IMPORTS</text>
+
+    <text fill="#1f3a93" fontSize="10.5" fontWeight="600" letterSpacing="0.8"
+          fontFamily="Georgia, 'Times New Roman', serif">
+      <textPath href="#zi-bottom" startOffset="50%" textAnchor="middle">
+        {/* The stored box line usually already ends in the city, so appending
+            it produced "…00100 Nairobi, NAIROBI". Only add the city when it is
+            genuinely absent. */}
+        {poBox
+          ? (/nairobi/i.test(poBox) ? poBox.toUpperCase() : `${poBox.toUpperCase()}, NAIROBI`)
+          : 'NAIROBI'}
+      </textPath>
+    </text>
+
+    {/* Stars sit on the horizontal axis, where the two arcs stop. */}
+    <text x="14" y="72" fill="#1f3a93" fontSize="17">&#9733;</text>
+    <text x="172" y="72" fill="#1f3a93" fontSize="17">&#9733;</text>
   </svg>
 );
 
@@ -159,7 +187,7 @@ export const IntakeSheet = ({ intake, onClose }) => {
                 {RECEIVING_ENTITY}
               </div>
               <div style={{ fontSize: '0.82rem', color: '#33373d' }}>
-                {company.addressLine && <div>{company.addressLine}</div>}
+                {company.poBox && <div>{company.poBox}</div>}
                 {contact.location && <div>{contact.location}</div>}
                 {contact.email && <div>Email: {contact.email}</div>}
               </div>
@@ -311,7 +339,7 @@ export const IntakeSheet = ({ intake, onClose }) => {
             {/* Only on a signed sheet. Stamping a draft would assert a
                 completed handover that has not happened. */}
             <div style={{ opacity: intake.signedAt ? 1 : 0 }} aria-hidden={!intake.signedAt}>
-              <ZoomStamp />
+              <ZoomStamp poBox={company.poBox} />
             </div>
           </section>
         </div>

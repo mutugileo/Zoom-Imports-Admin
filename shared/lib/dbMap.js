@@ -370,6 +370,8 @@ export const buyerToRow = (b) => ({
 export const billingFromRow = (r) => ({
   companyName: r.company_name || '',
   poBox: r.po_box || '',
+  /* KRA PIN. Company-level, printed on every document. */
+  pinNo: r.pin_no || '',
   bankName: r.bank_name || '',
   bankBranch: r.bank_branch || '',
   bankAccountNo: r.bank_account_no || '',
@@ -379,6 +381,7 @@ export const billingFromRow = (r) => ({
 export const billingToRow = (b) => ({
   company_name: b.companyName || null,
   po_box: b.poBox || null,
+  pin_no: b.pinNo || null,
   bank_name: b.bankName || null,
   bank_branch: b.bankBranch || null,
   bank_account_no: b.bankAccountNo || null,

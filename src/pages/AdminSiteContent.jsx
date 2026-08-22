@@ -121,7 +121,7 @@ export const AdminSiteContent = () => {
      cannot read the table — the empty shape keeps the form renderable either
      way rather than crashing on billing.bankName. */
   const EMPTY_BILLING = {
-    companyName: '', poBox: '', bankName: '', bankBranch: '',
+    companyName: '', poBox: '', pinNo: '', bankName: '', bankBranch: '',
     bankAccountNo: '', bankAccountName: '',
   };
   const [billingForm, setBillingForm] = useState(billing ?? EMPTY_BILLING);
@@ -639,6 +639,9 @@ export const AdminSiteContent = () => {
                 {[
                   ['companyName', 'Company Name'],
                   ['poBox', 'Postal Address'],
+                  /* Company-level, not per document: entered once here and
+                     printed on every invoice and intake sheet. */
+                  ['pinNo', 'KRA PIN'],
                 ].map(([key, text]) => (
                   <div key={key}>
                     <label style={label} htmlFor={`b-${key}`}>{text}</label>
