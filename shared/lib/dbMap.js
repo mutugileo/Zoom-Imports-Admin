@@ -477,3 +477,54 @@ export const VEHICLE_DOC_KINDS = [
   'Transfer form',
   'Other',
 ];
+
+/**
+ * Consignment intakes.
+ *
+ * `items` is stored as the answered form rather than as child rows, so it maps
+ * straight through. A signed intake must print exactly as it was signed even
+ * after the checklist template changes, which normalised rows could not
+ * promise.
+ */
+export const consignmentFromRow = (r) => ({
+  id: r.id,
+  ownerName: r.owner_name,
+  ownerPhone: r.owner_phone || '',
+  regNo: r.reg_no || '',
+  makeModel: r.make_model || '',
+  chassis: r.chassis || '',
+  colour: r.colour || '',
+  engineNo: r.engine_no || '',
+  cc: r.cc || '',
+  year: r.year || '',
+  mileage: r.mileage,
+  keyNo: r.key_no || '',
+  minPrice: r.min_price == null ? null : Number(r.min_price),
+  items: r.items || {},
+  comments: r.comments || '',
+  ownerSigned: r.owner_signed || '',
+  receivedBy: r.received_by || '',
+  signedAt: r.signed_at,
+  at: r.created_at,
+});
+
+export const consignmentToRow = (c) => ({
+  owner_name: c.ownerName,
+  owner_phone: c.ownerPhone || null,
+  reg_no: c.regNo || null,
+  make_model: c.makeModel || null,
+  chassis: c.chassis || null,
+  colour: c.colour || null,
+  engine_no: c.engineNo || null,
+  cc: c.cc || null,
+  year: c.year || null,
+  /* Blank stays null rather than becoming 0 — a mileage of zero is a claim
+     about the car, and an unfilled box is not. */
+  mileage: c.mileage === '' || c.mileage == null ? null : Number(c.mileage),
+  key_no: c.keyNo || null,
+  min_price: c.minPrice === '' || c.minPrice == null ? null : Number(c.minPrice),
+  items: c.items || {},
+  comments: c.comments || null,
+  owner_signed: c.ownerSigned || null,
+  received_by: c.receivedBy || null,
+});

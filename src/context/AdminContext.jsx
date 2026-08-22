@@ -25,6 +25,7 @@ import {
   partCostFromRow,
   orderCostFromRow, orderCostToRow,
   buyerFromRow, buyerToRow,
+  consignmentFromRow, consignmentToRow,
   billingFromRow, billingToRow,
   bankAccountFromRow, bankAccountToRow,
   buyerPaymentFromRow, buyerPaymentToRow,
@@ -112,6 +113,8 @@ export const AdminProvider = ({ children }) => {
      business. */
   const [buyers, setBuyers] = useState([]);
   const [buyersLoading, setBuyersLoading] = useState(true);
+  const [consignments, setConsignments] = useState([]);
+  const [consignmentsLoading, setConsignmentsLoading] = useState(true);
   /* Company name, P.O. box and bank details for the invoice. Staff-only, and
      kept off `site_contact` because that table is readable by `anon`. */
   const [billing, setBilling] = useState(null);
@@ -818,6 +821,54 @@ export const AdminProvider = ({ children }) => {
    * invoice is made out to. Staff-only under RLS, so it is fetched with the
    * session and cleared on sign-out like every other internal table.
    */
+  const refreshConsignments = useCallback(async () => {
+    if (!authUser) { setConsignments([]); setConsignmentsLoading(false); return; }
+    setConsignmentsLoading(true);
+    const { data, error } = await supabase
+      .from('consignments')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setConsignmentsLoading(false);
+    if (!error) setConsignments((data ?? []).map(consignmentFromRow));
+  }, [authUser]);
+
+  const saveConsignment = useCallback(async (data) => {
+    const row = consignmentToRow(data);
+    const { data: saved, error } = data.id
+      ? await supabase.from('consignments').update(row).eq('id', data.id).select('id').single()
+      : await supabase.from('consignments').insert(row).select('id').single();
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save this intake. Try again.') };
+    await refreshConsignments();
+    logActivity(
+      data.id
+        ? `Intake updated for ${data.makeModel || 'a vehicle'} (${data.ownerName})`
+        : `${data.makeModel || 'Vehicle'} received from ${data.ownerName}`
+    );
+    return { ok: true, id: saved?.id ?? data.id };
+  }, [refreshConsignments, logActivity]);
+
+  /* Signing is a one-way door, and Postgres is what enforces it — the update
+     policy filters on `signed_at is null`, so a second attempt matches no row
+     rather than being politely refused by the UI. The confirm text has to say
+     so, because nobody can undo this from here. */
+  const signConsignment = useCallback(async (id) => {
+    const { error } = await supabase
+      .from('consignments')
+      .update({ signed_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not sign off this intake.') };
+    await refreshConsignments();
+    logActivity(`Intake #${id} signed off`);
+    return { ok: true };
+  }, [refreshConsignments, logActivity]);
+
+  const deleteConsignment = useCallback(async (id) => {
+    const { error } = await supabase.from('consignments').delete().eq('id', id);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not remove this intake.') };
+    await refreshConsignments();
+    return { ok: true };
+  }, [refreshConsignments]);
+
   const refreshBuyers = useCallback(async () => {
     if (!authUser) { setBuyers([]); setBuyersLoading(false); return; }
     setBuyersLoading(true);
@@ -830,6 +881,7 @@ export const AdminProvider = ({ children }) => {
   }, [authUser]);
 
   useEffect(() => { refreshBuyers(); }, [refreshBuyers]);
+  useEffect(() => { refreshConsignments(); }, [refreshConsignments]);
 
   /**
    * `vehicleId` is a trace back to the car, never a live lookup.
@@ -1361,6 +1413,7 @@ export const AdminProvider = ({ children }) => {
       reviews, reviewsLoading, setReviewStatus, removeReview,
       setVehicleApproval, setPartApproval,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
@@ -1391,6 +1444,7 @@ export const AdminProvider = ({ children }) => {
       vehicleSales, recordVehicleSale, clearVehicleSale, saleFor,
       partCosts, savePartCost, partCostFor, orderCosts,
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
+      consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
