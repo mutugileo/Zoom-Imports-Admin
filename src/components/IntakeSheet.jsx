@@ -9,6 +9,14 @@ import { CarMark } from './CarMark';
  *  reprint and two people printing at once cannot mint the same one. */
 export const intakeNumberFor = (c) => `ZI-IN-${String(c?.id ?? 0).padStart(4, '0')}`;
 
+/** The form dates as 2026-02-16, so the sheet does too. */
+const isoDate = (value) => {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toISOString().slice(0, 10);
+};
+
 const readableDate = (value) => {
   if (!value) return null;
   const d = new Date(value);
@@ -122,37 +130,52 @@ export const IntakeSheet = ({ intake, onClose }) => {
         </div>
 
         <div className="intake-sheet" style={{ padding: '40px 46px 46px', color: '#272b30', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', marginBottom: '6px' }}>
-            <div>
-              {/* The same mark the portal uses, in the sheet's fixed ink rather
-                  than a theme variable — this is always a white page. */}
-              <div style={{ marginBottom: '8px' }}>
-                <CarMark height={26} color="#1f2328" />
-              </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1f2328', letterSpacing: '-0.01em' }}>
+          {/* Three columns, ruled — logo, the company block, then the
+              contact block hard right, exactly as the paper form is set. */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '0 28px',
+                        alignItems: 'center', paddingBottom: '14px', borderBottom: '1.5px solid #9aa4ae' }}>
+            <div style={{ paddingRight: '28px', borderRight: '1px solid #d8dee4', display: 'flex',
+                          alignItems: 'center', justifyContent: 'center', minWidth: '132px' }}>
+              {/* The real mark if it has been added, the line drawing if not.
+                  onError rather than a build-time import: the file is dropped
+                  into public/media by whoever has it, and a missing logo must
+                  degrade to something printable instead of a broken-image
+                  glyph on a document handed to a customer. */}
+              <img
+                src="/media/zoom-imports-logo.png"
+                alt="Zoom Imports"
+                style={{ maxWidth: '124px', maxHeight: '76px', objectFit: 'contain' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block'; }}
+              />
+              <span style={{ display: 'none' }}><CarMark height={30} color="#1f2328" /></span>
+            </div>
+
+            <div style={{ lineHeight: 1.55 }}>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#1f2328', letterSpacing: '0.01em' }}>
                 {RECEIVING_ENTITY}
               </div>
-              <div style={{ fontSize: '0.82rem', color: '#57606a', lineHeight: 1.6, marginTop: '4px' }}>
+              <div style={{ fontSize: '0.82rem', color: '#33373d' }}>
                 {company.addressLine && <div>{company.addressLine}</div>}
                 {contact.location && <div>{contact.location}</div>}
-                {contact.phone && <div>{contact.phone}</div>}
-                {company.pinNo && <div>PIN NO. {company.pinNo}</div>}
+                {contact.email && <div>Email: {contact.email}</div>}
               </div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a' }}>
-                Vehicle Inventory
-              </div>
-              <div style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '0.95rem', fontWeight: 700, color: '#1f2328', marginTop: '3px' }}>
+
+            <div style={{ textAlign: 'right', fontSize: '0.82rem', color: '#33373d', lineHeight: 1.55 }}>
+              {contact.phone && <div>Mobile: {contact.phone}</div>}
+              {contact.whatsapp && contact.whatsapp !== contact.phone && <div>{contact.whatsapp}</div>}
+              {company.pinNo && <div>PIN NO. {company.pinNo}</div>}
+              <div>Date: {isoDate(intake.signedAt) ?? isoDate(intake.at)}</div>
+              <div style={{ fontFamily: 'ui-monospace, Menlo, monospace', fontSize: '0.76rem', color: '#57606a', marginTop: '2px' }}>
                 {number}
-              </div>
-              <div style={{ fontSize: '0.82rem', color: '#57606a', marginTop: '3px' }}>
-                {readableDate(intake.signedAt) ?? readableDate(intake.at)}
               </div>
             </div>
           </div>
 
-          <div style={{ borderBottom: '1px solid #d8dee4', margin: '18px 0 20px' }} />
+          <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
+                        color: '#57606a', margin: '16px 0 12px' }}>
+            Vehicle Inventory
+          </div>
 
           <p style={{ fontSize: '0.85rem', color: '#33373d', lineHeight: 1.6, marginBottom: '18px' }}>
             The vehicle described below has been received in our showroom in the condition recorded.
