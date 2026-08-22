@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AdminContext';
-import { CHECKLIST_GROUPS } from '@shared/data/consignmentChecklist';
+import { CHECKLIST_GROUPS, OWNER_FIELDS, VEHICLE_FIELDS } from '@shared/data/consignmentChecklist';
 import { X, Printer } from 'lucide-react';
+import { CarMark } from './CarMark';
 
 /** Intake reference. Derived from the row id, so it is the same on every
  *  reprint and two people printing at once cannot mint the same one. */
@@ -37,6 +38,15 @@ const ZoomStamp = () => (
           fontFamily="ui-monospace, Menlo, monospace">IMPORTS</text>
   </svg>
 );
+
+/** One formatter for all three surfaces, so a mileage reads the same on the
+ *  form, the detail and the sheet. */
+export const fmt = (v, type, formatKES) => {
+  if (v == null || v === '') return '';
+  if (type === 'money') return formatKES ? formatKES(v) : String(v);
+  if (type === 'number') return Number(v).toLocaleString();
+  return String(v);
+};
 
 const Row = ({ label, value }) => (
   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '14px', padding: '5px 0', borderBottom: '1px solid #eceff3' }}>
@@ -114,6 +124,11 @@ export const IntakeSheet = ({ intake, onClose }) => {
         <div className="intake-sheet" style={{ padding: '40px 46px 46px', color: '#272b30', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px', marginBottom: '6px' }}>
             <div>
+              {/* The same mark the portal uses, in the sheet's fixed ink rather
+                  than a theme variable — this is always a white page. */}
+              <div style={{ marginBottom: '8px' }}>
+                <CarMark height={26} color="#1f2328" />
+              </div>
               <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1f2328', letterSpacing: '-0.01em' }}>
                 {RECEIVING_ENTITY}
               </div>
@@ -143,62 +158,104 @@ export const IntakeSheet = ({ intake, onClose }) => {
             The vehicle described below has been received in our showroom in the condition recorded.
           </p>
 
+          {/* Both columns render from the shared field lists, so the sheet
+              cannot show a field the form never captured. */}
           <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 34px', marginBottom: '22px' }}>
             <div>
-              <Row label="Customer Name" value={intake.ownerName} />
-              <Row label="Phone" value={intake.ownerPhone} />
-              <Row label="Veh Reg No." value={intake.regNo} />
-              <Row label="Mileage" value={intake.mileage == null ? '' : Number(intake.mileage).toLocaleString()} />
-              <Row label="Year" value={intake.year} />
-              <Row label="Min Price" value={intake.minPrice == null ? '' : formatKES(intake.minPrice)} />
+              {OWNER_FIELDS.map((f) => (
+                <Row key={f.key} label={f.label} value={fmt(intake[f.key], f.type, formatKES)} />
+              ))}
             </div>
             <div>
-              <Row label="Make & Model" value={intake.makeModel} />
-              <Row label="Chassis" value={intake.chassis} />
-              <Row label="Colour" value={intake.colour} />
-              <Row label="Key No" value={intake.keyNo} />
-              <Row label="Engine No" value={intake.engineNo} />
-              <Row label="CC" value={intake.cc} />
+              {VEHICLE_FIELDS.map((f) => (
+                <Row key={f.key} label={f.label} value={fmt(intake[f.key], f.type, formatKES)} />
+              ))}
             </div>
           </section>
 
-          <section style={{ columnCount: 2, columnGap: '34px' }}>
-            {CHECKLIST_GROUPS.map((group) => (
-              <div key={group.title} style={{ breakInside: 'avoid', marginBottom: '14px' }}>
-                <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase',
-                              color: '#8a929c', padding: '6px 0 3px', borderBottom: '1px solid #d8dee4' }}>
-                  {group.title}
-                </div>
-                {group.items.map((item) => {
-                  const v = val(item.label);
-                  /* A fault is the reason this page exists, so it is the one
-                     thing set apart from the run of "Ok". */
-                  const bad = v === 'Not Ok' || v === 'Not Present';
-                  return (
-                    <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', padding: '3px 0' }}>
-                      <span style={{ fontSize: '0.76rem', color: '#444c56' }}>{item.label}</span>
-                      <span style={{ fontSize: '0.76rem', fontWeight: bad ? 700 : 500, color: bad ? '#a13f3f' : '#1f2328' }}>
-                        {v === '' ? '—' : v}
-                      </span>
-                    </div>
-                  );
-                })}
+          {/* A ruled table with Item / Status headers, as the paper form has.
+              Loose rows read as a list of notes; the grid is what makes it
+              legible as a record someone signed off line by line.
+
+              Split into two balanced columns rather than CSS columnCount, so a
+              group cannot be broken across the fold mid-table. */}
+          <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 26px', alignItems: 'start' }}>
+            {[0, 1].map((col) => (
+              <div key={col}>
+                {CHECKLIST_GROUPS.filter((_, i) => i % 2 === col).map((group) => (
+                  <table key={group.title} style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '14px', breakInside: 'avoid' }}>
+                    <thead>
+                      <tr>
+                        <th colSpan={2} style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.09em',
+                                                 textTransform: 'uppercase', color: '#57606a', padding: '5px 7px',
+                                                 background: '#f2f4f7', border: '1px solid #d8dee4' }}>
+                          {group.title}
+                        </th>
+                      </tr>
+                      <tr>
+                        <th style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.06em',
+                                     textTransform: 'uppercase', color: '#8a929c', padding: '4px 7px', border: '1px solid #d8dee4' }}>Item</th>
+                        <th style={{ textAlign: 'right', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.06em',
+                                     textTransform: 'uppercase', color: '#8a929c', padding: '4px 7px', border: '1px solid #d8dee4', width: '38%' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.items.map((item) => {
+                        const v = val(item.label);
+                        const bad = v === 'Not Ok' || v === 'Not Present';
+                        return (
+                          <tr key={item.label}>
+                            <td style={{ fontSize: '0.74rem', color: '#444c56', padding: '3px 7px', border: '1px solid #e4e8ed' }}>
+                              {item.label}
+                            </td>
+                            <td style={{ fontSize: '0.74rem', textAlign: 'right', padding: '3px 7px', border: '1px solid #e4e8ed',
+                                         fontWeight: bad ? 700 : 500, color: bad ? '#a13f3f' : '#1f2328' }}>
+                              {v === '' ? '—' : v}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ))}
               </div>
             ))}
           </section>
 
-          <section style={{ marginTop: '18px', paddingTop: '12px', borderTop: '1px solid #d8dee4' }}>
-            <div style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#8a929c' }}>
-              Comments
-            </div>
-            <p style={{ fontSize: '0.85rem', color: '#33373d', lineHeight: 1.6, marginTop: '5px', whiteSpace: 'pre-wrap', minHeight: '2.4em' }}>
-              {intake.comments || '—'}
-            </p>
+          <section style={{ marginTop: '4px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.09em',
+                               textTransform: 'uppercase', color: '#57606a', padding: '5px 7px',
+                               background: '#f2f4f7', border: '1px solid #d8dee4' }}>
+                    Comments
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style={{ border: '1px solid #e4e8ed', padding: '8px 7px', verticalAlign: 'top' }}>
+                    {/* Ruled and given height even when empty: a blank box is a
+                        box someone chose not to write in, which is different
+                        from a section that was never on the form. */}
+                    <div style={{ fontSize: '0.8rem', color: '#33373d', lineHeight: 1.6, whiteSpace: 'pre-wrap', minHeight: '3.2em' }}>
+                      {intake.comments || ''}
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </section>
 
-          <p style={{ fontSize: '0.78rem', color: '#57606a', lineHeight: 1.6, marginTop: '16px' }}>
-            I authorise Zoom Imports to sell the vehicle described above on my behalf.
-            Miscellaneous expenses are met by the owner of the vehicle — fuel for road tests, for example.
+          {/* The form's own wording, not a paraphrase. "m Behalf" in the
+              source is a typo for "my"; everything else is verbatim, because
+              this is the sentence the owner is signing under. */}
+          <p style={{ fontSize: '0.8rem', color: '#33373d', lineHeight: 1.6, marginTop: '14px' }}>
+            I do authorize the above mentioned Co. to sell the mentioned Car on my Behalf
+          </p>
+          <p style={{ fontSize: '0.76rem', color: '#57606a', lineHeight: 1.6, marginTop: '6px' }}>
+            NB: Miscellaneous expenses will be catered for by the owner of the vehicle e.g. Fuel for road test
           </p>
 
           <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '26px', alignItems: 'flex-end', marginTop: '26px' }}>

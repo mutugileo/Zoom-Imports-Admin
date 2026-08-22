@@ -119,3 +119,36 @@ export const emptyChecklist = () =>
 /** Items still unanswered, so the form can say what is outstanding. */
 export const unanswered = (items) =>
   CHECKLIST_ITEMS.filter((i) => !String(items?.[i.label] ?? '').trim()).map((i) => i.label);
+
+/**
+ * The header fields, in the two columns the paper form uses.
+ *
+ * Defined here for the same reason as the checklist: the form, the detail view
+ * and the printed sheet are three renders of one document. The detail view was
+ * quietly missing Engine No, CC, Year and Key No — it had been hand-written as
+ * a separate list, and a separate list drifts. Now all three read this.
+ *
+ * `money` and `number` only tell the renderer how to format and which input to
+ * use; the value itself is stored as typed.
+ */
+export const OWNER_FIELDS = [
+  { key: 'ownerName',  label: 'Customer Name', required: true },
+  { key: 'ownerPhone', label: 'Phone' },
+  { key: 'regNo',      label: 'Veh Reg No.' },
+  { key: 'mileage',    label: 'Mileage', type: 'number' },
+  { key: 'year',       label: 'Year' },
+  /* Never leaves a staff surface — it is the owner's floor. It prints on the
+     sheet because the owner signs that sheet, and it is their own number. */
+  { key: 'minPrice',   label: 'Min Price', type: 'money' },
+];
+
+export const VEHICLE_FIELDS = [
+  { key: 'makeModel', label: 'Make & Model' },
+  { key: 'chassis',   label: 'Chassis' },
+  { key: 'colour',    label: 'Colour' },
+  { key: 'keyNo',     label: 'Key No' },
+  { key: 'engineNo',  label: 'Engine No' },
+  { key: 'cc',        label: 'CC' },
+];
+
+export const HEADER_FIELDS = [...OWNER_FIELDS, ...VEHICLE_FIELDS];

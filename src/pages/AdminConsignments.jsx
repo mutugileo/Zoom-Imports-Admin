@@ -3,9 +3,10 @@ import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
-import { IntakeSheet, intakeNumberFor } from '../components/IntakeSheet';
+import { IntakeSheet, intakeNumberFor, fmt } from '../components/IntakeSheet';
 import {
   CHECKLIST_GROUPS, OPTIONS_FOR, TYPES, emptyChecklist, unanswered,
+  OWNER_FIELDS, VEHICLE_FIELDS,
 } from '@shared/data/consignmentChecklist';
 import { Search, Plus, ArrowLeft, Printer, Lock, Trash2, CheckCircle2 } from 'lucide-react';
 
@@ -109,29 +110,36 @@ export const AdminConsignments = () => {
             <section style={{ ...card, padding: '18px 20px', marginBottom: '16px' }}>
               <div style={sectionTitle}>Owner</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                <div><label style={label} htmlFor="c-own">Customer name</label>
-                  <input id="c-own" required style={field} value={draft.ownerName} onChange={(e) => set('ownerName', e.target.value)} /></div>
-                <div><label style={label} htmlFor="c-ph">Phone</label>
-                  <input id="c-ph" style={field} value={draft.ownerPhone} onChange={(e) => set('ownerPhone', e.target.value)} /></div>
-                <div><label style={label} htmlFor="c-min">Min price (KES)</label>
-                  <input id="c-min" type="number" min="0" style={field} value={draft.minPrice} onChange={(e) => set('minPrice', e.target.value)} />
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    The floor the owner authorises. Internal only.
-                  </p>
-                </div>
+                {OWNER_FIELDS.map((f) => (
+                  <div key={f.key}>
+                    <label style={label} htmlFor={`c-${f.key}`}>
+                      {f.label}{f.type === 'money' ? ' (KES)' : f.type === 'number' ? ' (km)' : ''}
+                    </label>
+                    <input
+                      id={`c-${f.key}`} style={field} required={!!f.required}
+                      type={f.type === 'money' || f.type === 'number' ? 'number' : 'text'}
+                      min={f.type === 'money' || f.type === 'number' ? '0' : undefined}
+                      value={draft[f.key] ?? ''} onChange={(e) => set(f.key, e.target.value)}
+                    />
+                    {f.key === 'minPrice' && (
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        The floor the owner authorises. Internal only.
+                      </p>
+                    )}
+                  </div>
+                ))}
               </div>
             </section>
 
             <section style={{ ...card, padding: '18px 20px', marginBottom: '16px' }}>
               <div style={sectionTitle}>Vehicle</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                {[['makeModel', 'Make & model'], ['regNo', 'Reg no.'], ['chassis', 'Chassis'], ['colour', 'Colour'],
-                  ['engineNo', 'Engine no.'], ['cc', 'CC'], ['year', 'Year'], ['keyNo', 'Key no.']].map(([k, l]) => (
-                  <div key={k}><label style={label} htmlFor={`c-${k}`}>{l}</label>
-                    <input id={`c-${k}`} style={field} value={draft[k]} onChange={(e) => set(k, e.target.value)} /></div>
+                {VEHICLE_FIELDS.map((f) => (
+                  <div key={f.key}>
+                    <label style={label} htmlFor={`c-${f.key}`}>{f.label}</label>
+                    <input id={`c-${f.key}`} style={field} value={draft[f.key] ?? ''} onChange={(e) => set(f.key, e.target.value)} />
+                  </div>
                 ))}
-                <div><label style={label} htmlFor="c-mil">Mileage (km)</label>
-                  <input id="c-mil" type="number" min="0" style={field} value={draft.mileage} onChange={(e) => set('mileage', e.target.value)} /></div>
               </div>
             </section>
 
@@ -264,17 +272,15 @@ export const AdminConsignments = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginTop: '20px' }}>
             <div style={{ ...card, padding: '16px 18px' }}>
               <div style={sectionTitle}>Owner</div>
-              <Line l="Name" v={selected.ownerName} />
-              <Line l="Phone" v={selected.ownerPhone} />
-              <Line l="Min price" v={selected.minPrice == null ? null : formatKES(selected.minPrice)} />
+              {OWNER_FIELDS.map((f) => (
+                <Line key={f.key} l={f.label} v={fmt(selected[f.key], f.type, formatKES)} />
+              ))}
             </div>
             <div style={{ ...card, padding: '16px 18px' }}>
               <div style={sectionTitle}>Vehicle</div>
-              <Line l="Make & model" v={selected.makeModel} />
-              <Line l="Reg no." v={selected.regNo} />
-              <Line l="Chassis" v={selected.chassis} />
-              <Line l="Colour" v={selected.colour} />
-              <Line l="Mileage" v={selected.mileage == null ? null : `${Number(selected.mileage).toLocaleString()} km`} />
+              {VEHICLE_FIELDS.map((f) => (
+                <Line key={f.key} l={f.label} v={fmt(selected[f.key], f.type, formatKES)} />
+              ))}
             </div>
             <div style={{ ...card, padding: '16px 18px' }}>
               <div style={sectionTitle}>Handover</div>
