@@ -3,6 +3,31 @@ import { useApp } from '../context/AdminContext';
 import { useFocusTrap } from '@shared/lib/useFocusTrap';
 import { initialsOf } from '../lib/dashboardData';
 import { CarMark } from '../components/CarMark';
+
+/**
+ * The real Zoom Imports badge, cropped to a circle.
+ *
+ * `cover`, not `contain`: the artwork is a square tile whose red honeycomb
+ * ground runs to the edges, so a circle takes the ground away and leaves the
+ * badge. With `contain` you get a red square in a round hole.
+ *
+ * Falls back to the CarMark line drawing rather than a broken-image glyph —
+ * the rail is the first thing anyone sees, and a missing file should look like
+ * a plain mark, not a fault.
+ */
+const BrandMark = ({ size }) => (
+  <>
+    <img
+      src="/media/logo.jpg"
+      alt="Zoom Imports"
+      width={size}
+      height={size}
+      style={{ width: size, height: size, objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+      onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextSibling.style.display = 'block'; }}
+    />
+    <span style={{ display: 'none' }}><CarMark height={size} color="var(--on-sidebar)" /></span>
+  </>
+);
 import { AdminIcon } from '../components/AdminIcon';
 import {
   Gauge,
@@ -114,7 +139,7 @@ export const AdminLayout = ({ children }) => {
           <Menu size={21} aria-hidden="true" />
         </button>
         <span className="admin-mobile-brand">
-          <CarMark height={19} color="var(--on-sidebar)" />
+          <BrandMark size={26} />
           <span>Zoom Imports</span>
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -203,34 +228,39 @@ export const AdminLayout = ({ children }) => {
             below its content without it, so the nav's own overflow never
             engages and nothing scrolls. */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, flex: '1 1 auto' }}>
+          {/* Mark and wordmark on one line. Stacked, the badge pushed the
+              name down and the whole block ate vertical space the nav needs at
+              laptop heights — and a round mark beside its name is how a
+              letterhead sets it, which is what the printed documents already
+              do. Collapsed, the rail is icon-width and the text has nowhere to
+              go, so it stacks back to just the mark. */}
           <div
             style={{
-              padding: railCollapsed ? '0 0 22px' : '0 24px 22px',
+              padding: railCollapsed ? '0 0 18px' : '0 20px 18px',
               borderBottom: '1px solid var(--sidebar-line)',
-              display: 'flex', flexDirection: 'column',
-              alignItems: railCollapsed ? 'center' : 'flex-start',
+              display: 'flex',
+              flexDirection: railCollapsed ? 'column' : 'row',
+              alignItems: 'center',
+              gap: railCollapsed ? 0 : '11px',
             }}
           >
-            {/* Black, not white: a graphical mark needs 3:1 against its ground
-                and white on this blue is 2.43. Black is 8.64. */}
-            <div style={{ marginBottom: railCollapsed ? 0 : '10px' }}>
-              <CarMark height={24} color="var(--on-sidebar)" />
-            </div>
+            <BrandMark size={railCollapsed ? 30 : 40} />
             {!railCollapsed && (
-              <>
-                <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 'var(--text-xl)', color: 'var(--on-sidebar)' }}>
+              <div style={{ minWidth: 0, lineHeight: 1.15 }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--on-sidebar)' }}>
                   Zoom Imports
                 </div>
                 <div
                   style={{
                     fontFamily: 'var(--font-mono)', fontSize: 'var(--text-2xs)', fontWeight: 700,
-                    letterSpacing: '0.09em', textTransform: 'uppercase',
-                    color: 'color-mix(in srgb, var(--on-sidebar) 72%, transparent)', marginTop: '4px',
+                    letterSpacing: '0.08em', textTransform: 'uppercase',
+                    color: 'color-mix(in srgb, var(--on-sidebar) 72%, transparent)', marginTop: '3px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   Dealership portal
                 </div>
-              </>
+              </div>
             )}
           </div>
 

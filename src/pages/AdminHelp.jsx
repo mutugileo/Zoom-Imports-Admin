@@ -58,10 +58,20 @@ export const AdminHelp = () => {
             const isOpen = open.has(g.id);
             const caution = g.tone === 'caution';
             return (
-              <section key={g.id} style={{
-                ...card,
-                borderLeft: caution ? '3px solid #c8102e' : card.border,
-              }}>
+              <section
+                key={g.id}
+                className={`help-card${isOpen ? ' is-open' : ''}${caution ? ' is-caution' : ''}`}
+                style={{
+                  ...card,
+                  /* The open card lifts and takes an accent edge. Without it a
+                     stack of identical panels gives no sense of where you are —
+                     the reader loses their place the moment they scroll. */
+                  borderLeft: caution ? '3px solid #c8102e' : isOpen ? '3px solid var(--primary)' : card.border,
+                  boxShadow: isOpen ? '0 6px 18px -10px rgba(20,23,28,0.35)' : 'var(--shadow-sm)',
+                  transform: isOpen ? 'translateY(-1px)' : 'none',
+                  transition: 'box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease',
+                }}
+              >
                 <button
                   type="button"
                   onClick={() => toggle(g.id)}
@@ -100,8 +110,19 @@ export const AdminHelp = () => {
 
                 {/* Rendered only when open, and always when printing — a printed
                     quick reference with every section collapsed is a blank page. */}
-                <div className={isOpen ? 'help-body' : 'help-body help-body-closed'}
-                     style={isOpen ? undefined : { display: 'none' }}>
+                {/* grid-template-rows 0fr → 1fr animates to a height nobody has
+                    to measure. It only works with a single child, so the inner
+                    wrapper is load-bearing, not decoration. display:none would
+                    snap; visibility keeps it out of the tab order while closed. */}
+                <div
+                  className={isOpen ? 'help-body' : 'help-body help-body-closed'}
+                  style={{
+                    display: 'grid',
+                    gridTemplateRows: isOpen ? '1fr' : '0fr',
+                    transition: 'grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  }}
+                >
+                  <div style={{ overflow: 'hidden', visibility: isOpen ? 'visible' : 'hidden' }}>
                   <ol style={{ margin: 0, padding: '0 18px 16px 40px', display: 'flex', flexDirection: 'column', gap: '7px' }}>
                     {g.steps.map((step, i) => (
                       <li key={i} style={{ fontSize: 'var(--text-sm)', color: 'var(--text-body)', lineHeight: 1.65 }}>
@@ -114,6 +135,7 @@ export const AdminHelp = () => {
                       {g.closing}
                     </p>
                   )}
+                  </div>
                 </div>
               </section>
             );
@@ -126,13 +148,24 @@ export const AdminHelp = () => {
       </div>
 
       <style>{`
+        .help-card button:hover {
+          background: var(--primary-light) !important;
+        }
+        .help-card .help-chevron { transition: color 160ms ease; }
+        .help-card button:hover .help-chevron { color: var(--text-dark); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .help-card, .help-body { transition: none !important; }
+        }
+
         @media print {
           @page { margin: 14mm; size: portrait; }
           .admin-rail, .admin-topbar, .help-print, .help-chevron { display: none !important; }
           .help-page { max-width: none !important; padding: 0 !important; }
           /* Everything opens for print, including sections the reader had
              collapsed on screen. */
-          .help-body-closed { display: block !important; }
+          .help-body-closed { grid-template-rows: 1fr !important; }
+          .help-body-closed > div { visibility: visible !important; overflow: visible !important; }
           .help-page section { break-inside: avoid; box-shadow: none !important; }
         }
       `}</style>
