@@ -15,6 +15,7 @@ import { AdminSiteContent } from './pages/AdminSiteContent';
 import { AdminMobileApp } from './pages/AdminMobileApp';
 import { AdminConsignments } from './pages/AdminConsignments';
 import { AdminGatePasses } from './pages/AdminGatePasses';
+import { AdminHelp } from './pages/AdminHelp';
 import { AdminSettings } from './pages/AdminSettings';
 import { AdminLogin } from './pages/AdminLogin';
 import { NoAccess } from './pages/NoAccess';
@@ -34,6 +35,7 @@ const VIEWS = {
   'admin-mobile': AdminMobileApp,
   'admin-consignments': AdminConsignments,
   'admin-gate-passes': AdminGatePasses,
+  'admin-help': AdminHelp,
   'admin-settings': AdminSettings,
 };
 

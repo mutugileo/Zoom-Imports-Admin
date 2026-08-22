@@ -100,10 +100,10 @@ export const ADMIN_ROLES = Object.keys(ROLES);
    behind them admit any staff role, so this list is the narrower of the two —
    worth remembering if a role ever needs adding here. */
 export const ROLE_VIEWS = {
-  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings'],
-  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings'],
-  'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-settings'],
-  'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-gate-passes', 'admin-history', 'admin-parts', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-settings'],
+  Superadmin: ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings', 'admin-help'],
+  Administrator: ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-reviews', 'admin-mobile', 'admin-content', 'admin-settings', 'admin-help'],
+  'Inventory Manager': ['admin-dashboard', 'admin-vehicles', 'admin-consignments', 'admin-gate-passes', 'admin-history', 'admin-groups', 'admin-parts', 'admin-compatibility', 'admin-settings', 'admin-help'],
+  'Sales Staff': ['admin-dashboard', 'admin-vehicles', 'admin-gate-passes', 'admin-history', 'admin-parts', 'admin-orders', 'admin-buyers', 'admin-enquiries', 'admin-settings', 'admin-help'],
 };
 
 export const hasPermission = (role, permission) =>

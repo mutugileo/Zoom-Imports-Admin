@@ -21,7 +21,7 @@ import {
   Sun,
   Moon,
   History,
-  Layers, Star, ReceiptText, Ship, UserRound, Smartphone, ClipboardCheck, DoorOpen } from 'lucide-react';
+  Layers, Star, ReceiptText, Ship, UserRound, Smartphone, ClipboardCheck, DoorOpen, HelpCircle } from 'lucide-react';
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 
@@ -356,6 +356,35 @@ export const AdminLayout = ({ children }) => {
             {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             {!railCollapsed && (theme === 'dark' ? 'Light Theme' : 'Dark Theme')}
           </button>
+          {/* Help lives here rather than in the grouped nav. It is not a work
+              area, the rail is already at fifteen items, and someone reaching
+              for help is not looking under Inventory. */}
+          <button
+            type="button"
+            onClick={() => { navigateTo('admin-help'); setMobileOpen(false); }}
+            aria-current={currentView === 'admin-help' ? 'page' : undefined}
+            title={railCollapsed ? 'How to use the portal' : undefined}
+            style={{
+              width: '100%',
+              padding: railCollapsed ? '9px 0' : '9px 14px',
+              margin: '6px 0',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              color: 'var(--on-sidebar)',
+              background: currentView === 'admin-help' ? 'rgba(255,255,255,0.45)' : 'transparent',
+              border: '1px solid rgba(0,0,0,0.12)',
+              borderRadius: 'var(--radius-md)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: railCollapsed ? 'center' : 'flex-start',
+              gap: railCollapsed ? 0 : '8px',
+            }}
+          >
+            <HelpCircle size={16} />
+            {!railCollapsed && 'How to use this'}
+          </button>
+
           {/* One way out, not two.
               The rail used to carry a Sign out button inside the user block and
               an "Exit to Customer Site" link beneath it — the link only opened
