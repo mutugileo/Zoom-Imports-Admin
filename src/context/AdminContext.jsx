@@ -116,6 +116,9 @@ export const AdminProvider = ({ children }) => {
   const [buyersLoading, setBuyersLoading] = useState(true);
   const [consignments, setConsignments] = useState([]);
   const [consignmentsLoading, setConsignmentsLoading] = useState(true);
+  /* Engine numbers, keyed by vehicle id. Kept off `vehicles` because the
+     storefront reads that table with select * — see vehicle_private. */
+  const [vehiclePrivate, setVehiclePrivate] = useState({});
   const [gatePasses, setGatePasses] = useState([]);
   const [gatePassesLoading, setGatePassesLoading] = useState(true);
   /* Company name, P.O. box and bank details for the invoice. Staff-only, and
@@ -824,6 +827,34 @@ export const AdminProvider = ({ children }) => {
    * invoice is made out to. Staff-only under RLS, so it is fetched with the
    * session and cleared on sign-out like every other internal table.
    */
+  const refreshVehiclePrivate = useCallback(async () => {
+    if (!authUser) { setVehiclePrivate({}); return; }
+    const { data, error } = await supabase.from('vehicle_private').select('vehicle_id, engine_no');
+    if (!error) {
+      setVehiclePrivate(Object.fromEntries((data ?? []).map((r) => [r.vehicle_id, r.engine_no || ''])));
+    }
+  }, [authUser]);
+
+  const engineNoFor = useCallback(
+    (vehicleId) => vehiclePrivate[vehicleId] ?? '',
+    [vehiclePrivate]
+  );
+
+  /* Upsert rather than insert: a vehicle may gain its engine number long after
+     it was added, and clearing the box should remove the row rather than
+     leave an empty string behind. */
+  const saveEngineNo = useCallback(async (vehicleId, engineNo) => {
+    if (!vehicleId) return { ok: false, reason: 'Save the vehicle first.' };
+    const value = String(engineNo ?? '').trim();
+    const { error } = value
+      ? await supabase.from('vehicle_private')
+          .upsert({ vehicle_id: vehicleId, engine_no: value }, { onConflict: 'vehicle_id' })
+      : await supabase.from('vehicle_private').delete().eq('vehicle_id', vehicleId);
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not save the engine number.') };
+    await refreshVehiclePrivate();
+    return { ok: true };
+  }, [refreshVehiclePrivate]);
+
   const refreshGatePasses = useCallback(async () => {
     if (!authUser) { setGatePasses([]); setGatePassesLoading(false); return; }
     setGatePassesLoading(true);
@@ -940,6 +971,7 @@ export const AdminProvider = ({ children }) => {
   useEffect(() => { refreshBuyers(); }, [refreshBuyers]);
   useEffect(() => { refreshConsignments(); }, [refreshConsignments]);
   useEffect(() => { refreshGatePasses(); }, [refreshGatePasses]);
+  useEffect(() => { refreshVehiclePrivate(); }, [refreshVehiclePrivate]);
 
   /**
    * `vehicleId` is a trace back to the car, never a live lookup.
@@ -1473,6 +1505,7 @@ export const AdminProvider = ({ children }) => {
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
       gatePasses, gatePassesLoading, saveGatePass, issueGatePass, recordGateReturn, deleteGatePass,
+      engineNoFor, saveEngineNo,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,
@@ -1505,6 +1538,7 @@ export const AdminProvider = ({ children }) => {
       buyers, buyersLoading, saveBuyer, deleteBuyer, buyerForVehicle,
       consignments, consignmentsLoading, saveConsignment, signConsignment, deleteConsignment,
       gatePasses, gatePassesLoading, saveGatePass, issueGatePass, recordGateReturn, deleteGatePass,
+      engineNoFor, saveEngineNo,
       buyerPayments, addBuyerPayment, deleteBuyerPayment, paymentsForBuyer, balanceForBuyer,
       vehicleDocs, docsForVehicle, addVehicleDocument, deleteVehicleDocument, signedDocumentUrl,
       linkEnquiryToBuyer,

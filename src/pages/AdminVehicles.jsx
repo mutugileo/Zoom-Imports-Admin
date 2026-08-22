@@ -28,6 +28,8 @@ export const AdminVehicles = () => {
     saleFor,
     setVehicleApproval,
     buyerForVehicle,
+    engineNoFor,
+    saveEngineNo,
     formatKES
   } = useApp();
 
@@ -64,6 +66,7 @@ export const AdminVehicles = () => {
   const [saleVehicle, setSaleVehicle] = useState(null);
   const [saveError, setSaveError] = useState('');
   const [invoiceVehicle, setInvoiceVehicle] = useState(null);
+  const [engineNo, setEngineNo] = useState('');
 
   // Form State
   const [formData, setFormData] = useState({
@@ -121,6 +124,7 @@ export const AdminVehicles = () => {
 
   const handleOpenAddModal = () => {
     setEditingVehicle(null);
+    setEngineNo('');
     setFormData({
       id: null,
       name: '',
@@ -160,6 +164,7 @@ export const AdminVehicles = () => {
     setDetailVehicle(null);
     setEditingVehicle(vehicle);
     setFormData({ ...vehicle });
+    setEngineNo(engineNoFor(vehicle.id));
     setIsModalOpen(true);
   };
 
@@ -212,6 +217,16 @@ export const AdminVehicles = () => {
     const base = slugify(formData.slug || `${formData.name} ${formData.year}`);
     const result = await saveVehicle({ ...formData, slug: uniqueSlug(base, formData.id) });
     if (!result.ok) { setSaveError(result.reason || 'Could not save this vehicle.'); return; }
+
+    /* After the vehicle, never with it: the engine number lives in its own
+       staff-only table keyed on the vehicle id, and a new car has no id until
+       the insert returns. Reported separately so a failure here does not
+       imply the car failed to save — it did. */
+    const vehicleId = result.id ?? formData.id;
+    if (vehicleId && engineNo !== engineNoFor(vehicleId)) {
+      const priv = await saveEngineNo(vehicleId, engineNo);
+      if (!priv.ok) { setSaveError(`Vehicle saved, but the engine number did not: ${priv.reason}`); return; }
+    }
     setIsModalOpen(false);
   };
 
@@ -808,6 +823,13 @@ export const AdminVehicles = () => {
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Chassis number</label>
                     <input type="text" value={formData.chassis || ''} placeholder="BM5FS-1204471" onChange={(e) => setFormData({ ...formData, chassis: e.target.value })} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Engine number</label>
+                    <input type="text" value={engineNo} onChange={(e) => setEngineNo(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)' }} />
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.45 }}>
+                      Internal only &mdash; never sent to the website. Printed on gate passes.
+                    </p>
                   </div>
                   <div>
                     <label style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '2px' }}>Auction grade</label>

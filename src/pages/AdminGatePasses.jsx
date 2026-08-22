@@ -32,7 +32,7 @@ const EMPTY = {
 export const AdminGatePasses = () => {
   const {
     gatePasses, gatePassesLoading, saveGatePass, issueGatePass, recordGateReturn, deleteGatePass,
-    vehicles, consignments, can, formatKES,
+    vehicles, consignments, engineNoFor, can, formatKES,
   } = useApp();
   const mayWrite = can('catalogue:write') || can('orders:write');
 
@@ -95,7 +95,12 @@ export const AdminGatePasses = () => {
       if (!v) return;
       setDraft((d) => ({ ...d, vehicleId: v.id, consignmentId: null,
         makeModel: v.name || '', regNo: v.regNumber || '', chassis: v.chassis || '',
-        colour: v.color || '', engineNo: v.engine || '', mileageOut: v.mileage ?? '' }));
+        colour: v.color || '',
+        /* The real engine number from vehicle_private, not vehicles.engine —
+           that column is displacement ("1.5L") and was printing as the engine
+           number on every pass raised from yard stock. */
+        engineNo: engineNoFor(v.id),
+        mileageOut: v.mileage ?? '' }));
     } else {
       const c = consignments.find((x) => x.id === id);
       if (!c) return;
