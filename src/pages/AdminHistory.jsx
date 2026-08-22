@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AdminContext';
+import { IntakeSheet, intakeNumberFor, fmt } from '../components/IntakeSheet';
+import { GatePassSheet, gatePassNumberFor } from '../components/GatePassSheet';
 import { AdminLayout } from './AdminLayout';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
@@ -43,13 +45,29 @@ export const AdminHistory = () => {
     saleFor,
     buyerForVehicle,
     formatKES,
+    consignments, gatePasses
   } = useApp();
 
   const mayWrite = can('catalogue:write');
   const mayDelete = can('catalogue:delete');
   const mayCosts = can('costs:view');
 
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'sold' | 'archived'
+  const [activeTab, setActiveTab] = useState('all'); // all | sold | archived | intakes | passes
+  const [openDoc, setOpenDoc] = useState(null);
+  const isDocTab = activeTab === 'intakes' || activeTab === 'passes';
+
+  /* Only completed documents. A draft is work in progress, not history, and
+     showing it here would invite someone to treat an unsigned report as a
+     record of what arrived. */
+  const signedIntakes = useMemo(
+    () => (consignments ?? []).filter((c) => c.signedAt),
+    [consignments]
+  );
+  const closedPasses = useMemo(
+    () => (gatePasses ?? []).filter((g) => g.issuedAt),
+    [gatePasses]
+  );
+  const docRows = activeTab === 'intakes' ? signedIntakes : closedPasses;
   const [search, setSearch] = useState('');
   const [modelFilter, setModelFilter] = useState('all');
   const [detailVehicle, setDetailVehicle] = useState(null);
@@ -326,6 +344,12 @@ export const AdminHistory = () => {
               { id: 'all', label: 'All History', count: historyVehicles.length },
               { id: 'sold', label: 'Sold Units', count: soldVehicles.length },
               { id: 'archived', label: 'Recycle Bin', count: archivedVehicles.length },
+              /* Signed intakes and closed gate passes. They live here rather
+                 than in their own screens because this is where someone looks
+                 for "what happened", and neither can be deleted any more —
+                 Postgres refuses once they are completed. */
+              { id: 'intakes', label: 'Intakes', count: signedIntakes.length },
+              { id: 'passes', label: 'Gate Passes', count: closedPasses.length },
             ].map((tab) => {
               const isActive = activeTab === tab.id;
               return (
@@ -388,6 +412,10 @@ export const AdminHistory = () => {
           </div>
         </div>
 
+        {/* Vehicle history. Hidden on the document tabs, which list a
+            different kind of record entirely — a condition report and a
+            movement are not vehicles and do not belong in a vehicle table. */}
+        {!isDocTab && (<>
         {/* History Table */}
         <div className="table-responsive" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden' }}>
           <table className="admin-table vehicle-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -659,7 +687,26 @@ export const AdminHistory = () => {
             <Pagination {...page} onChange={page.setPage} noun="historical vehicles" />
           </div>
         </div>
+        </>)}
+
+        {isDocTab && (
+          <DocumentHistory
+            rows={docRows}
+            kind={activeTab}
+            onOpen={(r) => setOpenDoc({ kind: activeTab, row: r })}
+          />
+        )}
       </div>
+
+      {/* Opening a historical document reprints the original sheet — the same
+          component the screen that issued it uses, so an archived copy and a
+          freshly printed one are the same document, not a summary of it. */}
+      {openDoc?.kind === 'intakes' && (
+        <IntakeSheet intake={openDoc.row} onClose={() => setOpenDoc(null)} />
+      )}
+      {openDoc?.kind === 'passes' && (
+        <GatePassSheet pass={openDoc.row} onClose={() => setOpenDoc(null)} />
+      )}
 
       {/* Detail Modal */}
       {detailVehicle && (
@@ -689,5 +736,73 @@ export const AdminHistory = () => {
         />
       )}
     </AdminLayout>
+  );
+};
+
+
+/**
+ * Completed intakes and gate passes.
+ *
+ * One table for both, because they answer the same question in the same shape
+ * — a reference, a vehicle, a person, a date, and the paperwork behind it. The
+ * columns differ, the row does not, so a reader moving between the two tabs is
+ * not relearning a layout.
+ */
+const DocumentHistory = ({ rows, kind, onOpen }) => {
+  const intakes = kind === 'intakes';
+  const cols = intakes
+    ? ['Intake', 'Vehicle', 'Owner', 'Signed', '']
+    : ['Pass', 'Vehicle', 'Taken by', 'Out', 'Status'];
+
+  return (
+    <div className="table-responsive" style={{ background: 'var(--bg-card)', border: '1px solid var(--band-line)', borderRadius: '10px', overflow: 'hidden' }}>
+      <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ background: 'var(--bg-cream)', borderBottom: '1px solid var(--band-line)', textAlign: 'left', fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            {cols.map((c) => <th key={c} style={{ padding: '12px 16px' }}>{c}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={cols.length} style={{ padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)', lineHeight: 1.65 }}>
+                {intakes
+                  ? 'No signed intakes yet. A condition report appears here once it is signed off.'
+                  : 'No gate passes issued yet. A pass appears here once a vehicle has been released.'}
+              </td>
+            </tr>
+          ) : rows.map((r) => (
+            <tr key={r.id} onClick={() => onOpen(r)} style={{ cursor: 'pointer' }}>
+              <td style={{ padding: '12px 16px', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)' }}>
+                {intakes ? intakeNumberFor(r) : gatePassNumberFor(r)}
+              </td>
+              <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text-dark)' }}>
+                {r.makeModel || '—'}
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{r.regNo || ''}</div>
+              </td>
+              <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
+                {intakes ? r.ownerName : r.takerName}
+              </td>
+              <td style={{ padding: '12px 16px', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+                {intakes
+                  ? new Date(r.signedAt).toLocaleDateString('en-KE')
+                  : r.issuedAt ? new Date(r.issuedAt).toLocaleDateString('en-KE') : '—'}
+              </td>
+              <td style={{ padding: '12px 16px' }}>
+                {intakes ? (
+                  <span className="badge" style={{ background: '#e2f2ea', color: '#1f7a52' }}>Signed</span>
+                ) : (
+                  <span className="badge" style={r.returnedAt
+                    ? { background: '#e2f2ea', color: '#1f7a52' }
+                    : { background: 'var(--primary-light)', color: 'var(--primary-ink)' }}>
+                    {r.returnedAt ? 'Returned' : 'Out'}
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
