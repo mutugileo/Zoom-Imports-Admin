@@ -4,10 +4,12 @@ import { stockLabel, stockClass } from '@shared/lib/format';
 import { PART_CATEGORY_GROUPS } from '@shared/data/partCategories';
 import { MAZDA_MODEL_GROUPS } from '@shared/data/mazdaModels';
 import { AdminLayout } from './AdminLayout';
-import { Search, Plus, Edit2, Trash2, X, Wrench } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, X, Wrench, ReceiptText } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { ImagePicker } from '../components/ImagePicker';
+import { PartInvoice } from '../components/PartInvoice';
+import { ManualOrderModal } from '../components/ManualOrderModal';
 
 export const AdminParts = () => {
   const { parts, partsLoading, savePart, deletePart, savePartCost, partCostFor, setPartApproval, formatKES, can, compatibility } = useApp();
@@ -17,6 +19,8 @@ export const AdminParts = () => {
 
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [manualInvoiceOpen, setManualInvoiceOpen] = useState(false);
+  const [generatedInvoice, setGeneratedInvoice] = useState(null);
   /* Held apart from formData on purpose: the buy price must not ride along in
      the object handed to savePart, which writes the record the storefront
      reads. It goes to its own store. */
@@ -110,11 +114,20 @@ export const AdminParts = () => {
             Spare Parts Management
           </h1>
 
-          {mayWrite && (
-          <button onClick={handleOpenAddModal} className="btn-accent">
-            <Plus size={16} /> Add Spare Part
-          </button>
-          )}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={() => setManualInvoiceOpen(true)}
+              className="btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <ReceiptText size={16} /> New Spare Part Invoice
+            </button>
+            {mayWrite && (
+              <button onClick={handleOpenAddModal} className="btn-accent" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Plus size={16} /> Add Spare Part
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Search */}
@@ -395,6 +408,20 @@ export const AdminParts = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {manualInvoiceOpen && (
+        <ManualOrderModal
+          onClose={() => setManualInvoiceOpen(false)}
+          onCreated={(order) => setGeneratedInvoice(order)}
+        />
+      )}
+
+      {generatedInvoice && (
+        <PartInvoice
+          order={generatedInvoice}
+          onClose={() => setGeneratedInvoice(null)}
+        />
       )}
 
     </AdminLayout>

@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, X } from 'lucide-react';
+import { Search, X, Plus, ReceiptText, FileText } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
+import { ORDER_STATUSES } from '@shared/lib/format';
+import { PartInvoice } from '../components/PartInvoice';
+import { ManualOrderModal } from '../components/ManualOrderModal';
 
 export const AdminOrders = () => {
   const { orders, ordersLoading, updateOrderStatus, updateOrderPayment, formatKES } = useApp();
@@ -13,11 +16,14 @@ export const AdminOrders = () => {
      how many, at what price — so the row opens the record rather than making
      someone read a clipped string. */
   const [detailOrder, setDetailOrder] = useState(null);
+  const [invoiceOrder, setInvoiceOrder] = useState(null);
+  const [isQuotation, setIsQuotation] = useState(false);
+  const [manualModalOpen, setManualModalOpen] = useState(false);
 
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
 
-  const statuses = ['All', 'New', 'Confirmed', 'Processing', 'Ready for Collection', 'Out for Delivery', 'Completed', 'Cancelled'];
+  const statuses = ['All', ...ORDER_STATUSES];
 
   const orderStatusStyle = {
     New: { bg: '#eaf1f6', fg: 'var(--primary-ink)' },
@@ -43,19 +49,35 @@ export const AdminOrders = () => {
         
         {/* Header */}
         <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 0', borderBottom: '1px solid var(--band-line)' }}>
-          <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
-            Customer Orders & Fulfillment
-          </h1>
+          <div>
+            <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 600, color: 'var(--text-dark)' }}>
+              Customer Orders & Spare Part Invoices
+            </h1>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Manage website & app part requests, generate customer invoices, or create counter sales.
+            </p>
+          </div>
 
-          <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
-            <Search size={15} color="var(--text-muted)" />
-            <input 
-              type="text" 
-              placeholder="Search ref, customer, phone..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              style={{ border: 'none', outline: 'none', fontSize: 'var(--text-sm)', width: '100%' }} 
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setManualModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={16} /> New Spare Part Invoice
+            </button>
+
+            <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
+              <Search size={15} color="var(--text-muted)" />
+              <input 
+                type="text" 
+                placeholder="Search ref, customer, phone..." 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                style={{ border: 'none', outline: 'none', fontSize: 'var(--text-sm)', width: '100%', background: 'transparent' }} 
+              />
+            </div>
           </div>
         </div>
 
@@ -98,17 +120,17 @@ export const AdminOrders = () => {
                 <th>Payment</th>
                 <th>Status</th>
                 <th>Date</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {ordersLoading ? (
-                <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading orders…</td></tr>
+                <tr><td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading orders…</td></tr>
               ) : page.visible.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     {orders.length === 0
-                      ? 'No orders yet. Parts orders placed on the website arrive here for fulfilment — they are not added by hand.'
+                      ? 'No orders yet. Place an order on the website/app or click "New Spare Part Invoice" above to create a counter sale.'
                       : 'No orders match this filter.'}
                   </td>
                 </tr>
@@ -153,20 +175,36 @@ export const AdminOrders = () => {
                     </td>
                     <td style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{o.date}</td>
                     <td>
-                      <select
-                        value={o.status}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) => { e.stopPropagation(); updateOrderStatus(o.ref, e.target.value); }}
-                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none' }}
-                      >
-                        <option value="New">New</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Processing">Processing</option>
-                        <option value="Ready for Collection">Ready for Collection</option>
-                        <option value="Out for Delivery">Out for Delivery</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button
+                          type="button"
+                          className="btn-secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsQuotation(false);
+                            setInvoiceOrder(o);
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: 'var(--text-xs)',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                          title="Generate official Spare Part Invoice"
+                        >
+                          <ReceiptText size={13} /> Invoice
+                        </button>
+                        <select
+                          value={o.status}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => { e.stopPropagation(); updateOrderStatus(o.ref, e.target.value); }}
+                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--field-border)', fontSize: 'var(--text-sm)', outline: 'none' }}
+                        >
+                          {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -178,7 +216,32 @@ export const AdminOrders = () => {
 
       </div>
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} formatKES={formatKES} onSavePayment={updateOrderPayment} onClose={() => setDetailOrder(null)} />
+        <OrderDetailModal
+          order={detailOrder}
+          formatKES={formatKES}
+          onSavePayment={updateOrderPayment}
+          onOpenInvoice={(ord, quotation = false) => {
+            setIsQuotation(quotation);
+            setInvoiceOrder(ord);
+          }}
+          onClose={() => setDetailOrder(null)}
+        />
+      )}
+      {invoiceOrder && (
+        <PartInvoice
+          order={invoiceOrder}
+          isQuotation={isQuotation}
+          onClose={() => setInvoiceOrder(null)}
+        />
+      )}
+      {manualModalOpen && (
+        <ManualOrderModal
+          onClose={() => setManualModalOpen(false)}
+          onCreated={(created) => {
+            setIsQuotation(false);
+            setInvoiceOrder(created);
+          }}
+        />
       )}
     </AdminLayout>
   );
@@ -198,7 +261,7 @@ export const AdminOrders = () => {
 const PAYMENT_STATES = ['Unpaid', 'Part paid', 'Paid', 'Refunded'];
 const PAYMENT_METHODS = ['M-Pesa', 'Bank transfer', 'Cash', 'Card'];
 
-const OrderDetailModal = ({ order, formatKES, onSavePayment, onClose }) => {
+const OrderDetailModal = ({ order, formatKES, onSavePayment, onOpenInvoice, onClose }) => {
   const [pay, setPay] = React.useState({
     paymentStatus: order.paymentStatus || 'Unpaid',
     paymentMethod: order.paymentMethod || 'M-Pesa',
@@ -230,7 +293,7 @@ const OrderDetailModal = ({ order, formatKES, onSavePayment, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-label={`Order ${order.ref}`}
-        style={{ maxWidth: '620px' }}
+        style={{ maxWidth: '640px' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', padding: '22px 24px 0' }}>
@@ -242,9 +305,33 @@ const OrderDetailModal = ({ order, formatKES, onSavePayment, onClose }) => {
               {order.customer} · {order.phone}{order.date ? ` · ${order.date}` : ''}
             </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                onClose();
+                onOpenInvoice(order, false);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: 'var(--text-xs)', padding: '6px 12px' }}
+            >
+              <ReceiptText size={14} /> Print Invoice
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                onClose();
+                onOpenInvoice(order, true);
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: 'var(--text-xs)', padding: '6px 12px' }}
+            >
+              Proforma / Quote
+            </button>
+            <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         <div style={{ padding: '18px 24px 24px' }}>

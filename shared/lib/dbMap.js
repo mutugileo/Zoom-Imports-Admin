@@ -168,6 +168,24 @@ export const orderFromRow = (r) => ({
   paidAt: r.paid_at,
 });
 
+export const orderToRow = (o) => ({
+  ref: o.ref,
+  customer: o.customer,
+  phone: o.phone || null,
+  email: o.email || null,
+  location: o.location || null,
+  items: o.items || [],
+  items_fmt: o.itemsFmt || '',
+  total: o.total,
+  status: o.status || 'New',
+  delivery: o.delivery || 'Pick Up (Yard)',
+  order_date: o.date || new Date().toISOString().slice(0, 10),
+  payment_method: o.paymentMethod || null,
+  payment_ref: o.paymentRef || null,
+  payment_status: o.paymentStatus || 'Unpaid',
+  paid_at: o.paymentStatus === 'Paid' ? (o.paidAt || new Date().toISOString()) : null,
+});
+
 export const enquiryFromRow = (r) => ({
   id: r.id,
   /* Set once the enquiry becomes a sale. Null is the normal state — most

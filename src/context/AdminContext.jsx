@@ -8,6 +8,7 @@ import { formatKES } from '@shared/lib/format';
 import { emptyCosts } from '@shared/lib/costing';
 import { makeVehicleSale, makeOrderCost, isRealisedOrder } from '@shared/lib/sales';
 import { ensureStockId, nextGroupId } from '@shared/lib/inventory';
+import { makeOrderRef } from '@shared/lib/store';
 import { supabase } from '@shared/lib/supabaseClient';
 import { pinToPassword } from '@shared/lib/pinAuth';
 import { friendlyError } from '@shared/lib/friendlyError';
@@ -15,7 +16,7 @@ import {
   vehicleFromRow, vehicleToRow,
   partFromRow, partToRow,
   compatFromRow, compatToRow,
-  orderFromRow,
+  orderFromRow, orderToRow,
   enquiryFromRow,
   groupFromRow, groupToRow,
   activityFromRow,
@@ -683,6 +684,73 @@ export const AdminProvider = ({ children }) => {
     logActivity(`Order ${ref} marked as ${status}`);
     return { ok: true };
   }, [orders, orderCosts, partCosts, refreshOrders, refreshOrderCosts, logActivity]);
+
+  /**
+   * Create a manual order/invoice from Admin (counter sale, walk-in, phone order).
+   * Generates a unique reference, handles inventory stock deduction if completed,
+   * snapshots costs if completed, and inserts into `orders`.
+   */
+  const createOrder = useCallback(async (orderData) => {
+    let attemptRef = orderData.ref || makeOrderRef(orders.map((o) => o.ref));
+    const items = orderData.items || [];
+    const itemsFmt = orderData.itemsFmt || items.map((l) => `${l.name} × ${l.qty}`).join(', ');
+    const total = orderData.total != null
+      ? orderData.total
+      : items.reduce((sum, l) => sum + (Number(l.unitPrice) || 0) * (Number(l.qty) || 0), 0);
+
+    let createdOrder = null;
+    for (let tries = 0; tries < 3; tries += 1) {
+      const orderToSave = {
+        ...orderData,
+        ref: attemptRef,
+        items,
+        itemsFmt,
+        total,
+        status: orderData.status || 'New',
+        delivery: orderData.delivery || 'Pick Up (Yard)',
+        date: orderData.date || new Date().toISOString().slice(0, 10),
+      };
+
+      const { error } = await supabase.from('orders').insert(orderToRow(orderToSave));
+      if (!error) {
+        createdOrder = orderToSave;
+        break;
+      }
+      if (error.code !== '23505') {
+        return { ok: false, reason: friendlyError(error, 'Could not create order. Try again.') };
+      }
+      attemptRef = makeOrderRef([...orders.map((o) => o.ref), attemptRef]);
+    }
+
+    if (!createdOrder) {
+      return { ok: false, reason: 'Could not create unique order reference. Try again.' };
+    }
+
+    // If order was created already completed, cost snapshot
+    if (isRealisedOrder({ status: createdOrder.status })) {
+      const partCostsShim = Object.fromEntries(
+        Object.entries(partCosts).map(([id, c]) => [id, { costPrice: c.costPrice }])
+      );
+      const entry = makeOrderCost(createdOrder, partCostsShim);
+      const { error: costError } = await supabase.from('order_costs').insert(orderCostToRow(createdOrder.ref, entry));
+      if (!costError) await refreshOrderCosts();
+    }
+
+    // Deduct stock for parts sold in this manual order
+    for (const line of items) {
+      if (line.partId) {
+        const p = parts.find((x) => x.id === line.partId);
+        if (p && p.stock != null) {
+          const newStock = Math.max(0, p.stock - (Number(line.qty) || 1));
+          await supabase.from('parts').update({ stock: newStock }).eq('id', p.id);
+        }
+      }
+    }
+
+    await Promise.all([refreshOrders(), refreshParts()]);
+    logActivity(`Manual order ${createdOrder.ref} created for ${createdOrder.customer}`);
+    return { ok: true, order: createdOrder };
+  }, [orders, parts, partCosts, refreshOrders, refreshParts, refreshOrderCosts, logActivity]);
 
   // ──────────────────────────── Enquiries ────────────────────────────
 
@@ -1488,6 +1556,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor,
       orderCosts,
       addCompatibilityRule, removeCompatibilityRule,
+      createOrder,
       updateOrderStatus, updateOrderPayment, updateEnquiryStatus,
 
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,

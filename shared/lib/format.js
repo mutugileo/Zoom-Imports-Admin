@@ -32,7 +32,11 @@ export const stockLabel = (stock) =>
 export const stockClass = (stock) =>
   stock === 0 ? 'out-stock' : stock < LOW_STOCK_THRESHOLD ? 'low-stock' : 'available';
 
-export const ORDER_STATUSES = ['New', 'Confirmed', 'Packed', 'Delivered', 'Cancelled'];
+/* The order lifecycle every surface shares: the admin's Orders screen writes
+   these, the app's order tracker reads them, profit counts 'Completed', and a
+   check constraint on orders.status refuses anything else. This constant used
+   to read New / Confirmed / Packed / Delivered, which nothing wrote. */
+export const ORDER_STATUSES = ['New', 'Confirmed', 'Processing', 'Ready for Collection', 'Out for Delivery', 'Completed', 'Cancelled'];
 export const ENQUIRY_STATUSES = ['New', 'Contacted', 'Scheduled', 'Closed'];
 
 /**
