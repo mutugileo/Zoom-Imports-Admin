@@ -23,7 +23,7 @@ const TD = {
 };
 
 export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
-  const { siteContent, bankAccounts } = useApp();
+  const { siteContent, bankAccounts, parts } = useApp();
   const company = siteContent?.company || {};
   const contact = siteContent?.contact || {};
 
@@ -214,25 +214,59 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                   </td>
                 </tr>
               ) : (
-                lines.map((l, i) => (
-                  <tr key={`${l.partId || 'part'}-${i}`}>
-                    <td style={TD}>
-                      <div style={{ fontWeight: 500, color: '#1f2328', lineHeight: 1.5 }}>
-                        {l.name}
-                        {l.partNumber ? ` (Part No: ${l.partNumber})` : ''}
-                      </div>
-                    </td>
-                    <td style={{ ...TD, textAlign: 'center', color: '#1f2328' }}>
-                      {Number(l.unitPrice).toLocaleString('en-US')}
-                    </td>
-                    <td style={{ ...TD, textAlign: 'center', color: '#1f2328' }}>
-                      {l.qty}
-                    </td>
-                    <td style={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#1f2328', whiteSpace: 'nowrap' }}>
-                      {((Number(l.unitPrice) || 0) * (Number(l.qty) || 0)).toLocaleString('en-US')}
-                    </td>
-                  </tr>
-                ))
+                lines.map((l, i) => {
+                  const matchedPart = (parts || []).find(
+                    (p) => (l.partId && String(p.id) === String(l.partId)) ||
+                           (l.partNumber && String(p.partNumber) === String(l.partNumber)) ||
+                           (l.name && String(p.name).toLowerCase() === String(l.name).toLowerCase())
+                  );
+                  const partPhoto = l.img || l.image || (matchedPart?.images && matchedPart.images[0]) || matchedPart?.img || null;
+
+                  return (
+                    <tr key={`${l.partId || 'part'}-${i}`}>
+                      <td style={TD}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {partPhoto && (
+                            <img
+                              src={partPhoto}
+                              alt={l.name || 'Spare Part'}
+                              style={{
+                                width: '56px',
+                                height: '42px',
+                                objectFit: 'cover',
+                                borderRadius: '4px',
+                                border: '1px solid #d8dee4',
+                                flexShrink: 0,
+                              }}
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 500, color: '#1f2328', lineHeight: 1.5 }}>
+                              {l.name}
+                            </div>
+                            {l.partNumber && (
+                              <div style={{ fontSize: '0.8rem', color: '#6e7781', marginTop: '2px' }}>
+                                Part No: {l.partNumber}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ ...TD, textAlign: 'center', color: '#1f2328' }}>
+                        {Number(l.unitPrice).toLocaleString('en-US')}
+                      </td>
+                      <td style={{ ...TD, textAlign: 'center', color: '#1f2328' }}>
+                        {l.qty}
+                      </td>
+                      <td style={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#1f2328', whiteSpace: 'nowrap' }}>
+                        {((Number(l.unitPrice) || 0) * (Number(l.qty) || 0)).toLocaleString('en-US')}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

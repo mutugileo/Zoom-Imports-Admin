@@ -36,9 +36,13 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
 
   const addLine = (part) => {
     const existingIndex = selectedLines.findIndex((l) => l.partId === part.id);
+    const partImg = (part.images && part.images[0]) || part.img || '';
     if (existingIndex >= 0) {
       const updated = [...selectedLines];
       updated[existingIndex].qty += 1;
+      if (!updated[existingIndex].img && partImg) {
+        updated[existingIndex].img = partImg;
+      }
       setSelectedLines(updated);
     } else {
       setSelectedLines([
@@ -50,6 +54,7 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
           qty: 1,
           unitPrice: Number(part.promo || part.price) || 0,
           stock: part.stock != null ? part.stock : null,
+          img: partImg,
         },
       ]);
     }
@@ -103,6 +108,7 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
         partNumber: l.partNumber,
         qty: l.qty,
         unitPrice: l.unitPrice,
+        img: l.img || '',
       })),
       total,
       status: paymentStatus === 'Paid' ? 'Completed' : 'Confirmed',
