@@ -41,6 +41,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   Sun,
@@ -50,6 +51,7 @@ import {
 
 const RAIL_COLLAPSED_KEY = 'admin-rail-collapsed';
 const FOOT_OPEN_KEY = 'admin-rail-foot-open';
+const SECTIONS_COLLAPSED_KEY = 'admin-nav-collapsed-sections';
 
 export const AdminLayout = ({ children }) => {
   const { currentView, navigateTo, currentUser, canView, signOut, idleWarning, staySignedIn, theme, toggleTheme } = useApp();
@@ -66,6 +68,26 @@ export const AdminLayout = ({ children }) => {
     try { localStorage.setItem(FOOT_OPEN_KEY, String(next)); } catch { /* private mode */ }
     return next;
   });
+
+  const [collapsedSections, setCollapsedSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SECTIONS_COLLAPSED_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleSection = (sectionTitle) => {
+    if (!sectionTitle) return;
+    setCollapsedSections((prev) => {
+      const next = { ...prev, [sectionTitle]: !prev[sectionTitle] };
+      try {
+        localStorage.setItem(SECTIONS_COLLAPSED_KEY, JSON.stringify(next));
+      } catch { /* private mode */ }
+      return next;
+    });
+  };
 
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_COLLAPSED_KEY) === '1'; } catch { return false; }
@@ -135,6 +157,22 @@ export const AdminLayout = ({ children }) => {
     .filter((group) => group.items.length > 0);
   // Filtered, not disabled: a greyed-out row invites people to ask why they
   // cannot click it. The router checks again, since the sidebar is only a menu.
+
+  // Auto-expand a section if the current active view sits inside it
+  useEffect(() => {
+    const activeGroup = navGroups.find(
+      (g) => g.title && g.items.some((item) => item.id === currentView)
+    );
+    if (activeGroup && collapsedSections[activeGroup.title]) {
+      setCollapsedSections((prev) => {
+        const next = { ...prev, [activeGroup.title]: false };
+        try {
+          localStorage.setItem(SECTIONS_COLLAPSED_KEY, JSON.stringify(next));
+        } catch { /* private mode */ }
+        return next;
+      });
+    }
+  }, [currentView]);
 
   const railCollapsed = collapsed && !mobileOpen;
 
@@ -293,45 +331,103 @@ export const AdminLayout = ({ children }) => {
               flex: '1 1 auto', minHeight: 0, overflowY: 'auto',
             }}
           >
-            {navGroups.map((group) => (
-              <div key={group.title ?? 'primary'} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {/* Collapsed, the rail is icons only — a heading would have no
-                    room and the group is already read as a gap. A hairline
-                    keeps the grouping legible without text. */}
-                {group.title && (railCollapsed ? (
-                  <div aria-hidden="true" style={{ height: '1px', background: 'var(--band-line)', margin: '10px 6px 6px' }} />
-                ) : (
+            {navGroups.map((group) => {
+              const isSectionCollapsed = Boolean(
+                !railCollapsed && group.title && collapsedSections[group.title]
+              );
+
+              return (
+                <div key={group.title ?? 'primary'} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  {/* Collapsed, the rail is icons only — a heading would have no
+                      room and the group is already read as a gap. A hairline
+                      keeps the grouping legible without text. */}
+                  {group.title && (railCollapsed ? (
+                    <div aria-hidden="true" style={{ height: '1px', background: 'var(--band-line)', margin: '10px 6px 6px' }} />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(group.title)}
+                      className="nav-group-header-btn"
+                      aria-expanded={!isSectionCollapsed}
+                      aria-label={`Toggle ${group.title} section`}
+                      title={isSectionCollapsed ? `Expand ${group.title}` : `Collapse ${group.title}`}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 10px 4px 12px',
+                        fontFamily: 'inherit',
+                        textAlign: 'left',
+                        color: 'var(--text-muted)',
+                        transition: 'color 0.15s ease, background 0.15s ease',
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          letterSpacing: '0.09em',
+                          textTransform: 'uppercase',
+                          color: 'inherit',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {group.title}
+                      </span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'inherit',
+                          transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+                          transform: isSectionCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                        }}
+                      >
+                        <ChevronDown size={13} strokeWidth={2.5} />
+                      </span>
+                    </button>
+                  ))}
                   <div
                     style={{
-                      fontSize: '10px', fontWeight: 700, letterSpacing: '0.09em',
-                      textTransform: 'uppercase', color: 'var(--text-muted)',
-                      padding: '7px 12px 3px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '2px',
+                      overflow: 'hidden',
+                      maxHeight: isSectionCollapsed ? '0px' : '500px',
+                      opacity: isSectionCollapsed ? 0 : 1,
+                      transition: 'max-height 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease',
+                      pointerEvents: isSectionCollapsed ? 'none' : 'auto',
                     }}
                   >
-                    {group.title}
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      const isActive = currentView === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => { navigateTo(item.id); setMobileOpen(false); }}
+                          aria-current={isActive ? 'page' : undefined}
+                          className="nav-item"
+                          data-active={isActive ? 'true' : undefined}
+                          data-collapsed={railCollapsed ? 'true' : undefined}
+                          title={railCollapsed ? item.label : undefined}
+                        >
+                          <AdminIcon icon={Icon} variant="nav" size={18} />
+                          {!railCollapsed && item.label}
+                        </button>
+                      );
+                    })}
                   </div>
-                ))}
-                {group.items.map(item => {
-                  const Icon = item.icon;
-                  const isActive = currentView === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => { navigateTo(item.id); setMobileOpen(false); }}
-                      aria-current={isActive ? 'page' : undefined}
-                      className="nav-item"
-                      data-active={isActive ? 'true' : undefined}
-                      data-collapsed={railCollapsed ? 'true' : undefined}
-                      title={railCollapsed ? item.label : undefined}
-                    >
-                      <AdminIcon icon={Icon} variant="nav" size={18} />
-                      {!railCollapsed && item.label}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 
