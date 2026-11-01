@@ -46,6 +46,7 @@ export const quotationFor = (vehicle) => ({
   vehicleColor: vehicle?.color ?? '',
   vehicleChassis: vehicle?.chassis ?? '',
   vehicleEngine: vehicle?.engine ?? '',
+  vehicleImg: vehicle?.img || (Array.isArray(vehicle?.images) ? vehicle.images[0] : null),
   /* The asking price. Nothing is paid against a quote, so the balance due is
      the whole figure — which is what `balanceForBuyer` derives from no
      payments, without needing a special case here. */
@@ -87,7 +88,7 @@ const readableDate = (value) => {
  * KRA would assert something no data here supports.
  */
 export const Invoice = ({ buyer, onClose }) => {
-  const { siteContent, billing, formatKES, paymentsForBuyer, balanceForBuyer, bankAccounts } = useApp();
+  const { vehicles, siteContent, billing, formatKES, paymentsForBuyer, balanceForBuyer, bankAccounts } = useApp();
 
   /* Balance Due is what is STILL owed, not the agreed price.
    *
@@ -189,6 +190,13 @@ export const Invoice = ({ buyer, onClose }) => {
   ].filter(Boolean);
 
   const fullVehicleDescription = vehicleDescParts.join('/');
+
+  // Matched vehicle photo for passport thumbnail
+  const matchedVehicle =
+    (vehicles || []).find((v) => String(v.id) === String(buyer.vehicleId || buyer.id)) ||
+    (vehicles || []).find((v) => v.chassis && v.chassis === (buyer.vehicleChassis || buyer.chassis)) ||
+    null;
+  const vehiclePhoto = buyer.vehicleImg || buyer.img || matchedVehicle?.img || (Array.isArray(matchedVehicle?.images) ? matchedVehicle.images[0] : null) || null;
 
   /* An em dash, never a number. A missing price used to print as 3,800,000 —
      a figure a customer could reasonably have paid, on paper they were handed.
@@ -350,8 +358,27 @@ export const Invoice = ({ buyer, onClose }) => {
             <tbody>
               <tr>
                 <td style={TD}>
-                  <div style={{ fontWeight: 500, color: '#1f2328', lineHeight: 1.5 }}>
-                    {fullVehicleDescription}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    {vehiclePhoto && (
+                      <img
+                        src={vehiclePhoto}
+                        alt={buyer.vehicleName || 'Vehicle'}
+                        style={{
+                          width: '64px',
+                          height: '46px',
+                          objectFit: 'cover',
+                          borderRadius: '4px',
+                          border: '1px solid #d8dee4',
+                          flexShrink: 0,
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    )}
+                    <div style={{ fontWeight: 500, color: '#1f2328', lineHeight: 1.5 }}>
+                      {fullVehicleDescription}
+                    </div>
                   </div>
                 </td>
                 <td style={{ ...TD, textAlign: 'center', color: '#6e7781' }}>—</td>

@@ -7,21 +7,30 @@ export const KeywaveStamp = ({ width = 300, className = '', style = {} }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '20px', ...style }} className={className}>
     {/* Signature text */}
     <div style={{ position: 'relative' }}>
-      <svg width="120" height="45" viewBox="0 0 140 50" fill="none">
+      <svg width="130" height="52" viewBox="0 0 150 56" fill="none">
+        {/* Mountain wave signature flourish matching physical document */}
         <path
-          d="M10 35 C 25 15, 30 5, 40 25 C 45 35, 50 20, 60 25 C 70 30, 75 15, 85 28 C 95 38, 105 10, 125 30 M25 28 L 75 28"
+          d="M 12 36 C 18 24, 25 10, 34 10 C 44 10, 48 30, 56 30 C 64 30, 72 23, 80 23 C 88 23, 92 29, 100 29 C 108 29, 118 19, 130 25"
+          stroke="#1d4ed8"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <path
+          d="M 44 32 L 74 32"
           stroke="#1d4ed8"
           strokeWidth="2.2"
           strokeLinecap="round"
-          fill="none"
         />
         <text
-          x="15"
-          y="42"
+          x="16"
+          y="44"
           fontFamily="'Brush Script MT', 'Caveat', 'Dancing Script', cursive, sans-serif"
-          fontSize="24"
+          fontSize="26"
           fill="#1e40af"
           fontStyle="italic"
+          fontWeight="bold"
         >
           SammySebi
         </text>
@@ -30,12 +39,12 @@ export const KeywaveStamp = ({ width = 300, className = '', style = {} }) => (
 
     {/* Official Circular Stamp Seal */}
     <svg
-      width="130"
-      height="130"
+      width="135"
+      height="135"
       viewBox="0 0 200 200"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      style={{ opacity: 0.88, transform: 'rotate(-4deg)' }}
+      style={{ opacity: 0.92, transform: 'rotate(-26deg)' }}
       aria-label="Keywave Enterprise Ltd. Official Stamp"
       role="img"
     >
