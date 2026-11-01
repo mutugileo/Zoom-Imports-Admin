@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
-import { Search, X, Plus, ReceiptText, FileText } from 'lucide-react';
+import { Search, X, Plus, ReceiptText, FileText, UserPlus } from 'lucide-react';
 import { usePagedList, PAGE_SIZE } from '../lib/usePagedList';
 import { Pagination } from '../components/Pagination';
 import { ORDER_STATUSES } from '@shared/lib/format';
 import { PartInvoice } from '../components/PartInvoice';
 import { ManualOrderModal } from '../components/ManualOrderModal';
+import { RecordBuyerModal } from '../components/RecordBuyerModal';
+import { Invoice } from '../components/Invoice';
 
 export const AdminOrders = () => {
-  const { orders, ordersLoading, updateOrderStatus, updateOrderPayment, formatKES } = useApp();
+  const { orders, ordersLoading, buyers, updateOrderStatus, updateOrderPayment, formatKES } = useApp();
   
   /* The table shows `itemsFmt`, a truncated one-line summary. What the yard
      actually needs when picking an order is the lines themselves — which part,
@@ -19,6 +21,8 @@ export const AdminOrders = () => {
   const [invoiceOrder, setInvoiceOrder] = useState(null);
   const [isQuotation, setIsQuotation] = useState(false);
   const [manualModalOpen, setManualModalOpen] = useState(false);
+  const [recordBuyerOpen, setRecordBuyerOpen] = useState(false);
+  const [vehicleInvoiceBuyer, setVehicleInvoiceBuyer] = useState(null);
 
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch] = useState('');
@@ -58,17 +62,28 @@ export const AdminOrders = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <button
               type="button"
               className="btn-primary"
               onClick={() => setManualModalOpen(true)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Create a new spare parts order and generate customer invoice"
             >
-              <Plus size={16} /> New Spare Part Invoice
+              <Plus size={16} /> Create Manual Order
             </button>
 
-            <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '260px' }}>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setRecordBuyerOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+              title="Record a vehicle buyer and generate vehicle sales invoice"
+            >
+              <UserPlus size={16} /> Vehicle Invoice
+            </button>
+
+            <div className="admin-search" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-card)', border: '1px solid var(--border-medium)', borderRadius: '8px', padding: '7px 12px', width: '240px' }}>
               <Search size={15} color="var(--text-muted)" />
               <input 
                 type="text" 
@@ -241,6 +256,22 @@ export const AdminOrders = () => {
             setIsQuotation(false);
             setInvoiceOrder(created);
           }}
+        />
+      )}
+      {recordBuyerOpen && (
+        <RecordBuyerModal
+          onClose={() => setRecordBuyerOpen(false)}
+          onSaved={(newId) => {
+            setRecordBuyerOpen(false);
+            const found = (buyers || []).find((b) => b.id === newId);
+            if (found) setVehicleInvoiceBuyer(found);
+          }}
+        />
+      )}
+      {vehicleInvoiceBuyer && (
+        <Invoice
+          buyer={vehicleInvoiceBuyer}
+          onClose={() => setVehicleInvoiceBuyer(null)}
         />
       )}
     </AdminLayout>
