@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AdminContext';
 import { AdminLayout } from './AdminLayout';
 import { useMobileApp } from '../lib/useMobileApp';
@@ -481,6 +481,11 @@ const ChatPanel = ({ app, openThread, setOpenThread, onError }) => {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages]);
 
   useEffect(() => {
     let cancelled = false;
@@ -587,6 +592,7 @@ const ChatPanel = ({ app, openThread, setOpenThread, onError }) => {
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={send} style={{ display: 'flex', gap: '8px', paddingTop: '14px', borderTop: '1px solid var(--ma-rule)' }}>
