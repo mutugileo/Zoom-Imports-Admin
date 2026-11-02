@@ -42,11 +42,22 @@ const DetailTable = ({ fields, record, formatKES }) => (
  * a stamp or a letterhead looks like.
  */
 export const GatePassSheet = ({ pass, onClose }) => {
-  const { billing, siteContent, formatKES } = useApp();
+  const { billing, siteContent, formatKES, vehicles } = useApp();
   const company = billing ?? {};
   const contact = siteContent?.contact ?? {};
   const number = gatePassNumberFor(pass);
   const RECEIVING_ENTITY = 'ZOOM IMPORTS';
+
+  const matchedVehicle = (vehicles || []).find((v) =>
+    (pass.vehicleId && String(v.id) === String(pass.vehicleId)) ||
+    (pass.chassis && v.chassis && v.chassis.trim().toLowerCase() === pass.chassis.trim().toLowerCase()) ||
+    (pass.regNo && (v.regNumber || v.registration) && (v.regNumber || v.registration).trim().toLowerCase() === pass.regNo.trim().toLowerCase()) ||
+    (pass.makeModel && v.name && v.name.trim().toLowerCase() === pass.makeModel.trim().toLowerCase())
+  );
+  let carImage = pass.vehicleImage || pass.carImage || pass.img || matchedVehicle?.img || (matchedVehicle?.images && matchedVehicle.images[0]) || null;
+  if (carImage && (carImage.startsWith('/media/') || carImage.startsWith('media/'))) {
+    carImage = carImage.startsWith('/') ? carImage : `/${carImage}`;
+  }
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -120,7 +131,19 @@ export const GatePassSheet = ({ pass, onClose }) => {
 
           <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 26px', marginBottom: '20px' }}>
             <DetailTable fields={TAKER_FIELDS} record={pass} formatKES={formatKES} />
-            <DetailTable fields={GATE_VEHICLE_FIELDS} record={pass} formatKES={formatKES} />
+            <div>
+              {carImage && (
+                <div style={{ marginBottom: '10px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #d8dee4', height: '110px' }}>
+                  <img
+                    src={carImage}
+                    alt={pass.makeModel || 'Vehicle'}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    onError={(e) => { e.currentTarget.parentElement.style.display = 'none'; }}
+                  />
+                </div>
+              )}
+              <DetailTable fields={GATE_VEHICLE_FIELDS} record={pass} formatKES={formatKES} />
+            </div>
           </section>
 
           {/* Only once the car is back. On an open pass the return line would
