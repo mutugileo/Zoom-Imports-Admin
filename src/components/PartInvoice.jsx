@@ -215,12 +215,23 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                 </tr>
               ) : (
                 lines.map((l, i) => {
-                  const matchedPart = (parts || []).find(
-                    (p) => (l.partId && String(p.id) === String(l.partId)) ||
-                           (l.partNumber && String(p.partNumber) === String(l.partNumber)) ||
-                           (l.name && String(p.name).toLowerCase() === String(l.name).toLowerCase())
-                  );
-                  const partPhoto = l.img || l.image || (matchedPart?.images && matchedPart.images[0]) || matchedPart?.img || null;
+                  const linePartId = l.partId ? String(l.partId).trim() : '';
+                  const linePartNo = l.partNumber ? String(l.partNumber).trim().toLowerCase() : '';
+                  const lineName = l.name ? String(l.name).trim().toLowerCase() : '';
+
+                  const matchedPart = (parts || []).find((p) => {
+                    const pId = p.id ? String(p.id).trim() : '';
+                    const pNo = p.partNumber ? String(p.partNumber).trim().toLowerCase() : '';
+                    const pName = p.name ? String(p.name).trim().toLowerCase() : '';
+                    return (linePartId && pId === linePartId) ||
+                           (linePartNo && pNo === linePartNo) ||
+                           (lineName && pName === lineName);
+                  });
+
+                  let partPhoto = l.img || l.image || (matchedPart?.images && matchedPart.images[0]) || matchedPart?.img || null;
+                  if (partPhoto && (partPhoto.startsWith('/media/') || partPhoto.startsWith('media/'))) {
+                    partPhoto = partPhoto.startsWith('/') ? partPhoto : `/${partPhoto}`;
+                  }
 
                   return (
                     <tr key={`${l.partId || 'part'}-${i}`}>
