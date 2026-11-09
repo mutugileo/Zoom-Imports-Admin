@@ -166,6 +166,10 @@ export const orderFromRow = (r) => ({
   paymentRef: r.payment_ref || '',
   paymentStatus: r.payment_status || 'Unpaid',
   paidAt: r.paid_at,
+  /* Set once the invoice is issued. Null until then: an order that has never
+     been invoiced has no number, and a number must not be invented for it. */
+  invoiceNo: r.invoice_no || null,
+  invoicedAt: r.invoiced_at || null,
 });
 
 export const orderToRow = (o) => ({

@@ -55,16 +55,16 @@ export const AdminProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'dark';
     try {
-      const saved = localStorage.getItem('zm_theme');
+      const saved = localStorage.getItem('zm_theme_v2');
       if (saved === 'light' || saved === 'dark') return saved;
     } catch { /* private mode fallback */ }
-    return window.matchMedia?.('(prefers-color-scheme: light)')?.matches ? 'light' : 'dark';
+    return 'dark';
   });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     try {
-      localStorage.setItem('zm_theme', theme);
+      localStorage.setItem('zm_theme_v2', theme);
     } catch { /* ignore */ }
   }, [theme]);
 
@@ -687,8 +687,8 @@ export const AdminProvider = ({ children }) => {
 
   /**
    * Create a manual order/invoice from Admin (counter sale, walk-in, phone order).
-   * Generates a unique reference, handles inventory stock deduction if completed,
-   * snapshots costs if completed, and inserts into `orders`.
+   * Generates a unique reference, snapshots costs if completed, and inserts into
+   * `orders`. Stock is handled by the database in the same insert.
    */
   const createOrder = useCallback(async (orderData) => {
     let attemptRef = orderData.ref || makeOrderRef(orders.map((o) => o.ref));
@@ -736,21 +736,24 @@ export const AdminProvider = ({ children }) => {
       if (!costError) await refreshOrderCosts();
     }
 
-    // Deduct stock for parts sold in this manual order
-    for (const line of items) {
-      if (line.partId) {
-        const p = parts.find((x) => x.id === line.partId);
-        if (p && p.stock != null) {
-          const newStock = Math.max(0, p.stock - (Number(line.qty) || 1));
-          await supabase.from('parts').update({ stock: newStock }).eq('id', p.id);
-        }
-      }
-    }
-
+    // Stock was reserved by the database as the row went in (orders_apply_stock),
+    // in the same transaction, so there is nothing to deduct from here.
     await Promise.all([refreshOrders(), refreshParts()]);
     logActivity(`Manual order ${createdOrder.ref} created for ${createdOrder.customer}`);
     return { ok: true, order: createdOrder };
-  }, [orders, parts, partCosts, refreshOrders, refreshParts, refreshOrderCosts, logActivity]);
+  }, [orders, partCosts, refreshOrders, refreshParts, refreshOrderCosts, logActivity]);
+
+  /**
+   * Gives a parts order its invoice number, once. The database hands out the
+   * next number in the year's series and locks the order's details from then
+   * on, so calling this again returns the same number.
+   */
+  const issueInvoice = useCallback(async (ref) => {
+    const { data, error } = await supabase.rpc('issue_order_invoice', { p_ref: ref });
+    if (error) return { ok: false, reason: friendlyError(error, 'Could not issue this invoice. Try again.') };
+    await refreshOrders();
+    return { ok: true, invoiceNo: data };
+  }, [refreshOrders]);
 
   // ──────────────────────────── Enquiries ────────────────────────────
 
@@ -1556,7 +1559,7 @@ export const AdminProvider = ({ children }) => {
       partCosts, savePartCost, partCostFor,
       orderCosts,
       addCompatibilityRule, removeCompatibilityRule,
-      createOrder,
+      createOrder, issueInvoice,
       updateOrderStatus, updateOrderPayment, updateEnquiryStatus,
 
       siteContent, saveContact, addBanner, removeBanner, saveFaq, removeFaq,

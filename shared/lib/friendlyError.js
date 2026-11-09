@@ -33,6 +33,8 @@ const BY_CODE = {
      "only 3 of Front Brake Pad Set remain" is the one thing the shopper needs
      to act on, and a generic sentence would throw it away. */
   53401: (error) => error?.message || 'One of these items is no longer available in that quantity.',
+  // Raised when an invoiced order's details are edited. The message is the advice.
+  ZL001: (error) => error?.message || 'This order has an issued invoice, so its details are locked.',
   // Foreign key violation.
   23503: () => 'That is still linked to another record, so it cannot be removed yet.',
   // Not-null violation.
@@ -56,6 +58,11 @@ const BY_CONSTRAINT = [
   ['admin_profiles_pkey', 'That person already has an account.'],
   ['vehicle_groups_pkey', 'A group with that ID already exists.'],
   ['orders_pkey', 'An order with that reference already exists.'],
+];
+
+/** Named check constraints, mapped to what the person should change. */
+const BY_CHECK = [
+  ['parts_promo_below_price', 'The sale price must be lower than the normal price. Lower it, or clear it.'],
 ];
 
 /** Auth and network failures arrive as messages, not codes. */
@@ -92,6 +99,12 @@ export const friendlyError = (error, fallback = 'That did not save. Try again.')
   // A unique violation is far more useful once we know which constraint blew.
   if (code === '23505') {
     const hit = BY_CONSTRAINT.find(([name]) => raw.includes(name));
+    if (hit) return hit[1];
+  }
+
+  // Same for a named check constraint: say what to change, not what failed.
+  if (code === '23514') {
+    const hit = BY_CHECK.find(([name]) => raw.includes(name));
     if (hit) return hit[1];
   }
 
