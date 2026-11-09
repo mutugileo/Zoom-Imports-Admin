@@ -23,15 +23,29 @@ const TD = {
 };
 
 export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
-  const { siteContent, bankAccounts, parts } = useApp();
+  const { siteContent, bankAccounts, parts, issueInvoice } = useApp();
   const company = siteContent?.company || {};
   const contact = siteContent?.contact || {};
 
-  const invoiceNo = isQuotation
-    ? `ZM4-Q-${order.ref || '0000'}`
-    : `ZM4-${order.ref || '0000'}`;
+  /* A real invoice gets its number from the database the first time it is
+     opened, and never before. A quotation is not a sale, so it draws no number
+     from the invoice series and is not locked. */
+  const [issuedNo, setIssuedNo] = useState(order.invoiceNo || null);
+  const [issueError, setIssueError] = useState('');
+  const invoiceNo = isQuotation ? `ZM4-Q-${order.ref || '0000'}` : (issuedNo || '');
 
   const [billToName, setBillToName] = useState(order.customer || '');
+
+  useEffect(() => {
+    if (isQuotation || issuedNo || !order.ref) return undefined;
+    let cancelled = false;
+    issueInvoice(order.ref).then((res) => {
+      if (cancelled) return;
+      if (res.ok) setIssuedNo(res.invoiceNo);
+      else setIssueError(res.reason);
+    });
+    return () => { cancelled = true; };
+  }, [isQuotation, issuedNo, order.ref, issueInvoice]);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
@@ -98,10 +112,12 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
           }}
         >
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1f2328' }}>
-            Invoice {invoiceNo}
+            {issueError
+              ? <span role="alert" style={{ color: '#b42318', fontWeight: 600 }}>{issueError}</span>
+              : `Invoice ${invoiceNo || 'issuing…'}`}
           </span>
           <span style={{ display: 'flex', gap: '10px' }}>
-            <button type="button" className="btn-primary" onClick={() => window.print()}>
+            <button type="button" className="btn-primary" disabled={!invoiceNo} onClick={() => window.print()}>
               <Printer size={15} aria-hidden="true" /> Print / Save as PDF
             </button>
             <button type="button" className="btn-secondary" onClick={onClose} aria-label="Close invoice">
@@ -116,8 +132,15 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
             <div>
-              {/* Keywave Emblem Logo */}
-              <KeywaveLogo height={58} />
+              {/* Zoom Official Logo */}
+              <img
+                src="/media/zoom_logo_red_transparent.png"
+                alt="Zoom Imports"
+                style={{ height: '48px', objectFit: 'contain', display: 'block' }}
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
 
               {/* Company Info */}
               <div style={{ marginTop: '16px', color: '#33373d' }}>
