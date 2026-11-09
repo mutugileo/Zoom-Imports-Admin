@@ -59,7 +59,14 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
     return () => { document.title = prev; };
   }, [invoiceNo]);
 
-  const defaultBank = (bankAccounts || []).find((a) => a.isDefault) || (bankAccounts || [])[0] || {};
+  const defaultBank =
+    (bankAccounts || []).find((a) => (a.accountName || '').toLowerCase().includes('zoomflow')) ||
+    (bankAccounts || []).find((a) => (a.bankName || '').toLowerCase().includes('kcb')) || {
+      bankName: 'KCB',
+      branch: 'Two Rivers',
+      accountNo: '13510435552',
+      accountName: 'Zoomflow Corporation Limited',
+    };
   const lines = Array.isArray(order.items) ? order.items : [];
   const linesTotal = lines.reduce(
     (sum, l) => sum + (Number(l.unitPrice) || 0) * (Number(l.qty) || 0),
@@ -128,7 +135,7 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
 
         {/* Printable Sheet */}
         <div className="invoice-sheet" style={{ padding: '42px 48px 48px', color: '#272b30', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-          
+
           {/* Header */}
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '24px' }}>
             <div>
@@ -144,13 +151,13 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
 
               {/* Company Info */}
               <div style={{ marginTop: '16px', color: '#33373d' }}>
-                <div style={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '0.01em', textTransform: 'uppercase', color: '#24292e' }}>
-                  {company.companyName || 'Keywave Enterprise Limited'}
+                <div style={{ fontWeight: 700, fontSize: '1.05rem', letterSpacing: '0.02em', textTransform: 'uppercase', color: '#24292e' }}>
+                  ZOOM MAZDA PARTS
                 </div>
                 <div style={{ fontSize: '0.88rem', color: '#57606a', lineHeight: 1.6, marginTop: '4px' }}>
-                  {company.poBox && <div>{company.poBox}</div>}
-                  {contact.phone && <div>{contact.phone}</div>}
-                  {contact.email && <div>{contact.email}</div>}
+                  <div>Zoomflow Corporation Limited</div>
+                  {company.poBox ? <div>{company.poBox}</div> : <div>P.O Box 4127-00100 Nairobi</div>}
+                  <div>Tel: +254 182 833966</div>
                 </div>
               </div>
             </div>
@@ -247,8 +254,8 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                     const pNo = p.partNumber ? String(p.partNumber).trim().toLowerCase() : '';
                     const pName = p.name ? String(p.name).trim().toLowerCase() : '';
                     return (linePartId && pId === linePartId) ||
-                           (linePartNo && pNo === linePartNo) ||
-                           (lineName && pName === lineName);
+                      (linePartNo && pNo === linePartNo) ||
+                      (lineName && pName === lineName);
                   });
 
                   let partPhoto = l.img || l.image || (matchedPart?.images && matchedPart.images[0]) || matchedPart?.img || null;
@@ -359,10 +366,11 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
           {/* Bank Payment Details & Stamp Section */}
           <section style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px', marginTop: '36px', alignItems: 'flex-end' }}>
             <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
-              {defaultBank.bankName && <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> {defaultBank.bankName}</div>}
-              {defaultBank.branch && <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {defaultBank.branch}</div>}
-              {defaultBank.accountNo && <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {defaultBank.accountNo}</div>}
-              {defaultBank.accountName && <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {defaultBank.accountName}</div>}
+              <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> {defaultBank.bankName || 'KCB'}</div>
+              <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {defaultBank.branch || 'Two Rivers'}</div>
+              <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {defaultBank.accountNo || '13510435552'}</div>
+              <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {defaultBank.accountName || 'Zoomflow Corporation Limited'}</div>
+              <div><strong style={{ fontWeight: 600 }}>Contact Mobile:</strong> +254 182 833966</div>
             </div>
 
             {/* Signature & Official Circular Stamp */}
