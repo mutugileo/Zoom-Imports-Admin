@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AdminContext';
 import { KeywaveLogo } from './KeywaveLogo';
-import { KeywaveStamp } from './KeywaveStamp';
 import { X, Printer } from 'lucide-react';
 
 const TH = {
@@ -363,19 +362,25 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
             </div>
           </div>
 
-          {/* Bank Payment Details & Stamp Section */}
-          <section style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px', marginTop: '36px', alignItems: 'flex-end' }}>
-            <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
-              <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> {defaultBank.bankName || 'KCB'}</div>
-              <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {defaultBank.branch || 'Two Rivers'}</div>
-              <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {defaultBank.accountNo || '13510435552'}</div>
-              <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {defaultBank.accountName || 'Zoomflow Corporation Limited'}</div>
-              <div><strong style={{ fontWeight: 600 }}>Contact Mobile:</strong> +254 182 833966</div>
+          {/* Payment details: bank transfer on the left, M-Pesa Paybill on the right.
+              The company phone is already in the letterhead, so it is not repeated here. */}
+          <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginTop: '36px', alignItems: 'start' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a', marginBottom: '8px' }}>Payment details</div>
+              <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
+                <div><strong style={{ fontWeight: 600 }}>Bank Name:</strong> {defaultBank.bankName || 'KCB'}</div>
+                <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {defaultBank.branch || 'Two Rivers'}</div>
+                <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {defaultBank.accountNo || '13510435552'}</div>
+                <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {defaultBank.accountName || 'Zoomflow Corporation Limited'}</div>
+              </div>
             </div>
-
-            {/* Signature & Official Circular Stamp */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <KeywaveStamp />
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a', marginBottom: '8px' }}>Lipa na M-Pesa</div>
+              <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
+                <div><strong style={{ fontWeight: 600 }}>Paybill:</strong> 522533</div>
+                <div><strong style={{ fontWeight: 600 }}>Account Number:</strong> 8158334</div>
+                <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> ZoomFlow</div>
+              </div>
             </div>
           </section>
 
