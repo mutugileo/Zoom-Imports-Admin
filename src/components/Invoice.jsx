@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AdminContext';
 import { KeywaveLogo } from './KeywaveLogo';
-import { KeywaveStamp } from './KeywaveStamp';
 import { X, Printer } from 'lucide-react';
 
 /**
@@ -108,6 +107,9 @@ export const Invoice = ({ buyer, onClose }) => {
      saved record, and the name is only needed for as long as the sheet is on
      screen. Recording it would create a buyer for someone who has not bought. */
   const [billToName, setBillToName] = React.useState('');
+  const [discountInput, setDiscountInput] = React.useState(
+    buyer.discount != null ? String(buyer.discount) : ''
+  );
 
   const contact = siteContent?.contact ?? {};
   const company = billing ?? {};
@@ -203,7 +205,14 @@ export const Invoice = ({ buyer, onClose }) => {
      `priced` drives the warning below so the gap is stated, not just left
      blank. */
   const priced = buyer.salePrice != null;
-  const numericAmount = priced ? buyer.salePrice.toLocaleString('en-US') : '—';
+  const grossPrice = priced ? Number(buyer.salePrice) : 0;
+  const discountAmount = Math.max(0, Number(discountInput) || 0);
+  const netPrice = priced ? Math.max(0, grossPrice - discountAmount) : null;
+  const adjustedOutstanding = priced
+    ? Math.max(0, (outstanding ?? grossPrice) - discountAmount)
+    : null;
+  const numericAmount = priced ? grossPrice.toLocaleString('en-US') : '—';
+  const netNumericAmount = priced ? netPrice.toLocaleString('en-US') : '—';
 
   return createPortal(
     <div className="modal-overlay invoice-overlay" onClick={onClose}>
@@ -246,7 +255,28 @@ export const Invoice = ({ buyer, onClose }) => {
           <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1f2328' }}>
             Invoice {number}
           </span>
-          <span style={{ display: 'flex', gap: '10px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#57606a' }}>
+              <span>Discount (KES)</span>
+              <input
+                type="number"
+                min="0"
+                step="500"
+                placeholder="0"
+                value={discountInput}
+                onChange={(e) => setDiscountInput(e.target.value)}
+                aria-label="Invoice discount in KES"
+                style={{
+                  width: '100px',
+                  padding: '5px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid #d0d7de',
+                  fontSize: '0.82rem',
+                  color: '#1f2328',
+                  background: '#fff',
+                }}
+              />
+            </label>
             <button type="button" className="btn-primary" onClick={() => window.print()}>
               <Printer size={15} aria-hidden="true" /> Print / Save as PDF
             </button>
@@ -295,7 +325,7 @@ export const Invoice = ({ buyer, onClose }) => {
                 </div>
                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#1f2328', marginTop: '2px' }}>
                   {priced
-                    ? `Ksh. ${(outstanding ?? Number(buyer.salePrice)).toLocaleString('en-US')}`
+                    ? `Ksh. ${(adjustedOutstanding ?? netPrice).toLocaleString('en-US')}`
                     : '—'}
                 </div>
               </div>
@@ -405,6 +435,18 @@ export const Invoice = ({ buyer, onClose }) => {
           {/* TOTAL Section */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', marginBottom: '40px' }}>
             <div style={{ width: '300px' }}>
+              {priced && discountAmount > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.84rem', color: '#57606a' }}>
+                    <span>Subtotal</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{numericAmount}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.84rem', color: '#57606a' }}>
+                    <span>Discount</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>&minus; {discountAmount.toLocaleString('en-US')}</span>
+                  </div>
+                </>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -418,7 +460,7 @@ export const Invoice = ({ buyer, onClose }) => {
                   TOTAL
                 </span>
                 <span style={{ fontSize: '1.05rem', color: '#1f2328' }}>
-                  {numericAmount}
+                  {netNumericAmount}
                 </span>
               </div>
 
@@ -448,14 +490,14 @@ export const Invoice = ({ buyer, onClose }) => {
                       Balance due
                     </span>
                     <span style={{ fontSize: '1.05rem', color: '#1f2328' }}>
-                      {priced ? (outstanding ?? 0).toLocaleString('en-US') : '—'}
+                      {priced ? (adjustedOutstanding ?? 0).toLocaleString('en-US') : '—'}
                     </span>
                   </div>
                   {/* Overpayment is not a negative balance to a customer; it is
                       money owed back to them, and saying so is the honest read. */}
-                  {priced && outstanding < 0 && (
+                  {priced && (outstanding - discountAmount) < 0 && (
                     <div style={{ fontSize: '0.78rem', color: '#57606a', paddingTop: '4px' }}>
-                      Overpaid by {Math.abs(outstanding).toLocaleString('en-US')} — refundable.
+                      Overpaid by {Math.abs(outstanding - discountAmount).toLocaleString('en-US')} — refundable.
                     </div>
                   )}
                 </>
@@ -463,8 +505,8 @@ export const Invoice = ({ buyer, onClose }) => {
             </div>
           </div>
 
-          {/* Bank Payment Details & Stamp Section */}
-          <section style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px', marginTop: '36px', alignItems: 'flex-end' }}>
+          {/* Bank Payment Details */}
+          <section style={{ marginTop: '36px' }}>
             {/* Bank Details */}
             {/* The account CHOSEN for this sale, read off the buyer's own copy
                 so a reprint names what the customer was originally told to pay
@@ -479,11 +521,6 @@ export const Invoice = ({ buyer, onClose }) => {
               {bank.branch && <div><strong style={{ fontWeight: 600 }}>Branch:</strong> {bank.branch}</div>}
               {bank.accountNo && <div><strong style={{ fontWeight: 600 }}>Account No.:</strong> {bank.accountNo}</div>}
               {bank.accountName && <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> {bank.accountName}</div>}
-            </div>
-
-            {/* Signature & Official Circular Stamp */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <KeywaveStamp />
             </div>
           </section>
 

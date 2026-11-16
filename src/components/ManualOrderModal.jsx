@@ -53,6 +53,7 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
           partNumber: part.partNumber || '',
           qty: 1,
           unitPrice: Number(part.promo || part.price) || 0,
+          discount: 0,
           stock: part.stock != null ? part.stock : null,
           img: partImg,
         },
@@ -73,14 +74,28 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
     setSelectedLines(updated);
   };
 
+  const updateLineDiscount = (index, discount) => {
+    const updated = [...selectedLines];
+    updated[index].discount = Math.max(0, Number(discount) || 0);
+    setSelectedLines(updated);
+  };
+
   const removeLine = (index) => {
     setSelectedLines(selectedLines.filter((_, i) => i !== index));
   };
 
-  const total = selectedLines.reduce(
+  const lineNet = (l) =>
+    Math.max(0, (Number(l.unitPrice) || 0) * (Number(l.qty) || 0) - (Number(l.discount) || 0));
+
+  const subtotal = selectedLines.reduce(
     (sum, l) => sum + (Number(l.unitPrice) || 0) * (Number(l.qty) || 0),
     0
   );
+  const totalDiscount = selectedLines.reduce(
+    (sum, l) => sum + (Number(l.discount) || 0),
+    0
+  );
+  const total = selectedLines.reduce((sum, l) => sum + lineNet(l), 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,6 +123,7 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
         partNumber: l.partNumber,
         qty: l.qty,
         unitPrice: l.unitPrice,
+        discount: Number(l.discount) || 0,
         img: l.img || '',
       })),
       total,
@@ -268,16 +284,17 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
                 <thead>
                   <tr>
                     <th>Item</th>
-                    <th style={{ width: '90px', textAlign: 'center' }}>Qty</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Unit Price (KES)</th>
-                    <th style={{ width: '130px', textAlign: 'right' }}>Total (KES)</th>
-                    <th style={{ width: '50px' }}></th>
+                    <th style={{ width: '80px', textAlign: 'center' }}>Qty</th>
+                    <th style={{ width: '115px', textAlign: 'right' }}>Unit Price (KES)</th>
+                    <th style={{ width: '115px', textAlign: 'right' }}>Discount (KES)</th>
+                    <th style={{ width: '120px', textAlign: 'right' }}>Total (KES)</th>
+                    <th style={{ width: '44px' }}></th>
                   </tr>
                 </thead>
                 <tbody>
                   {selectedLines.length === 0 ? (
                     <tr>
-                      <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
                         No items added yet. Search above to add parts.
                       </td>
                     </tr>
@@ -298,7 +315,7 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
                             min="1"
                             value={l.qty}
                             onChange={(e) => updateLineQty(idx, e.target.value)}
-                            style={{ width: '60px', padding: '4px 6px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--field-border)', fontFamily: 'var(--font-mono)' }}
+                            style={{ width: '58px', padding: '4px 6px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--field-border)', fontFamily: 'var(--font-mono)' }}
                           />
                         </td>
                         <td style={{ textAlign: 'right' }}>
@@ -308,11 +325,22 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
                             step="50"
                             value={l.unitPrice}
                             onChange={(e) => updateLinePrice(idx, e.target.value)}
-                            style={{ width: '110px', padding: '4px 6px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--field-border)', fontFamily: 'var(--font-mono)' }}
+                            style={{ width: '98px', padding: '4px 6px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--field-border)', fontFamily: 'var(--font-mono)' }}
+                          />
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            value={l.discount ?? 0}
+                            onChange={(e) => updateLineDiscount(idx, e.target.value)}
+                            aria-label={`Discount for ${l.name}`}
+                            style={{ width: '98px', padding: '4px 6px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--field-border)', fontFamily: 'var(--font-mono)' }}
                           />
                         </td>
                         <td style={{ textAlign: 'right', fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
-                          {formatKES(l.qty * l.unitPrice)}
+                          {formatKES(lineNet(l))}
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <button
@@ -332,11 +360,25 @@ export const ManualOrderModal = ({ onClose, onCreated }) => {
             </div>
 
             {selectedLines.length > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'baseline', gap: '16px', marginTop: '12px', paddingRight: '12px' }}>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Order Total:</span>
-                <span style={{ fontSize: 'var(--text-xl)', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dark)' }}>
-                  {formatKES(total)}
-                </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', marginTop: '12px', paddingRight: '12px' }}>
+                {totalDiscount > 0 && (
+                  <>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
+                      <span>Subtotal:</span>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>{formatKES(subtotal)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '16px', fontSize: 'var(--text-sm)', color: '#059669' }}>
+                      <span>Discount:</span>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>- {formatKES(totalDiscount)}</span>
+                    </div>
+                  </>
+                )}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '16px' }}>
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>Order Total:</span>
+                  <span style={{ fontSize: 'var(--text-xl)', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text-dark)' }}>
+                    {formatKES(total)}
+                  </span>
+                </div>
               </div>
             )}
           </div>

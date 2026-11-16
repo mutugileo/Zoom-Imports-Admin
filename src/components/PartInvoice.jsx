@@ -67,8 +67,17 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
       accountName: 'Zoomflow Corporation Limited',
     };
   const lines = Array.isArray(order.items) ? order.items : [];
-  const linesTotal = lines.reduce(
+  const hasDiscounts = lines.some((l) => (Number(l.discount) || 0) > 0);
+  const linesSubtotal = lines.reduce(
     (sum, l) => sum + (Number(l.unitPrice) || 0) * (Number(l.qty) || 0),
+    0
+  );
+  const totalDiscount = lines.reduce(
+    (sum, l) => sum + (Number(l.discount) || 0),
+    0
+  );
+  const linesTotal = lines.reduce(
+    (sum, l) => sum + Math.max(0, (Number(l.unitPrice) || 0) * (Number(l.qty) || 0) - (Number(l.discount) || 0)),
     0
   );
   const totalAmount = order.total != null ? Number(order.total) : linesTotal;
@@ -225,6 +234,9 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                 <th style={TH}>DESCRIPTION</th>
                 <th style={{ ...TH, textAlign: 'center', width: '100px' }}>RATE</th>
                 <th style={{ ...TH, textAlign: 'center', width: '70px' }}>QTY</th>
+                {hasDiscounts && (
+                  <th style={{ ...TH, textAlign: 'right', width: '100px' }}>DISCOUNT</th>
+                )}
                 <th style={{ ...TH, textAlign: 'right', width: '130px' }}>AMOUNT</th>
               </tr>
             </thead>
@@ -238,6 +250,9 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                   </td>
                   <td style={{ ...TD, textAlign: 'center', color: '#6e7781' }}>—</td>
                   <td style={{ ...TD, textAlign: 'center', color: '#6e7781' }}>1</td>
+                  {hasDiscounts && (
+                    <td style={{ ...TD, textAlign: 'right', color: '#6e7781' }}>—</td>
+                  )}
                   <td style={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#1f2328', whiteSpace: 'nowrap' }}>
                     {totalAmount.toLocaleString('en-US')}
                   </td>
@@ -301,8 +316,15 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
                       <td style={{ ...TD, textAlign: 'center', color: '#1f2328' }}>
                         {l.qty}
                       </td>
+                      {hasDiscounts && (
+                        <td style={{ ...TD, textAlign: 'right', color: '#57606a', whiteSpace: 'nowrap' }}>
+                          {(Number(l.discount) || 0) > 0
+                            ? `− ${Number(l.discount).toLocaleString('en-US')}`
+                            : '—'}
+                        </td>
+                      )}
                       <td style={{ ...TD, textAlign: 'right', fontWeight: 600, color: '#1f2328', whiteSpace: 'nowrap' }}>
-                        {((Number(l.unitPrice) || 0) * (Number(l.qty) || 0)).toLocaleString('en-US')}
+                        {Math.max(0, (Number(l.unitPrice) || 0) * (Number(l.qty) || 0) - (Number(l.discount) || 0)).toLocaleString('en-US')}
                       </td>
                     </tr>
                   );
@@ -317,6 +339,18 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
           {/* TOTAL Section */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', marginBottom: '40px' }}>
             <div style={{ width: '300px' }}>
+              {totalDiscount > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.84rem', color: '#57606a' }}>
+                    <span>Subtotal</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>{linesSubtotal.toLocaleString('en-US')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', fontSize: '0.84rem', color: '#57606a' }}>
+                    <span>Discount</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>&minus; {totalDiscount.toLocaleString('en-US')}</span>
+                  </div>
+                </>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -375,9 +409,9 @@ export const PartInvoice = ({ order, isQuotation = false, onClose }) => {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a', marginBottom: '8px' }}>Lipa na M-Pesa</div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#57606a', marginBottom: '8px' }}>Lipa na KCB Paybill</div>
               <div style={{ fontSize: '0.88rem', color: '#24292e', lineHeight: 1.75 }}>
-                <div><strong style={{ fontWeight: 600 }}>Paybill:</strong> 522533</div>
+                <div><strong style={{ fontWeight: 600 }}>PayBill/Business Number:</strong> 522533</div>
                 <div><strong style={{ fontWeight: 600 }}>Account Number:</strong> 8158334</div>
                 <div><strong style={{ fontWeight: 600 }}>Account Name:</strong> ZoomFlow</div>
               </div>
